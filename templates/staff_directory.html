@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+{% if session['role'] == 'HR' %}
+<div class="card">
+    <h3>➕ Add New Employee</h3>
+    <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <input type="text" name="full_name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="text" name="username" placeholder="Create Username" required>
+        <input type="password" name="password" placeholder="Create Password" required>
+        <input type="number" name="salary" placeholder="Salary (INR)" required>
+        <input type="text" name="address" placeholder="Residential Address" required>
+        <button type="submit" class="btn" style="grid-column: span 2;">Add to Directory</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Company Directory</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Salary (₹)</th>
+                <th>Address</th>
+                <th>Email</th>
+                {% if session['role'] == 'HR' %}<th>Action</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td><strong>{{ emp.full_name }}</strong></td>
+                <td><span class="badge {% if emp.role == 'HR' %}badge-office{% else %}badge-wfh{% endif %}">{{ emp.role }}</span></td>
+                <td style="color: var(--p); font-weight: bold;">₹{{ "{:,}".format(emp.salary) }}</td>
+                <td style="font-size: 0.9rem; color: var(--text-light);">{{ emp.address }}</td>
+                <td>{{ emp.email }}</td>
+                {% if session['role'] == 'HR' %}
+                <td>
+                    {% if emp.role != 'HR' %}
+                    <a href="{{ url_for('remove_employee', uid=emp.id) }}" style="color: var(--danger); font-weight: bold;">Remove</a>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

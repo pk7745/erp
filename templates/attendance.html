@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Attendance Tracking</h2>
+        <form method="POST" style="display: flex; gap: 10px;">
+            <select name="work_mode" style="width: 150px; margin: 0;">
+                <option value="Office">🏢 Office</option>
+                <option value="WFH">🏠 WFH</option>
+            </select>
+            <button class="btn">Clock In / Out</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Employee</th>
+                <th>Mode</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in history %}
+            <tr>
+                <td>{{ row.date }}</td>
+                <td>{{ row.user.full_name }}</td>
+                <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
+                <td style="color: green;">{{ row.check_in }}</td>
+                <td style="color: #4318ff;">{{ row.check_out or '--:--' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

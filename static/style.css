@@ -1,0 +1,193 @@
+/* Nexus Enterprise ERP - Master Stylesheet 2026 */
+:root {
+    --p: #4318ff;           /* Primary Blue */
+    --bg: #f4f7fe;          /* Light Background */
+    --sidebar: #ffffff;     /* White Sidebar */
+    --text: #1b2559;        /* Dark Text */
+    --text-light: #a3aed0;  /* Muted Text */
+    --success: #05cd99;     /* Green for WFH/Success */
+    --danger: #ee5d50;      /* Red for Alerts */
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    display: flex;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+    width: 260px;
+    position: fixed;
+    height: 100vh;
+    background: var(--sidebar);
+    padding: 30px 20px;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.02);
+    z-index: 100;
+}
+
+.sidebar-link {
+    padding: 15px;
+    color: var(--text-light);
+    text-decoration: none;
+    display: block;
+    border-radius: 12px;
+    margin-bottom: 5px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.sidebar-link:hover {
+    background: #f4f7fe;
+    color: var(--p);
+}
+
+/* Main Content Area */
+.main {
+    margin-left: 260px;
+    padding: 40px;
+    width: calc(100% - 260px);
+}
+
+/* Dashboard Cards */
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    margin-bottom: 25px;
+}
+
+/* Requirement 1: Stats Container */
+.stats-container { 
+    display: flex; 
+    gap: 20px; 
+    margin: 20px 0; 
+}
+
+.stat-card { 
+    flex: 1; 
+    padding: 25px; 
+    border-radius: 20px; 
+    color: white; 
+    text-align: center; 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.stat-office { background: var(--p); }
+.stat-wfh { background: var(--success); }
+
+/* Requirement 4: Notification Panel & Sound Alerts */
+.notif-panel { 
+    background: #fffafa; 
+    border: 1px solid #fed7d7; 
+    padding: 15px; 
+    border-radius: 15px; 
+    max-height: 250px; 
+    overflow-y: auto; 
+}
+
+.notif-item { 
+    padding: 12px; 
+    border-bottom: 1px solid #fbdada; 
+    font-size: 14px; 
+    display: flex;
+    justify-content: space-between;
+}
+
+.notif-item:last-child { border-bottom: none; }
+
+.notif-item.new { 
+    animation: pulse 2s infinite; 
+}
+
+@keyframes pulse {
+    0% { background: #fff5f5; }
+    50% { background: #ffebeb; }
+    100% { background: #fff5f5; }
+}
+
+/* Requirement 5 & 7: Tables & Staff Directory */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th {
+    text-align: left;
+    color: var(--text-light);
+    font-size: 13px;
+    text-transform: uppercase;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid #f8f9fa;
+    font-size: 15px;
+}
+
+/* Badges for Roles/Status */
+.badge {
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-office { background: #e0e7ff; color: var(--p); }
+.badge-wfh { background: #e6fffa; color: var(--success); }
+
+/* Buttons & PDF Generation Styling */
+.btn {
+    background: var(--p);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 24, 255, 0.3);
+}
+
+/* Forms */
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #e0e5f2;
+    border-radius: 12px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* Requirement 6: Login Watermark */
+.login-bg {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+}
+
+/* Flash Messages */
+.flash {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+.success { background: #e6fffa; color: var(--success); border: 1px solid var(--success); }
+.error { background: #fff5f5; color: var(--danger); border: 1px solid var(--danger); }

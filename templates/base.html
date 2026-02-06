@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Enterprise ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sidebar">
+    <h2 style="color: var(--p); margin-bottom: 30px; padding-left: 15px;">NEXUS ERP</h2>
+    <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
+    <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
+    <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+    <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
+    <a href="{{ url_for('logout') }}" class="sidebar-link" style="margin-top: 50px; color: #ee5d50;">🚪 Logout</a>
+</div>
+
+    <div class="main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

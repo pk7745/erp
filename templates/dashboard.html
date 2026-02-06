@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>Welcome back, {{ user.full_name }}!</h1>
+    <span class="badge badge-office">{{ user.role }} Account</span>
+</div>
+
+<div class="stats-container">
+    <div class="stat-card stat-office">
+        <h3>Office Days</h3>
+        <p style="font-size: 2.5rem; font-weight: bold;">{{ office_days }}</p>
+    </div>
+    <div class="stat-card stat-wfh">
+        <h3>WFH Days</h3>
+        <p style="font-size: 2.5rem; font-weight: bold;">{{ wfh_days }}</p>
+    </div>
+</div>
+
+{% if session['role'] == 'HR' %}
+<div class="card">
+    <h3 style="color: #ee5d50;">🔔 Live HR Activity Feed</h3>
+    <div class="notif-panel">
+        {% for n in notifications %}
+            <div class="notif-item">
+                <strong>{{ n.timestamp.strftime('%H:%M') }}</strong> - {{ n.message }}
+            </div>
+        {% else %}
+            <p style="color: var(--text-light);">No recent activity.</p>
+        {% endfor %}
+    </div>
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <script>
+        window.onload = function() {
+            if (document.querySelectorAll('.notif-item').length > 0) {
+                document.getElementById('notifSound').play().catch(e => console.log("Sound blocked"));
+            }
+        }
+    </script>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>📝 Submit Daily Activity Report</h3>
+    <form action="{{ url_for('submit_report') }}" method="POST">
+        <textarea name="content" placeholder="Describe your work activities for today..." required style="width: 100%; height: 100px; border-radius: 10px; padding: 10px; border: 1px solid #ddd;"></textarea>
+        <button type="submit" class="btn" style="margin-top: 10px;">Submit to HR</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>📂 Generate Reports (PDF)</h3>
+    <div style="display: flex; gap: 15px;">
+        <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn">Download Attendance Report</a>
+        <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #05cd99;">Download Activity Report</a>
+    </div>
+</div>
+{% endblock %}

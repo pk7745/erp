@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+    <div class="card">
+        <h3>📅 Apply for Leave</h3>
+        <form method="POST">
+            <label style="font-size: 0.8rem; color: var(--text-light);">Select Date</label>
+            <input type="date" name="date" required>
+            <textarea name="reason" placeholder="Reason for leave..." required style="margin-top: 10px; height: 80px;"></textarea>
+            <button type="submit" class="btn" style="width:100%; margin-top: 10px;">Submit Application</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>📋 Requests Log</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in leaves %}
+                <tr>
+                    <td><strong>{{ l.user.full_name }}</strong></td>
+                    <td>{{ l.date }}</td>
+                    <td>
+                        <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
+                            {{ l.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if session['role'] == 'HR' and l.status == 'Pending' %}
+                            <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> 
+                            <span style="color: var(--text-light);">|</span>
+                            <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                        {% elif l.status != 'Pending' %}
+                            <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
+                        {% else %}
+                            <span style="color: var(--text-light); font-size: 0.8rem;">Waiting...</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
