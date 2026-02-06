@@ -3,13 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import io
+import os
 from fpdf import FPDF
 
 app = Flask(__name__)
 app.secret_key = "nexus_enterprise_ultimate_2026"
 
 # --- Database Config ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///nexus_final_v14.db'
+# Using absolute paths ensures the database file is found correctly on deployment servers like Render.
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v15.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -26,17 +29,17 @@ class User(db.Model):
     role = db.Column(db.String(20)) 
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
-    salary = db.Column(db.Integer, default=50000) # Added Salary
-    address = db.Column(db.String(255), default="Not Set") # Added Address
+    salary = db.Column(db.Integer, default=50000)
+    address = db.Column(db.String(255), default="Not Set")
     dept_id = db.Column(db.Integer, db.ForeignKey('department.id'))
     reset_requested = db.Column(db.Boolean, default=False)
 
-class Leave(db.Model): # New Model for Feature 1 & 2
+class Leave(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.String(20))
     reason = db.Column(db.String(255))
-    status = db.Column(db.String(20), default='Pending') # Pending, Approved, Rejected
+    status = db.Column(db.String(20), default='Pending')
     user = db.relationship('User', backref=db.backref('leaves', lazy=True))
 
 class Attendance(db.Model):
@@ -90,7 +93,6 @@ def dashboard():
     notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
     return render_template('dashboard.html', user=user_obj, office_days=off_days, wfh_days=home_days, notifications=notifications)
 
-# --- Leave Management (Feature 1 & 2) ---
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -114,7 +116,6 @@ def approve_leave(id, status):
         flash(f'Leave {status}', 'success')
     return redirect(url_for('leave'))
 
-# --- Staff Management (Feature 3 & 4) ---
 @app.route('/hr/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
@@ -124,8 +125,8 @@ def add_employee():
             role='Employee',
             full_name=request.form['full_name'],
             email=request.form['email'],
-            salary=request.form['salary'], # From Form
-            address=request.form['address'], # From Form
+            salary=request.form['salary'],
+            address=request.form['address'],
             dept_id=1
         )
         db.session.add(new_user)
@@ -147,7 +148,6 @@ def staff_directory():
     users = User.query.all()
     return render_template('staff_directory.html', employees=users)
 
-# --- PDF Reporting (No code changed from fixed version) ---
 @app.route('/download_report/<rtype>')
 def download_report(rtype):
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -174,12 +174,10 @@ def download_report(rtype):
     if isinstance(pdf_output, str): pdf_output = pdf_output.encode('latin-1', 'replace')
     return send_file(io.BytesIO(pdf_output), as_attachment=True, download_name=f"{rtype}_report.pdf", mimetype='application/pdf')
 
-# --- Existing Features Preserved ---
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
     today = datetime.now().strftime("%Y-%m-%d")
-    user = User.query.get(session['user_id'])
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         time_now = datetime.now().strftime("%I:%M %p")
@@ -212,75 +210,23 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 # --- Database Initialization (1 HR + 4 Employees) ---
-
 def init_db():
     with app.app_context():
         db.create_all()
-        
-        # 1. Create Default Department
         if not Department.query.first():
             db.session.add(Department(name="General Operations"))
             db.session.commit()
-        
-        # 2. Check if users exist, if not, create the 1+4 structure
         if not User.query.filter_by(username='admin').first():
-            # Create HR Manager (Sarah)
-            hr = User(
-                username='admin', 
-                password=generate_password_hash('admin123'), 
-                role='HR', 
-                full_name='Sarah Manager', 
-                email='hr@nexus.com', 
-                salary=95000, 
-                address="123 HR Tower, Mumbai", 
-                dept_id=1
-            )
-            
-            # Create 4 Standard Employees
-            e1 = User(
-                username='emp1', 
-                password=generate_password_hash('pass123'), 
-                role='Employee', 
-                full_name='John Doe', 
-                email='john@nexus.com', 
-                salary=55000, 
-                address="A-10, Green Park, Delhi", 
-                dept_id=1
-            )
-            e2 = User(
-                username='emp2', 
-                password=generate_password_hash('pass123'), 
-                role='Employee', 
-                full_name='Jane Smith', 
-                email='jane@nexus.com', 
-                salary=62000, 
-                address="Flat 402, Sunrise Apts, Bangalore", 
-                dept_id=1
-            )
-            e3 = User(
-                username='emp3', 
-                password=generate_password_hash('pass123'), 
-                role='Employee', 
-                full_name='Alex Wilson', 
-                email='alex@nexus.com', 
-                salary=48000, 
-                address="Sector 15, Huda Colony, Gurgaon", 
-                dept_id=1
-            )
-            e4 = User(
-                username='emp4', 
-                password=generate_password_hash('pass123'), 
-                role='Employee', 
-                full_name='Sam Brown', 
-                email='sam@nexus.com', 
-                salary=51000, 
-                address="Vila 7, Marina Drive, Kochi", 
-                dept_id=1
-            )
-
+            hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='Sarah Manager', email='hr@nexus.com', salary=95000, address="123 HR Tower, Mumbai", dept_id=1)
+            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Doe', email='john@nexus.com', salary=55000, address="A-10, Green Park, Delhi", dept_id=1)
+            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Jane Smith', email='jane@nexus.com', salary=62000, address="Flat 402, Sunrise Apts, Bangalore", dept_id=1)
+            e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Alex Wilson', email='alex@nexus.com', salary=48000, address="Sector 15, Huda Colony, Gurgaon", dept_id=1)
+            e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Sam Brown', email='sam@nexus.com', salary=51000, address="Vila 7, Marina Drive, Kochi", dept_id=1)
             db.session.add_all([hr, e1, e2, e3, e4])
             db.session.commit()
-            print("Database Initialized: 1 HR and 4 Employees created.")
+
+# Call the initializer to ensure the 1 HR + 4 Employee structure is created on start.
+init_db()
 
 if __name__ == '__main__':
     app.run()
