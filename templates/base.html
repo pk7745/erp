@@ -3,30 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Enterprise ERP</title>
+    <title>Nexus ERP</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="sidebar">
-    <h2 style="color: var(--p); margin-bottom: 30px; padding-left: 15px;">NEXUS ERP</h2>
-    <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
-    <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
-    <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
-    <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
-    <a href="{{ url_for('logout') }}" class="sidebar-link" style="margin-top: 50px; color: #ee5d50;">🚪 Logout</a>
-</div>
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>NEXUS 2026</h2>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('dashboard') }}">📊 Dashboard</a></li>
+            <li><a href="{{ url_for('attendance') }}">⏱️ Attendance</a></li>
+            <li><a href="{{ url_for('leave') }}">📅 Leave Management</a></li>
+            
+            <li><a href="{{ url_for('staff_directory') }}">👥 Staff Directory</a></li>
+            
+            <li class="logout-link"><a href="{{ url_for('logout') }}">🚪 Logout</a></li>
+        </ul>
+        <div class="user-info">
+            <p>Logged in as: <strong>{{ session['name'] }}</strong></p>
+            <span class="badge">{{ session['role'] }}</span>
+        </div>
+    </nav>
 
-    <div class="main">
+    <main class="content">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
+
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>
