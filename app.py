@@ -55,7 +55,6 @@ class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     content = db.Column(db.Text)
-    # Changed to nullable=True so we can manually set local time
     timestamp = db.Column(db.DateTime, default=datetime.utcnow) 
     user = db.relationship('User', backref=db.backref('reports', lazy=True))
 
@@ -92,26 +91,24 @@ def dashboard():
     off_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='Office').count()
     home_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='WFH').count()
     notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
-    
-    # Sort activity feed by newest first
     all_reports = ActivityReport.query.order_by(ActivityReport.timestamp.desc()).all() if session['role'] == 'HR' else ActivityReport.query.filter_by(user_id=user_obj.id).order_by(ActivityReport.timestamp.desc()).all()
-
     return render_template('dashboard.html', user=user_obj, office_days=off_days, wfh_days=home_days, notifications=notifications, reports=all_reports)
+
+@app.route('/clear_notifications')
+def clear_notifications():
+    if session.get('role') == 'HR':
+        Notification.query.delete()
+        db.session.commit()
+        flash('All notifications cleared', 'success')
+    return redirect(url_for('dashboard'))
 
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
     LEAVE_LIMIT = 2 
     local_tz = pytz.timezone('Asia/Kolkata')
     current_month = datetime.now(local_tz).strftime("%Y-%m")
-    
-    leaves_taken = Leave.query.filter(
-        Leave.user_id == session['user_id'],
-        Leave.date.like(f"{current_month}%"),
-        Leave.status != 'Rejected'
-    ).count()
-    
+    leaves_taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{current_month}%"), Leave.status != 'Rejected').count()
     leaves_left = max(0, LEAVE_LIMIT - leaves_taken)
 
     if request.method == 'POST':
@@ -141,16 +138,7 @@ def approve_leave(id, status):
 @app.route('/hr/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
-        new_user = User(
-            username=request.form['username'],
-            password=generate_password_hash(request.form['password']),
-            role='Employee',
-            full_name=request.form['full_name'],
-            email=request.form['email'],
-            salary=request.form['salary'],
-            address=request.form['address'],
-            dept_id=1
-        )
+        new_user = User(username=request.form['username'], password=generate_password_hash(request.form['password']), role='Employee', full_name=request.form['full_name'], email=request.form['email'], salary=request.form['salary'], address=request.form['address'], dept_id=1)
         db.session.add(new_user)
         db.session.commit()
         flash('Employee Added Successfully!', 'success')
@@ -203,7 +191,6 @@ def attendance():
     local_tz = pytz.timezone('Asia/Kolkata') 
     now = datetime.now(local_tz)
     today = now.strftime("%Y-%m-%d")
-
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         time_now = now.strftime("%I:%M %p") 
@@ -213,23 +200,15 @@ def attendance():
         else:
             att.check_out = time_now
         db.session.commit()
-    
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history, user=user_obj)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    # Get local time for Activity Feed
     local_tz = pytz.timezone('Asia/Kolkata')
     local_now = datetime.now(local_tz)
-    
-    report = ActivityReport(
-        user_id=session['user_id'], 
-        content=request.form['content'],
-        timestamp=local_now # Specifically setting local time here
-    )
+    report = ActivityReport(user_id=session['user_id'], content=request.form['content'], timestamp=local_now)
     db.session.add(report)
     db.session.commit()
     flash('Report Submitted', 'success')
