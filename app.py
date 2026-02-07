@@ -12,8 +12,8 @@ app.secret_key = "nexus_enterprise_ultimate_2026"
 
 # --- Database Config ---
 basedir = os.path.abspath(os.path.dirname(__file__))
-# Note: Version v18 ensures all new columns and tables are created fresh
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v18.db')
+# Updated version to ensure clean deployment on Render
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v19.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -81,6 +81,21 @@ def login():
         except Exception as e:
             return f"Database Error: {str(e)}"
     return render_template('login.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        user = User.query.filter_by(username=username).first()
+        if user:
+            # Send Reset Request Notification to HR
+            db.session.add(Notification(message=f"PASSWORD RESET REQUEST: User '{username}' is unable to login."))
+            db.session.commit()
+            flash('Request sent to HR. Please contact your administrator.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('Username not found.', 'error')
+    return render_template('forgot_password.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -165,6 +180,66 @@ def submit_report():
     db.session.commit()
     return redirect(url_for('dashboard'))
 
+@app.route('/download_report/<rtype>')
+def download_report(rtype):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"Nexus ERP {rtype.upper()} Report", ln=True, align='C')
+    pdf.ln(10)
+    pdf.set_font("Arial", size=10)
+    
+    if rtype == 'attendance':
+        data = Attendance.query.all() if user.role == 'HR' else Attendance.query.filter_by(user_id=user.id).all()
+        for r in data:
+            pdf.cell(0, 10, txt=f"{r.date} | {r.user.full_name} | {r.work_mode} | In: {r.check_in} | Out: {r.check_out or '--'}", ln=True)
+    else:
+        data = ActivityReport.query.all() if user.role == 'HR' else ActivityReport.query.filter_by(user_id=user.id).all()
+        for r in data:
+            pdf.set_font("Arial", 'B', 10)
+            pdf.cell(0, 8, txt=f"{r.user.full_name} - {r.timestamp.strftime('%Y-%m-%d %H:%M')}", ln=True)
+            pdf.set_font("Arial", size=10)
+            pdf.multi_cell(0, 8, txt=str(r.content))
+            pdf.ln(4)
+            
+    pdf_output = pdf.output(dest='S')
+    if isinstance(pdf_output, str): pdf_output = pdf_output.encode('latin-1', 'replace')
+    return send_file(io.BytesIO(pdf_output), as_attachment=True, download_name=f"{rtype}_report.pdf", mimetype='application/pdf')
+
+@app.route('/staff_directory')
+def staff_directory():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    users = User.query.all()
+    return render_template('staff_directory.html', employees=users)
+
+@app.route('/hr/add_employee', methods=['POST'])
+def add_employee():
+    if session.get('role') == 'HR':
+        new_user = User(
+            username=request.form['username'],
+            password=generate_password_hash(request.form['password']),
+            role='Employee',
+            full_name=request.form['full_name'],
+            email=request.form['email'],
+            salary=request.form['salary'],
+            address=request.form['address'],
+            dept_id=1
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Employee Added Successfully!', 'success')
+    return redirect(url_for('staff_directory'))
+
+@app.route('/remove_employee/<int:uid>')
+def remove_employee(uid):
+    if session.get('role') == 'HR':
+        User.query.filter_by(id=uid).delete()
+        db.session.commit()
+        flash('Employee Removed.', 'success')
+    return redirect(url_for('staff_directory'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -172,23 +247,17 @@ def logout():
 
 def init_db():
     with app.app_context():
-        # Force a refresh to ensure Notifications and Leave Reason columns exist
         db.create_all()
-        
         if not Department.query.first():
             db.session.add(Department(name="General Operations"))
             db.session.commit()
 
         if not User.query.filter_by(username='admin').first():
-            # HR Account
             hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="123 HR Tower", dept_id=1)
-            
-            # 4 Employee Accounts
             e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=55000, address="New Delhi", dept_id=1)
             e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='kar@nexus.com', salary=62000, address="Bangalore", dept_id=1)
             e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='pr@nexus.com', salary=48000, address="Gurgaon", dept_id=1)
             e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy', email='red@nexus.com', salary=51000, address="Kochi", dept_id=1)
-            
             db.session.add_all([hr, e1, e2, e3, e4])
             db.session.commit()
 
