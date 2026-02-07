@@ -96,16 +96,39 @@ def dashboard():
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
+    
+    # 1. Define the Monthly Leave Limit
+    LEAVE_LIMIT = 12 
+    
+    # 2. Calculate leaves taken by the current user for the current month
+    current_month = datetime.now().strftime("%Y-%m")
+    leaves_taken = Leave.query.filter(
+        Leave.user_id == session['user_id'],
+        Leave.date.like(f"{current_month}%"),
+        Leave.status != 'Rejected' # Only count pending or approved
+    ).count()
+
+    leaves_left = LEAVE_LIMIT - leaves_taken
+
     if request.method == 'POST':
-        new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
-        db.session.add(new_leave)
-        db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']} for {request.form['date']}"))
-        db.session.commit()
-        flash('Leave Application Submitted', 'success')
+        if leaves_left <= 0:
+            flash('Monthly leave limit reached (12 days).', 'error')
+        else:
+            new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
+            db.session.add(new_leave)
+            db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']} for {request.form['date']}"))
+            db.session.commit()
+            flash('Leave Application Submitted', 'success')
+            return redirect(url_for('leave')) # Refresh to update counts
     
     leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
-    return render_template('leave.html', leaves=leaves)
-
+    
+    return render_template('leave.html', 
+                           leaves=leaves, 
+                           leave_limit=LEAVE_LIMIT, 
+                           leaves_taken=leaves_taken, 
+                           leaves_left=leaves_left)
+    
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
     if session.get('role') == 'HR':
@@ -239,3 +262,4 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
