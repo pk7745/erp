@@ -47,17 +47,24 @@
                         </span>
                     </td>
                     <td>
-                        {% if session['role'] == 'HR' and l.status == 'Pending' %}
-                            <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> 
-                            <span style="color: var(--text-light);">|</span>
-                            <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
-                        {% elif l.status != 'Pending' %}
-                            <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
+                       {% if session['role'] == 'HR' %}
+                            {% if l.user.role != 'HR' %}
+                                {% if l.status == 'Pending' %}
+                                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: green; font-weight: bold; text-decoration: none;">Approve</a> | 
+                                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: red; font-weight: bold; text-decoration: none;">Reject</a>
+                                {% else %}
+                                    <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--text-light); font-style: italic; font-size: 0.8rem;">Self-Posted</span>
+                            {% endif %}
                         {% else %}
-                            <span style="color: var(--text-light); font-size: 0.8rem;">Waiting...</span>
+                            <span style="color: var(--text-light); font-size: 0.8rem;">
+                                {% if l.status == 'Pending' %}Waiting...{% else %}Processed{% endif %}
+                            </span>
                         {% endif %}
                     </td>
-                </tr>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -65,4 +72,3 @@
 </div>
 
 {% endblock %}
-
