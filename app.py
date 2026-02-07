@@ -4,13 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import io
 import os
+import pytz 
 from fpdf import FPDF
 
 app = Flask(__name__)
 app.secret_key = "nexus_enterprise_ultimate_2026"
 
 # --- Database Config ---
-# Using absolute paths ensures the database file is found correctly on deployment servers like Render.
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v15.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -177,13 +177,18 @@ def download_report(rtype):
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
+    
+    # FETCH USER OBJECT TO FIX THE CRASH
+    user_obj = User.query.get(session['user_id'])
+    
+    # Real-time timezone logic
     local_tz = pytz.timezone('Asia/Kolkata') 
     now = datetime.now(local_tz)
     today = now.strftime("%Y-%m-%d")
 
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
-        time_now = now.strftime("%I:%M %p") # Use the local time
+        time_now = now.strftime("%I:%M %p") 
         
         if not att:
             mode = request.form.get('work_mode')
@@ -191,9 +196,10 @@ def attendance():
         else:
             att.check_out = time_now
         db.session.commit()
-
+    
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
-    return render_template('attendance.html', history=history)
+    # PASS user=user_obj to the template
+    return render_template('attendance.html', history=history, user=user_obj)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
@@ -203,7 +209,6 @@ def submit_report():
     db.session.commit()
     flash('Report Submitted', 'success')
     return redirect(url_for('dashboard'))
-                
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -215,7 +220,6 @@ def forgot_password():
             flash('HR Notified', 'success')
     return render_template('forgot_password.html')
 
-# --- Database Initialization (1 HR + 4 Employees) ---
 def init_db():
     with app.app_context():
         db.create_all()
@@ -224,18 +228,14 @@ def init_db():
             db.session.commit()
         if not User.query.filter_by(username='admin').first():
             hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="123 HR Tower, Mumbai", dept_id=1)
-            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John dsouza', email='john@nexus.com', salary=55000, address="A-10, Green Park, Delhi", dept_id=1)
-            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='karthik sharma', email='kar@nexus.com', salary=62000, address="Flat 402, Sunrise Apts, Bangalore", dept_id=1)
+            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=55000, address="A-10, Green Park, Delhi", dept_id=1)
+            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='kartik sharma', email='kar@nexus.com', salary=62000, address="Flat 402, Sunrise Apts, Bangalore", dept_id=1)
             e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='pranav avadhani', email='pr@nexus.com', salary=48000, address="Sector 15, Huda Colony, Gurgaon", dept_id=1)
             e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='parthiv reddy', email='red@nexus.com', salary=51000, address="Vila 7, Marina Drive, Kochi", dept_id=1)
             db.session.add_all([hr, e1, e2, e3, e4])
             db.session.commit()
 
-# Call the initializer to ensure the 1 HR + 4 Employee structure is created on start.
 init_db()
 
 if __name__ == '__main__':
     app.run()
-
-
-
