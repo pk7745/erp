@@ -142,24 +142,53 @@ def attendance():
 
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    LEAVE_LIMIT = 2
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+    
+    # 1. Logic for the current user
+    user_obj = User.query.get(session['user_id'])
+    LEAVE_LIMIT = 2 # Monthly limit
+    
     local_tz = pytz.timezone('Asia/Kolkata')
     current_month = datetime.now(local_tz).strftime("%Y-%m")
-    leaves_taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{current_month}%"), Leave.status != 'Rejected').count()
+    
+    # 2. Calculate leave stats
+    leaves_taken = Leave.query.filter(
+        Leave.user_id == session['user_id'], 
+        Leave.date.like(f"{current_month}%"), 
+        Leave.status != 'Rejected'
+    ).count()
+    
     leaves_left = max(0, LEAVE_LIMIT - leaves_taken)
 
+    # 3. Handle Form Submission
     if request.method == 'POST':
         if leaves_left > 0:
-            new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form.get('reason', 'N/A'))
+            new_leave = Leave(
+                user_id=session['user_id'], 
+                date=request.form.get('date'), 
+                reason=request.form.get('reason', 'N/A')
+            )
             db.session.add(new_leave)
             db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']}"))
             db.session.commit()
-            flash('Submitted!', 'success')
+            flash('Leave application submitted!', 'success')
             return redirect(url_for('leave'))
+        else:
+            flash('Monthly leave limit reached!', 'error')
+
+    # 4. Fetch the log (HR sees all, Employees see only theirs)
+    if session['role'] == 'HR':
+        leaves = Leave.query.all()
+    else:
+        leaves = Leave.query.filter_by(user_id=session['user_id']).all()
     
-    leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
-    return render_template('leave.html', leaves=leaves, leave_limit=LEAVE_LIMIT, leaves_taken=leaves_taken, leaves_left=leaves_left)
+    # 5. SYNC CHECK: This return statement sends ALL variables the HTML asks for
+    return render_template('leave.html', 
+                           leaves=leaves, 
+                           leave_limit=LEAVE_LIMIT, 
+                           leaves_taken=leaves_taken, 
+                           leaves_left=leaves_left)
 
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
@@ -260,5 +289,6 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
 
 
