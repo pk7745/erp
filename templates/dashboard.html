@@ -16,18 +16,26 @@
     </div>
 </div>
 
-{% if session['role'] == 'HR' %}
 <div class="card">
-    <h3 style="color: #ee5d50;">🔔 Live HR Activity Feed</h3>
-    <div class="notif-panel">
-        {% for n in notifications %}
-            <div class="notif-item">
-                <strong>{{ n.timestamp.strftime('%H:%M') }}</strong> - {{ n.message }}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #ee5d50;">🔔 Notifications</h3>
+        {% if session['role'] == 'HR' %}
+            <a href="{{ url_for('clear_notifications') }}" class="btn" style="background: #ee5d50; font-size: 0.75rem; padding: 5px 10px;">Clear All</a>
+        {% endif %}
+    </div>
+    
+    <div class="notification-list">
+        {% for note in notifications %}
+            <div class="notification-item" style="padding: 10px; border-bottom: 1px solid #eee;">
+                <p style="margin: 0;">{{ note.message }}</p>
+                <small style="color: var(--text-light);">{{ note.timestamp.strftime('%I:%M %p') }}</small>
             </div>
         {% else %}
-            <p style="color: var(--text-light);">No recent activity.</p>
+            <p style="text-align: center; color: var(--text-light);">No new notifications</p>
         {% endfor %}
     </div>
+    
+    {% if session['role'] == 'HR' %}
     <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
     <script>
         window.onload = function() {
@@ -36,8 +44,8 @@
             }
         }
     </script>
-</div>
 {% endif %}
+</div>
 
 <div class="card">
     <h3>📝 Submit Daily Activity Report</h3>
@@ -54,4 +62,5 @@
         <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #05cd99;">Download Activity Report</a>
     </div>
 </div>
+
 {% endblock %}
