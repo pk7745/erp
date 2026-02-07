@@ -33,7 +33,13 @@
             <tr>
                 <td><strong>{{ emp.full_name }}</strong></td>
                 <td><span class="badge {% if emp.role == 'HR' %}badge-office{% else %}badge-wfh{% endif %}">{{ emp.role }}</span></td>
-                <td style="color: var(--p); font-weight: bold;">₹{{ "{:,}".format(emp.salary) }}</td>
+               <td>
+    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
+        <span style="color: var(--p); font-weight: bold;">₹{{ "{:,}".format(emp.salary) }}</span>
+    {% else %}
+        <span style="color: var(--text-light); letter-spacing: 2px;">XXXXX</span>
+    {% endif %}
+</td>
                 <td style="font-size: 0.9rem; color: var(--text-light);">{{ emp.address }}</td>
                 <td>{{ emp.email }}</td>
                 {% if session['role'] == 'HR' %}
