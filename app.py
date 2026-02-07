@@ -223,11 +223,11 @@ def init_db():
             db.session.add(Department(name="General Operations"))
             db.session.commit()
         if not User.query.filter_by(username='admin').first():
-            hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='Sarah Manager', email='hr@nexus.com', salary=95000, address="123 HR Tower, Mumbai", dept_id=1)
-            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Doe', email='john@nexus.com', salary=55000, address="A-10, Green Park, Delhi", dept_id=1)
-            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Jane Smith', email='jane@nexus.com', salary=62000, address="Flat 402, Sunrise Apts, Bangalore", dept_id=1)
-            e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Alex Wilson', email='alex@nexus.com', salary=48000, address="Sector 15, Huda Colony, Gurgaon", dept_id=1)
-            e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Sam Brown', email='sam@nexus.com', salary=51000, address="Vila 7, Marina Drive, Kochi", dept_id=1)
+            hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="123 HR Tower, Mumbai", dept_id=1)
+            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John dsouza', email='john@nexus.com', salary=55000, address="A-10, Green Park, Delhi", dept_id=1)
+            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='karthik', email='kar@nexus.com', salary=62000, address="Flat 402, Sunrise Apts, Bangalore", dept_id=1)
+            e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='pranav avadhani', email='pr@nexus.com', salary=48000, address="Sector 15, Huda Colony, Gurgaon", dept_id=1)
+            e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='parthiv reddy', email='red@nexus.com', salary=51000, address="Vila 7, Marina Drive, Kochi", dept_id=1)
             db.session.add_all([hr, e1, e2, e3, e4])
             db.session.commit()
 
@@ -236,4 +236,5 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
 
