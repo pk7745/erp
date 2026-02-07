@@ -12,8 +12,8 @@ app.secret_key = "nexus_enterprise_ultimate_2026"
 
 # --- Database Config ---
 basedir = os.path.abspath(os.path.dirname(__file__))
-# Updated version to ensure clean deployment on Render
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v21.db')
+# v22 ensures the 'reason' column is created and all 5 users are added fresh
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v22.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -38,7 +38,7 @@ class Leave(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.String(20))
-    reason = db.Column(db.String(255))
+    reason = db.Column(db.String(255)) 
     status = db.Column(db.String(20), default='Pending')
     user = db.relationship('User', backref=db.backref('leaves', lazy=True))
 
@@ -88,13 +88,11 @@ def forgot_password():
         username = request.form.get('username')
         user = User.query.filter_by(username=username).first()
         if user:
-            # Send Reset Request Notification to HR
-            db.session.add(Notification(message=f"PASSWORD RESET REQUEST: User '{username}' is unable to login."))
+            db.session.add(Notification(message=f"PASSWORD RESET REQUEST: '{username}'"))
             db.session.commit()
-            flash('Request sent to HR. Please contact your administrator.', 'success')
+            flash('Request sent to HR.', 'success')
             return redirect(url_for('login'))
-        else:
-            flash('Username not found.', 'error')
+        flash('Username not found.', 'error')
     return render_template('forgot_password.html')
 
 @app.route('/dashboard')
@@ -103,48 +101,58 @@ def dashboard():
     user_obj = User.query.get(session['user_id'])
     if not user_obj: return redirect(url_for('logout'))
     
-    off_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='Office').count()
-    home_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='WFH').count()
     notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
     all_reports = ActivityReport.query.order_by(ActivityReport.timestamp.desc()).all() if session['role'] == 'HR' else ActivityReport.query.filter_by(user_id=user_obj.id).order_by(ActivityReport.timestamp.desc()).all()
-    return render_template('dashboard.html', user=user_obj, office_days=off_days, wfh_days=home_days, notifications=notifications, reports=all_reports)
-
-@app.route('/clear_notifications')
-def clear_notifications():
-    if session.get('role') == 'HR':
-        Notification.query.delete()
-        db.session.commit()
-    return redirect(url_for('dashboard'))
+    return render_template('dashboard.html', user=user_obj, notifications=notifications, reports=all_reports)
 
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
+    
+    # 1. Define variables clearly for the template
     LEAVE_LIMIT = 2 
     local_tz = pytz.timezone('Asia/Kolkata')
     current_month = datetime.now(local_tz).strftime("%Y-%m")
-    leaves_taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{current_month}%"), Leave.status != 'Rejected').count()
+    
+    leaves_taken = Leave.query.filter(
+        Leave.user_id == session['user_id'], 
+        Leave.date.like(f"{current_month}%"), 
+        Leave.status != 'Rejected'
+    ).count()
+    
     leaves_left = max(0, LEAVE_LIMIT - leaves_taken)
 
     if request.method == 'POST':
         if leaves_left > 0:
-            new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
+            # 2. Match the name="reason" from your HTML
+            reason_text = request.form.get('reason', 'N/A')
+            new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=reason_text)
             db.session.add(new_leave)
             db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']} for {request.form['date']}"))
             db.session.commit()
-            flash('Leave Application Submitted', 'success')
+            flash('Application Submitted!', 'success')
+            return redirect(url_for('leave'))
         else:
-            flash('Limit reached', 'error')
+            flash('Limit reached!', 'error')
     
+    # 3. Fetch data for log
     leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
-    return render_template('leave.html', leaves=leaves, leave_limit=LEAVE_LIMIT, leaves_taken=leaves_taken, leaves_left=leaves_left)
+    
+    # 4. Return ALL variables the HTML asks for
+    return render_template('leave.html', 
+                           leaves=leaves, 
+                           leave_limit=LEAVE_LIMIT, 
+                           leaves_taken=leaves_taken, 
+                           leaves_left=leaves_left)
 
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
     if session.get('role') == 'HR':
         req = Leave.query.get(id)
-        req.status = status
-        db.session.add(Notification(message=f"LEAVE {status.upper()}: {req.user.full_name}"))
-        db.session.commit()
+        if req:
+            req.status = status
+            db.session.add(Notification(message=f"LEAVE {status.upper()}: {req.user.full_name}"))
+            db.session.commit()
     return redirect(url_for('leave'))
 
 @app.route('/attendance', methods=['GET', 'POST'])
@@ -169,76 +177,6 @@ def attendance():
     
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history, user=user_obj)
-
-@app.route('/submit_report', methods=['POST'])
-def submit_report():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    local_tz = pytz.timezone('Asia/Kolkata')
-    report = ActivityReport(user_id=session['user_id'], content=request.form['content'], timestamp=datetime.now(local_tz))
-    db.session.add(report)
-    db.session.add(Notification(message=f"REPORT SUBMITTED: {session['name']}"))
-    db.session.commit()
-    return redirect(url_for('dashboard'))
-
-@app.route('/download_report/<rtype>')
-def download_report(rtype):
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"Nexus ERP {rtype.upper()} Report", ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Arial", size=10)
-    
-    if rtype == 'attendance':
-        data = Attendance.query.all() if user.role == 'HR' else Attendance.query.filter_by(user_id=user.id).all()
-        for r in data:
-            pdf.cell(0, 10, txt=f"{r.date} | {r.user.full_name} | {r.work_mode} | In: {r.check_in} | Out: {r.check_out or '--'}", ln=True)
-    else:
-        data = ActivityReport.query.all() if user.role == 'HR' else ActivityReport.query.filter_by(user_id=user.id).all()
-        for r in data:
-            pdf.set_font("Arial", 'B', 10)
-            pdf.cell(0, 8, txt=f"{r.user.full_name} - {r.timestamp.strftime('%Y-%m-%d %H:%M')}", ln=True)
-            pdf.set_font("Arial", size=10)
-            pdf.multi_cell(0, 8, txt=str(r.content))
-            pdf.ln(4)
-            
-    pdf_output = pdf.output(dest='S')
-    if isinstance(pdf_output, str): pdf_output = pdf_output.encode('latin-1', 'replace')
-    return send_file(io.BytesIO(pdf_output), as_attachment=True, download_name=f"{rtype}_report.pdf", mimetype='application/pdf')
-
-@app.route('/staff_directory')
-def staff_directory():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    users = User.query.all()
-    return render_template('staff_directory.html', employees=users)
-
-@app.route('/hr/add_employee', methods=['POST'])
-def add_employee():
-    if session.get('role') == 'HR':
-        new_user = User(
-            username=request.form['username'],
-            password=generate_password_hash(request.form['password']),
-            role='Employee',
-            full_name=request.form['full_name'],
-            email=request.form['email'],
-            salary=request.form['salary'],
-            address=request.form['address'],
-            dept_id=1
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        flash('Employee Added Successfully!', 'success')
-    return redirect(url_for('staff_directory'))
-
-@app.route('/remove_employee/<int:uid>')
-def remove_employee(uid):
-    if session.get('role') == 'HR':
-        User.query.filter_by(id=uid).delete()
-        db.session.commit()
-        flash('Employee Removed.', 'success')
-    return redirect(url_for('staff_directory'))
 
 @app.route('/logout')
 def logout():
@@ -265,4 +203,3 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
-
