@@ -177,16 +177,21 @@ def download_report(rtype):
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    today = datetime.now().strftime("%Y-%m-%d")
+    local_tz = pytz.timezone('Asia/Kolkata') 
+    now = datetime.now(local_tz)
+    today = now.strftime("%Y-%m-%d")
+
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
-        time_now = datetime.now().strftime("%I:%M %p")
+        time_now = now.strftime("%I:%M %p") # Use the local time
+        
         if not att:
             mode = request.form.get('work_mode')
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=time_now, work_mode=mode))
         else:
             att.check_out = time_now
         db.session.commit()
+
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history)
 
@@ -198,6 +203,7 @@ def submit_report():
     db.session.commit()
     flash('Report Submitted', 'success')
     return redirect(url_for('dashboard'))
+                
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -230,3 +236,4 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
