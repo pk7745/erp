@@ -13,7 +13,7 @@ app.secret_key = "nexus_enterprise_ultimate_2026"
 # --- Database Config ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 # v26 ensures all features (Attendance, Reports, Leaves) have the correct columns
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v26.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v28.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -289,6 +289,7 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
 
 
 
