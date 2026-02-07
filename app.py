@@ -202,6 +202,40 @@ def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('staff_directory.html', employees=User.query.all())
 
+@app.route('/add_employee', methods=['POST'])
+def add_employee():
+    if session.get('role') == 'HR':
+        username = request.form['username']
+        # Check if username already exists to prevent crash
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists!', 'error')
+            return redirect(url_for('staff_directory'))
+            
+        new_emp = User(
+            username=username,
+            password=generate_password_hash(request.form['password']),
+            role='Employee',
+            full_name=request.form['full_name'],
+            email=request.form['email'],
+            salary=int(request.form['salary']),
+            address=request.form['address'],
+            dept_id=1
+        )
+        db.session.add(new_emp)
+        db.session.commit()
+        flash(f"Employee {username} added successfully!", "success")
+    return redirect(url_for('staff_directory'))
+
+@app.route('/remove_employee/<int:uid>')
+def remove_employee(uid):
+    if session.get('role') == 'HR':
+        user_to_del = User.query.get(uid)
+        if user_to_del and user_to_del.role != 'HR':
+            db.session.delete(user_to_del)
+            db.session.commit()
+            flash("Employee removed from directory.", "success")
+    return redirect(url_for('staff_directory'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -226,4 +260,5 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
 
