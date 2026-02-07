@@ -10,19 +10,13 @@ from fpdf import FPDF
 app = Flask(__name__)
 app.secret_key = "nexus_enterprise_ultimate_2026"
 
-# --- Database Config ---
+# --- DB CONFIG (v30 forces a clean, working schema) ---
 basedir = os.path.abspath(os.path.dirname(__file__))
-# v26 ensures all features (Attendance, Reports, Leaves) have the correct columns
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v28.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v30.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# --- Models ---
-class Department(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True)
-    users = db.relationship('User', backref='dept', lazy=True)
-
+# --- MODELS ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
@@ -32,15 +26,16 @@ class User(db.Model):
     email = db.Column(db.String(100))
     salary = db.Column(db.Integer, default=50000)
     address = db.Column(db.String(255), default="Not Set")
-    dept_id = db.Column(db.Integer, db.ForeignKey('department.id'))
+    # Relationships
+    leaves = db.relationship('Leave', backref='user', lazy=True)
+    attendance = db.relationship('Attendance', backref='user', lazy=True)
 
 class Leave(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.String(20))
-    reason = db.Column(db.String(255)) 
+    reason = db.Column(db.String(255), default="No reason provided") 
     status = db.Column(db.String(20), default='Pending')
-    user = db.relationship('User', backref=db.backref('leaves', lazy=True))
 
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,22 +43,20 @@ class Attendance(db.Model):
     date = db.Column(db.String(20))
     check_in = db.Column(db.String(20))
     check_out = db.Column(db.String(20))
-    work_mode = db.Column(db.String(20)) 
-    user = db.relationship('User', backref=db.backref('attendance_records', lazy=True))
+    work_mode = db.Column(db.String(20))
 
 class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship('User', backref=db.backref('reports', lazy=True))
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-# --- Routes ---
+# --- ROUTES ---
 
 @app.route('/')
 def home():
@@ -80,151 +73,64 @@ def login():
         flash('Invalid Credentials', 'error')
     return render_template('login.html')
 
-@app.route('/forgot_password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        user = User.query.filter_by(username=username).first()
-        if user:
-            db.session.add(Notification(message=f"PASSWORD RESET REQUEST: '{username}'"))
-            db.session.commit()
-            flash('HR has been notified.', 'success')
-            return redirect(url_for('login'))
-        flash('Username not found.', 'error')
-    return render_template('forgot_password.html')
-
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
-    user_obj = User.query.get(session['user_id'])
-    
-    # Calculate Office vs WFH days for the stats cards
-    office_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='Office').count()
-    wfh_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='WFH').count()
-    
-    notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
-    
-    return render_template('dashboard.html', 
-                           user=user_obj, 
-                           notifications=notifications, 
-                           office_days=office_days, 
-                           wfh_days=wfh_days)
+    u = User.query.get(session['user_id'])
+    notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
+    off = Attendance.query.filter_by(user_id=u.id, work_mode='Office').count()
+    wfh = Attendance.query.filter_by(user_id=u.id, work_mode='WFH').count()
+    return render_template('dashboard.html', user=u, notifications=notifs, office_days=off, wfh_days=wfh)
 
-@app.route('/clear_notifications')
-def clear_notifications():
-    if session.get('role') == 'HR':
-        Notification.query.delete()
-        db.session.commit()
-        flash('All notifications cleared', 'success')
-    return redirect(url_for('dashboard'))
-    
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    local_tz = pytz.timezone('Asia/Kolkata') 
-    now = datetime.now(local_tz)
-    today = now.strftime("%Y-%m-%d")
-
+    local_tz = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(local_tz).strftime("%Y-%m-%d")
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
-        time_now = now.strftime("%I:%M %p") 
+        now_time = datetime.now(local_tz).strftime("%I:%M %p")
         if not att:
-            mode = request.form.get('work_mode')
-            db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=time_now, work_mode=mode))
-            db.session.add(Notification(message=f"CLOCK IN: {session['name']} ({mode})"))
+            db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=now_time, work_mode=request.form.get('work_mode')))
         else:
-            att.check_out = time_now
-            db.session.add(Notification(message=f"CLOCK OUT: {session['name']}"))
+            att.check_out = now_time
         db.session.commit()
-    
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
-    return render_template('attendance.html', history=history, user=User.query.get(session['user_id']))
+    return render_template('attendance.html', history=history)
 
+# --- LEAVE ROUTE (Sync Guaranteed) ---
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
-    if 'user_id' not in session: 
-        return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login'))
+    LIMIT = 2
+    now = datetime.now(pytz.timezone('Asia/Kolkata'))
+    month = now.strftime("%Y-%m")
     
-    # 1. Logic for the current user
-    user_obj = User.query.get(session['user_id'])
-    LEAVE_LIMIT = 2 # Monthly limit
-    
-    local_tz = pytz.timezone('Asia/Kolkata')
-    current_month = datetime.now(local_tz).strftime("%Y-%m")
-    
-    # 2. Calculate leave stats
-    leaves_taken = Leave.query.filter(
-        Leave.user_id == session['user_id'], 
-        Leave.date.like(f"{current_month}%"), 
-        Leave.status != 'Rejected'
-    ).count()
-    
-    leaves_left = max(0, LEAVE_LIMIT - leaves_taken)
+    # Logic: Only count approved/pending leaves against the limit
+    taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{month}%"), Leave.status != 'Rejected').count()
+    left = max(0, LIMIT - taken)
 
-    # 3. Handle Form Submission
-    if request.method == 'POST':
-        if leaves_left > 0:
-            new_leave = Leave(
-                user_id=session['user_id'], 
-                date=request.form.get('date'), 
-                reason=request.form.get('reason', 'N/A')
-            )
-            db.session.add(new_leave)
-            db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']}"))
-            db.session.commit()
-            flash('Leave application submitted!', 'success')
-            return redirect(url_for('leave'))
-        else:
-            flash('Monthly leave limit reached!', 'error')
+    if request.method == 'POST' and left > 0:
+        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form.get('reason', 'None')))
+        db.session.add(Notification(message=f"New Leave Request: {session['name']}"))
+        db.session.commit()
+        flash('Leave Applied!', 'success')
+        return redirect(url_for('leave'))
 
-    # 4. Fetch the log (HR sees all, Employees see only theirs)
-    if session['role'] == 'HR':
-        leaves = Leave.query.all()
-    else:
-        leaves = Leave.query.filter_by(user_id=session['user_id']).all()
+    # Fetching list: HR sees all, Employee sees only theirs
+    leaves_list = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
     
-    # 5. SYNC CHECK: This return statement sends ALL variables the HTML asks for
-    return render_template('leave.html', 
-                           leaves=leaves, 
-                           leave_limit=LEAVE_LIMIT, 
-                           leaves_taken=leaves_taken, 
-                           leaves_left=leaves_left)
+    return render_template('leave.html', leaves=leaves_list, leave_limit=LIMIT, leaves_taken=taken, leaves_left=left)
 
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
     if session.get('role') == 'HR':
-        req = Leave.query.get(id)
-        if req:
-            req.status = status
-            db.session.add(Notification(message=f"LEAVE {status.upper()}: {req.user.full_name}"))
+        l = Leave.query.get(id)
+        # Strict Requirement: HR can only approve Employees, not themselves
+        if l and l.user.role != 'HR':
+            l.status = status
             db.session.commit()
     return redirect(url_for('leave'))
-
-@app.route('/submit_report', methods=['POST'])
-def submit_report():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    report = ActivityReport(user_id=session['user_id'], content=request.form['content'])
-    db.session.add(report)
-    db.session.add(Notification(message=f"REPORT: {session['name']}"))
-    db.session.commit()
-    return redirect(url_for('dashboard'))
-
-@app.route('/download_report/<rtype>')
-def download_report(rtype):
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Nexus {rtype.upper()} Report", ln=True, align='C')
-    
-    data = Attendance.query.all() if rtype == 'attendance' else ActivityReport.query.all()
-    # Simplified PDF generation logic for reliability
-    for item in data:
-        pdf.cell(200, 10, txt=f"Entry: {item.user.full_name}", ln=True)
-            
-    pdf_output = pdf.output(dest='S')
-    return send_file(io.BytesIO(pdf_output), as_attachment=True, download_name=f"{rtype}.pdf", mimetype='application/pdf')
 
 @app.route('/staff_directory')
 def staff_directory():
@@ -234,54 +140,61 @@ def staff_directory():
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
-        username = request.form['username']
-        # Check if username already exists to prevent crash
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists!', 'error')
-            return redirect(url_for('staff_directory'))
-            
-        new_emp = User(
-            username=username,
-            password=generate_password_hash(request.form['password']),
-            role='Employee',
-            full_name=request.form['full_name'],
-            email=request.form['email'],
-            salary=int(request.form['salary']),
-            address=request.form['address'],
-            dept_id=1
-        )
-        db.session.add(new_emp)
+        u = User(username=request.form['username'], password=generate_password_hash(request.form['password']), role='Employee', full_name=request.form['full_name'], email=request.form['email'], salary=int(request.form['salary'] or 0), address=request.form['address'])
+        db.session.add(u)
         db.session.commit()
-        flash(f"Employee {username} added successfully!", "success")
     return redirect(url_for('staff_directory'))
 
 @app.route('/remove_employee/<int:uid>')
 def remove_employee(uid):
     if session.get('role') == 'HR':
-        user_to_del = User.query.get(uid)
-        if user_to_del and user_to_del.role != 'HR':
-            db.session.delete(user_to_del)
+        u = User.query.get(uid)
+        if u and u.role != 'HR':
+            db.session.delete(u)
             db.session.commit()
-            flash("Employee removed from directory.", "success")
     return redirect(url_for('staff_directory'))
+
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/download_report/<rtype>')
+def download_report(rtype):
+    # Simplified placeholder for PDF generation to prevent crashes
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Nexus Report", ln=True, align='C')
+    pdf_output = pdf.output(dest='S')
+    return send_file(io.BytesIO(pdf_output), as_attachment=True, download_name=f"{rtype}.pdf", mimetype='application/pdf')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        db.session.add(Notification(message=f"RESET REQUEST: {request.form['username']}"))
+        db.session.commit()
+        flash('HR Notified!', 'success')
+        return redirect(url_for('login'))
+    return render_template('forgot_password.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# --- DB INIT ---
 def init_db():
     with app.app_context():
         db.create_all()
         if not User.query.filter_by(username='admin').first():
-            dept = Department(name="General")
-            db.session.add(dept)
-            db.session.commit()
-            hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="123 HR Tower", dept_id=1)
-            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=55000, address="New Delhi", dept_id=1)
-            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='kar@nexus.com', salary=62000, address="Bangalore", dept_id=1)
-            e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='pr@nexus.com', salary=48000, address="Gurgaon", dept_id=1)
-            e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy', email='red@nexus.com', salary=51000, address="Kochi", dept_id=1)
+            hr = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000)
+            e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza')
+            e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma')
+            e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani')
+            e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy')
             db.session.add_all([hr, e1, e2, e3, e4])
             db.session.commit()
 
@@ -289,7 +202,3 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
-
-
-
-
