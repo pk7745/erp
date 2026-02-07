@@ -5,6 +5,13 @@
 </head>
 <body class="login-bg">
     <div class="card" style="width: 350px; z-index: 1;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}" style="font-size: 13px; padding: 10px;">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
         <h2 style="text-align: center; color: var(--p);">Nexus Login</h2>
         <form method="POST">
             <input type="text" name="username" placeholder="Username" required>
@@ -16,4 +23,5 @@
         </div>
     </div>
 </body>
+
 </html>
