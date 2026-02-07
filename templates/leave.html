@@ -25,50 +25,48 @@
         </form>
     </div>
 
-    <div class="card">
-        <h3>📋 Requests Log</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for l in leaves %}
-                <tr>
-                    <td><strong>{{ l.user.full_name }}</strong></td>
-                    <td>{{ l.date }}</td>
-                    <td>
-                        <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
-                            {{ l.status }}
-                        </span>
-                    </td>
-                    <td>
-                       {% if session['role'] == 'HR' %}
-                            {% if l.user.role != 'HR' %}
-                                {% if l.status == 'Pending' %}
-                                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: green; font-weight: bold; text-decoration: none;">Approve</a> | 
-                                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: red; font-weight: bold; text-decoration: none;">Reject</a>
-                                {% else %}
-                                    <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
-                                {% endif %}
+   <div class="card">
+    <h3>📋 Requests Log</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Date</th>
+                <th>Reason</th> <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in leaves %}
+            <tr>
+                <td><strong>{{ l.user.full_name }}</strong></td>
+                <td>{{ l.date }}</td>
+                <td><small style="color: var(--text-light);">{{ l.reason }}</small></td>
+                <td>
+                    <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
+                        {{ l.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if session['role'] == 'HR' %}
+                        {% if l.user.role != 'HR' %}
+                            {% if l.status == 'Pending' %}
+                                <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: green; font-weight: bold; text-decoration: none;">Approve</a> | 
+                                <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: red; font-weight: bold; text-decoration: none;">Reject</a>
                             {% else %}
-                                <span style="color: var(--text-light); font-style: italic; font-size: 0.8rem;">Self-Posted</span>
+                                <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
                             {% endif %}
                         {% else %}
-                            <span style="color: var(--text-light); font-size: 0.8rem;">
-                                {% if l.status == 'Pending' %}Waiting...{% else %}Processed{% endif %}
-                            </span>
+                            <span style="color: var(--text-light); font-style: italic; font-size: 0.8rem;">Self-Posted</span>
                         {% endif %}
-                    </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    {% else %}
+                        <span style="color: var(--text-light); font-size: 0.8rem;">
+                            {% if l.status == 'Pending' %}Waiting...{% else %}Processed{% endif %}
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
-
-{% endblock %}
