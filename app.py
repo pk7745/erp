@@ -55,7 +55,8 @@ class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     content = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    # Changed to nullable=True so we can manually set local time
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow) 
     user = db.relationship('User', backref=db.backref('reports', lazy=True))
 
 class Notification(db.Model):
@@ -91,44 +92,42 @@ def dashboard():
     off_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='Office').count()
     home_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='WFH').count()
     notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
-    return render_template('dashboard.html', user=user_obj, office_days=off_days, wfh_days=home_days, notifications=notifications)
+    
+    # Sort activity feed by newest first
+    all_reports = ActivityReport.query.order_by(ActivityReport.timestamp.desc()).all() if session['role'] == 'HR' else ActivityReport.query.filter_by(user_id=user_obj.id).order_by(ActivityReport.timestamp.desc()).all()
+
+    return render_template('dashboard.html', user=user_obj, office_days=off_days, wfh_days=home_days, notifications=notifications, reports=all_reports)
 
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    # 1. Define the Monthly Leave Limit
-    LEAVE_LIMIT = 12 
+    LEAVE_LIMIT = 2 
+    local_tz = pytz.timezone('Asia/Kolkata')
+    current_month = datetime.now(local_tz).strftime("%Y-%m")
     
-    # 2. Calculate leaves taken by the current user for the current month
-    current_month = datetime.now().strftime("%Y-%m")
     leaves_taken = Leave.query.filter(
         Leave.user_id == session['user_id'],
         Leave.date.like(f"{current_month}%"),
-        Leave.status != 'Rejected' # Only count pending or approved
+        Leave.status != 'Rejected'
     ).count()
-
-    leaves_left = LEAVE_LIMIT - leaves_taken
+    
+    leaves_left = max(0, LEAVE_LIMIT - leaves_taken)
 
     if request.method == 'POST':
         if leaves_left <= 0:
-            flash('Monthly leave limit reached (12 days).', 'error')
+            flash(f'Monthly leave limit of {LEAVE_LIMIT} days reached!', 'error')
         else:
             new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
             db.session.add(new_leave)
             db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']} for {request.form['date']}"))
             db.session.commit()
             flash('Leave Application Submitted', 'success')
-            return redirect(url_for('leave')) # Refresh to update counts
+            return redirect(url_for('leave'))
     
     leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
-    
-    return render_template('leave.html', 
-                           leaves=leaves, 
-                           leave_limit=LEAVE_LIMIT, 
-                           leaves_taken=leaves_taken, 
-                           leaves_left=leaves_left)
-    
+    return render_template('leave.html', leaves=leaves, leave_limit=LEAVE_LIMIT, leaves_taken=leaves_taken, leaves_left=leaves_left)
+
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
     if session.get('role') == 'HR':
@@ -200,11 +199,7 @@ def download_report(rtype):
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    # FETCH USER OBJECT TO FIX THE CRASH
     user_obj = User.query.get(session['user_id'])
-    
-    # Real-time timezone logic
     local_tz = pytz.timezone('Asia/Kolkata') 
     now = datetime.now(local_tz)
     today = now.strftime("%Y-%m-%d")
@@ -212,7 +207,6 @@ def attendance():
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         time_now = now.strftime("%I:%M %p") 
-        
         if not att:
             mode = request.form.get('work_mode')
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=time_now, work_mode=mode))
@@ -221,13 +215,21 @@ def attendance():
         db.session.commit()
     
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
-    # PASS user=user_obj to the template
     return render_template('attendance.html', history=history, user=user_obj)
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     if 'user_id' not in session: return redirect(url_for('login'))
-    report = ActivityReport(user_id=session['user_id'], content=request.form['content'])
+    
+    # Get local time for Activity Feed
+    local_tz = pytz.timezone('Asia/Kolkata')
+    local_now = datetime.now(local_tz)
+    
+    report = ActivityReport(
+        user_id=session['user_id'], 
+        content=request.form['content'],
+        timestamp=local_now # Specifically setting local time here
+    )
     db.session.add(report)
     db.session.commit()
     flash('Report Submitted', 'success')
@@ -262,4 +264,3 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
-
