@@ -97,10 +97,27 @@ def forgot_password():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user_obj = User.query.get(session['user_id'])
+    
+    # Calculate Office vs WFH days for the stats cards
+    office_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='Office').count()
+    wfh_days = Attendance.query.filter_by(user_id=user_obj.id, work_mode='WFH').count()
+    
     notifications = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
-    all_reports = ActivityReport.query.order_by(ActivityReport.timestamp.desc()).all() if session['role'] == 'HR' else ActivityReport.query.filter_by(user_id=user_obj.id).order_by(ActivityReport.timestamp.desc()).all()
-    return render_template('dashboard.html', user=user_obj, notifications=notifications, reports=all_reports)
+    
+    return render_template('dashboard.html', 
+                           user=user_obj, 
+                           notifications=notifications, 
+                           office_days=office_days, 
+                           wfh_days=wfh_days)
 
+@app.route('/clear_notifications')
+def clear_notifications():
+    if session.get('role') == 'HR':
+        Notification.query.delete()
+        db.session.commit()
+        flash('All notifications cleared', 'success')
+    return redirect(url_for('dashboard'))
+    
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -209,3 +226,4 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
