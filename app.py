@@ -13,7 +13,7 @@ app.secret_key = "nexus_enterprise_ultimate_2026"
 # --- Database Config ---
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Updated version to ensure clean deployment on Render
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v19.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v21.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -265,3 +265,4 @@ init_db()
 
 if __name__ == '__main__':
     app.run()
+
