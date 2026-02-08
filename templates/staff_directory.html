@@ -2,15 +2,15 @@
 {% block content %}
 {% if session['role'] == 'HR' %}
 <div class="card">
-    <h3>➕ Add New Employee</h3>
+    <h3>➕ Onboard New Employee</h3>
     <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <input type="text" name="full_name" placeholder="Full Name" required>
-        <input type="email" name="email" placeholder="Email Address" required>
-        <input type="text" name="username" placeholder="Create Username" required>
-        <input type="password" name="password" placeholder="Create Password" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
         <input type="number" name="salary" placeholder="Salary (INR)" required>
-        <input type="text" name="address" placeholder="Residential City" required>
-        <button type="submit" class="btn" style="grid-column: span 2;">Add to Directory</button>
+        <input type="text" name="address" placeholder="Location/City" required>
+        <button type="submit" class="btn" style="grid-column: span 2;">Save Employee</button>
     </form>
 </div>
 {% endif %}
@@ -20,10 +20,9 @@
     <table>
         <thead>
             <tr>
-                <th>Full Name</th>
-                <th>Role</th>
+                <th>Name</th>
                 <th>Salary (₹)</th>
-                <th>City</th>
+                <th>Location</th>
                 <th>Email</th>
                 {% if session['role'] == 'HR' %}<th>Action</th>{% endif %}
             </tr>
@@ -31,13 +30,12 @@
         <tbody>
             {% for emp in employees %}
             <tr>
-                <td><strong>{{ emp.full_name }}</strong></td>
-                <td><span class="badge {% if emp.role == 'HR' %}badge-office{% else %}badge-wfh{% endif %}">{{ emp.role }}</span></td>
+                <td><strong>{{ emp.full_name }}</strong> <br><small>{{ emp.role }}</small></td>
                 <td>
                     {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
-                        <span style="color: var(--p); font-weight: bold;">₹{{ "{:,}".format(emp.salary) }}</span>
+                        ₹{{ "{:,}".format(emp.salary) }}
                     {% else %}
-                        <span style="color: var(--text-light); letter-spacing: 2px;">XXXXX</span>
+                        XXXXX
                     {% endif %}
                 </td>
                 <td>{{ emp.address }}</td>
@@ -47,7 +45,7 @@
                     {% if emp.role != 'HR' %}
                         <a href="{{ url_for('remove_employee', uid=emp.id) }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Remove</a>
                     {% else %}
-                        <span style="color: var(--text-light); font-size: 0.8rem;">System Admin</span>
+                        -
                     {% endif %}
                 </td>
                 {% endif %}
