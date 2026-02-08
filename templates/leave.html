@@ -1,76 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px;">
-    <div class="card" style="text-align: center; border-bottom: 5px solid var(--p);">
-        <p style="color: var(--text-light); margin: 0;">Monthly Limit</p>
-        <h2 style="color: var(--p);">{{ leave_limit }} Days</h2>
-    </div>
-    <div class="card" style="text-align: center; border-bottom: 5px solid #ffa000;">
-        <p style="color: var(--text-light); margin: 0;">Leaves Taken</p>
-        <h2 style="color: #ffa000;">{{ leaves_taken }}</h2>
-    </div>
-    <div class="card" style="text-align: center; border-bottom: 5px solid #43a047;">
-        <p style="color: var(--text-light); margin: 0;">Leaves Left</p>
-        <h2 style="color: #43a047;">{{ leaves_left }}</h2>
-    </div>
-</div>
-<div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+<div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px;">
     <div class="card">
         <h3>📅 Apply for Leave</h3>
+        <p style="font-size: 0.8rem; color: var(--text-light);">Month Balance: {{ leaves_left }} / {{ leave_limit }}</p>
         <form method="POST">
             <label style="font-size: 0.8rem; color: var(--text-light);">Select Date</label>
             <input type="date" name="date" required>
             <textarea name="reason" placeholder="Reason for leave..." required style="margin-top: 10px; height: 80px;"></textarea>
+            {% if leaves_left > 0 %}
             <button type="submit" class="btn" style="width:100%; margin-top: 10px;">Submit Application</button>
+            {% else %}
+            <button class="btn" style="width:100%; margin-top: 10px; background: var(--text-light); cursor: not-allowed;" disabled>Limit Reached</button>
+            {% endif %}
         </form>
     </div>
 
-   <div class="card">
-    <h3>📋 Requests Log</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Date</th>
-                <th>Reason</th> <th>Status</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for l in leaves %}
-<tr>
-    <td><strong>{{ l.user.full_name }}</strong></td>
-    <td>{{ l.date }}</td>
-    
-    <td>
-        <small style="color: #666; display:block; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ l.reason }}">
-            {{ l.reason }}
-        </small>
-    </td>
-
-    <td>
-        <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
-            {{ l.status }}
-        </span>
-    </td>
-    
-    <td>
-        {% if session['role'] == 'HR' %}
-            {% if l.user.role != 'HR' %}
-                {% if l.status == 'Pending' %}
-                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color:green; font-weight:bold;">Approve</a> | 
-                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color:red; font-weight:bold;">Reject</a>
-                {% else %}
-                    <span style="color: #999;">Processed</span>
-                {% endif %}
-            {% else %}
-                <span style="color: #6c5ce7; font-style:italic;">Self-Posted</span>
-            {% endif %}
-        {% else %}
-            <span style="color: #999;">
-                {% if l.status == 'Pending' %}Waiting...{% else %}Done{% endif %}
-            </span>
-        {% endif %}
-    </td>
-</tr>
-{% endfor %}
+    <div class="card">
+        <h3>📋 Requests Log</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Reason</th> <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in leaves %}
+                <tr>
+                    <td><strong>{{ l.user.full_name }}</strong></td>
+                    <td>{{ l.date }}</td>
+                    <td style="font-size: 0.85rem; color: #555;">{{ l.reason }}</td> <td>
+                        <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
+                            {{ l.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if session['role'] == 'HR' %}
+                            {% if l.user.role != 'HR' %}
+                                {% if l.status == 'Pending' %}
+                                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
+                                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                                {% else %}
+                                    <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--p); font-style: italic; font-size: 0.8rem;">Self Log</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--text-light); font-size: 0.8rem;">
+                                {% if l.status == 'Pending' %}Waiting...{% else %}Handled{% endif %}
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
