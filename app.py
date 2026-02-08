@@ -10,9 +10,9 @@ from fpdf import FPDF
 app = Flask(__name__)
 app.secret_key = "nexus_sync_2026_final"
 
-# Database Configuration - Using v101 to ensure 'reason' column exists
+# Database Configuration - v102 ensures we have the reason column AND the employees
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v101.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v102.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -50,7 +50,6 @@ class ActivityReport(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    # Relationship for PDF export
     rel_user = db.relationship('User', backref='activity_reports', lazy=True)
 
 class Notification(db.Model):
@@ -122,7 +121,6 @@ def leave():
 def approve_leave(id, status):
     if session.get('role') == 'HR':
         l = Leave.query.get(id)
-        # FEATURE: HR cannot approve/reject their own leave
         if l and l.user.role != 'HR':
             l.status = status
             db.session.commit()
@@ -207,8 +205,17 @@ def logout():
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
+        # HR Admin
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
+        
+        # RESTORED 4 EMPLOYEES
+        e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=50000, address="Bangalore")
+        e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='k@nexus.com', salary=52000, address="Mumbai")
+        e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='p@nexus.com', salary=48000, address="Delhi")
+        e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy', email='pr@nexus.com', salary=51000, address="Hyderabad")
+        
+        db.session.add_all([e1, e2, e3, e4])
         db.session.commit()
 
 if __name__ == '__main__':
