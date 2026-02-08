@@ -38,39 +38,39 @@
         </thead>
         <tbody>
             {% for l in leaves %}
-            <tr>
-                <td><strong>{{ l.user.full_name }}</strong></td>
-                <td>{{ l.date }}</td>
-                <td><small style="color: var(--text-light); display: block; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ l.reason }}">
-    {{ l.reason }}
-</small></td>
-                <td>
-                    <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
-                        {{ l.status }}
-                    </span>
-                </td>
-                <td>
-    {% if session['role'] == 'HR' %}
-        {% if l.user.role != 'HR' %}
-            {% if l.status == 'Pending' %}
-                <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: #43a047; font-weight: bold;">Approve</a> | 
-                <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: var(--danger); font-weight: bold;">Reject</a>
+<tr>
+    <td><strong>{{ l.user.full_name }}</strong></td>
+    <td>{{ l.date }}</td>
+    
+    <td>
+        <small style="color: #666; display:block; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ l.reason }}">
+            {{ l.reason }}
+        </small>
+    </td>
+
+    <td>
+        <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
+            {{ l.status }}
+        </span>
+    </td>
+    
+    <td>
+        {% if session['role'] == 'HR' %}
+            {% if l.user.role != 'HR' %}
+                {% if l.status == 'Pending' %}
+                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color:green; font-weight:bold;">Approve</a> | 
+                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color:red; font-weight:bold;">Reject</a>
+                {% else %}
+                    <span style="color: #999;">Processed</span>
+                {% endif %}
             {% else %}
-                <span class="status-processed">Processed</span>
+                <span style="color: #6c5ce7; font-style:italic;">Self-Posted</span>
             {% endif %}
         {% else %}
-            <span class="self-posted">Admin Log</span>
+            <span style="color: #999;">
+                {% if l.status == 'Pending' %}Waiting...{% else %}Done{% endif %}
+            </span>
         {% endif %}
-    {% else %}
-        <span class="status-processed">
-            {% if l.status == 'Pending' %}Waiting...{% else %}Handled{% endif %}
-        </span>
-    {% endif %}
-</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-
+    </td>
+</tr>
+{% endfor %}
