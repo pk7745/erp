@@ -10,12 +10,16 @@ from fpdf import FPDF
 app = Flask(__name__)
 app.secret_key = "nexus_final_v103_secure"
 
-# Database Configuration - v103 to ensure fresh start with all features
+# Database Configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v103.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# Helper for IST Time
+def get_ist_time():
+    return datetime.now(pytz.timezone('Asia/Kolkata'))
 
 # --- Models ---
 class User(db.Model):
@@ -49,13 +53,13 @@ class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_ist_time)
     rel_user = db.relationship('User', backref='activity_reports', lazy=True)
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message = db.Column(db.String(255))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_ist_time)
 
 # --- Routes ---
 @app.route('/')
@@ -78,19 +82,28 @@ def login():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    # Activity feed with IST timestamps
     notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
     off = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     return render_template('dashboard.html', user=user, notifications=notifs, office_days=off, wfh_days=wfh)
 
+@app.route('/clear_notifications')
+def clear_notifications():
+    if session.get('role') == 'HR':
+        Notification.query.delete()
+        db.session.commit()
+        flash('Activity feed cleared.', 'success')
+    return redirect(url_for('dashboard'))
+
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    tz = pytz.timezone('Asia/Kolkata')
-    today = datetime.now(tz).strftime("%Y-%m-%d")
+    now = get_ist_time()
+    today = now.strftime("%Y-%m-%d")
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
-        time_now = datetime.now(tz).strftime("%I:%M %p")
+        time_now = now.strftime("%I:%M %p")
         if not att:
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=time_now, work_mode=request.form.get('work_mode')))
             db.session.add(Notification(message=f"CLOCK IN: {session['name']}"))
@@ -104,18 +117,27 @@ def attendance():
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
-    tz = pytz.timezone('Asia/Kolkata')
-    month = datetime.now(tz).strftime("%Y-%m")
-    taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{month}%"), Leave.status != 'Rejected').count()
-    left = max(0, 2 - taken)
+    month_prefix = get_ist_time().strftime("%Y-%m")
+    
+    # Logic for Month Balance, Taken, and Left
+    taken = Leave.query.filter(
+        Leave.user_id == session['user_id'], 
+        Leave.date.like(f"{month_prefix}%"), 
+        Leave.status != 'Rejected'
+    ).count()
+    
+    limit = 2
+    left = max(0, limit - taken)
+    
     if request.method == 'POST' and left > 0:
         db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form.get('reason', 'N/A')))
         db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']}"))
         db.session.commit()
         flash('Leave applied successfully!', 'success')
         return redirect(url_for('leave'))
+        
     leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
-    return render_template('leave.html', leaves=leaves, leave_limit=2, leaves_taken=taken, leaves_left=left)
+    return render_template('leave.html', leaves=leaves, leave_limit=limit, leaves_taken=taken, leaves_left=left)
 
 @app.route('/approve_leave/<int:id>/<status>')
 def approve_leave(id, status):
@@ -205,11 +227,9 @@ def logout():
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
-        # HR Admin
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
         
-        # Employees
         e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=50000, address="Bangalore")
         e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='k@nexus.com', salary=52000, address="Mumbai")
         e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='p@nexus.com', salary=48000, address="Delhi")
