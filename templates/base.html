@@ -3,38 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus ERP 2026</title>
+    <title>Nexus Enterprise ERP</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="sidebar">
-        <div class="logo">
-            <h2 style="color: var(--p); margin-bottom: 30px;">NEXUS</h2>
-        </div>
-        
+    <div class="sidebar">
+        <h2 style="color: var(--p); margin-bottom: 30px; padding-left: 15px;">NEXUS ERP</h2>
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
-        <a href="{{ url_for('attendance') }}" class="sidebar-link">⏱️ Attendance</a>
+        <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
         <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
         <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
-        
-        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #eee;">
-            <p style="font-size: 12px; color: var(--text-light); margin-bottom: 5px;">User: {{ session['name'] }}</p>
-            <span class="badge badge-office">{{ session['role'] }}</span>
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: var(--danger); margin-top: 15px;">🚪 Logout</a>
-        </div>
-    </nav>
+        <a href="{{ url_for('logout') }}" class="sidebar-link" style="margin-top: 50px; color: #ee5d50;">🚪 Logout</a>
+    </div>
 
-    <main class="main">
+    <div class="main" style="margin-left: 260px; padding: 40px; width: calc(100% - 260px);">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash {{ category }}">{{ message }}</div>
+                    <div class="card" style="background: {% if category == 'error' %}#fff5f5{% else %}#f0fff4{% endif %}; border-left: 5px solid {% if category == 'error' %}var(--danger){% else %}var(--success){% endif %}; margin-bottom: 20px; padding: 15px;">
+                        {{ message }}
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-
+        
         {% block content %}{% endblock %}
-    </main>
+    </div>
 </body>
 </html>
