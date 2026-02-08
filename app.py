@@ -8,11 +8,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
 
 app = Flask(__name__)
-app.secret_key = "nexus_sync_2026_final"
+app.secret_key = "nexus_final_v103_secure"
 
-# Database Configuration - v102 ensures we have the reason column AND the employees
+# Database Configuration - v103 to ensure fresh start with all features
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v102.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_final_v103.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -209,7 +209,7 @@ with app.app_context():
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
         
-        # RESTORED 4 EMPLOYEES
+        # Employees
         e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=50000, address="Bangalore")
         e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='k@nexus.com', salary=52000, address="Mumbai")
         e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='p@nexus.com', salary=48000, address="Delhi")
