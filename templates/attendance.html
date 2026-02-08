@@ -4,7 +4,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2>Attendance Tracking</h2>
         <form method="POST" style="display: flex; gap: 10px;">
-            <select name="work_mode" style="width: 150px; margin: 0;">
+            <select name="work_mode" style="width: 150px; margin: 0; padding: 10px;">
                 <option value="Office">🏢 Office</option>
                 <option value="WFH">🏠 WFH</option>
             </select>
@@ -26,10 +26,10 @@
             {% for row in history %}
             <tr>
                 <td>{{ row.date }}</td>
-                <td>{{ row.user.full_name }}</td>
+                <td><strong>{{ row.user.full_name }}</strong></td>
                 <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
-                <td style="color: green;">{{ row.check_in }}</td>
-                <td style="color: #4318ff;">{{ row.check_out or '--:--' }}</td>
+                <td style="color: #05cd99; font-weight: 500;">{{ row.check_in }}</td>
+                <td style="color: var(--p); font-weight: 500;">{{ row.check_out or '--:--' }}</td>
             </tr>
             {% endfor %}
         </tbody>
