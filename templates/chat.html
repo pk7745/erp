@@ -5,8 +5,17 @@
         <h3 style="padding: 15px; margin: 0; border-bottom: 1px solid #eee;">Contacts</h3>
         {% for c in contacts %}
             <a href="{{ url_for('chat', receiver_id=c.id) }}" 
-               style="display: block; padding: 15px; text-decoration: none; color: #333; border-bottom: 1px solid #eee; {% if receiver_id == c.id %}background: #fff; border-left: 4px solid #4318ff; font-weight: bold;{% endif %}">
-                {{ c.full_name }} <br><small style="color: #888;">{{ c.role }}</small>
+               style="display: flex; justify-content: space-between; align-items: center; padding: 15px; text-decoration: none; color: #333; border-bottom: 1px solid #eee; {% if receiver_id == c.id %}background: #fff; border-left: 4px solid #4318ff; font-weight: bold;{% endif %}">
+                <div>
+                    {{ c.full_name }} <br>
+                    <small style="color: #888;">{{ c.role }}</small>
+                </div>
+                
+                {# Notification Dot Logic #}
+                {% set contact_unread = c.sent_messages|selectattr('receiver_id', 'equalto', session['user_id'])|selectattr('is_read', 'equalto', false)|list|length %}
+                {% if contact_unread > 0 %}
+                    <span style="background: #ee5d50; width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+                {% endif %}
             </a>
         {% endfor %}
     </div>
@@ -26,10 +35,11 @@
                     </div>
                 {% endfor %}
             </div>
+            
             <form action="{{ url_for('chat') }}" method="POST" style="padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px;">
                 <input type="hidden" name="receiver_id" value="{{ receiver_id }}">
                 <input type="text" name="content" placeholder="Type a message..." required style="flex-grow: 1; border-radius: 20px; border: 1px solid #ddd; padding: 10px 20px; margin: 0;">
-                <button type="submit" class="btn" style="border-radius: 50%; width: 45px; height: 45px; padding: 0;">✈</button>
+                <button type="submit" class="btn" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center;">✈</button>
             </form>
         {% else %}
             <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888;">
