@@ -275,6 +275,31 @@ with app.app_context():
         db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin'))
         db.session.commit()
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    
+    if request.method == 'POST':
+        # Updating the attributes based on your form 'name' attributes
+        user.full_name = request.form.get('full_name')
+        user.email = request.form.get('email')
+        user.address = request.form.get('address')
+        
+        # Security: Only update password if the user typed something in that box
+        new_password = request.form.get('password')
+        if new_password and len(new_password) > 0:
+            user.password = generate_password_hash(new_password)
+            
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('profile'))
+        
+    return render_template('profile.html', user=user)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
