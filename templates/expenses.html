@@ -29,7 +29,11 @@
                     <td>{{ claim.category }}</td>
                     <td><strong>₹{{ claim.amount }}</strong></td>
                     <td>
-                        {% if claim.status == 'Pending' and session['role'] == 'HR' %}
+                        {% if claim.status == 'Finalized' %}
+                            <span class="badge badge-wfh" style="background:green; color:white;">Paid on: {{ claim.payment_date }}</span>
+                            <br><small>By: {{ claim.processed_by }}</small>
+                        
+                        {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
                             <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="badge badge-office">Approve (HR)</a>
                             <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
                             
@@ -38,8 +42,8 @@
                             <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
                             
                         {% else %}
-                            <span class="badge {% if claim.status == 'Finalized' %}badge-wfh{% elif claim.status == 'Rejected' %}badge-wfh{% else %}badge-office{% endif %}" 
-                                  style="{% if claim.status == 'Finalized' %}background:#28a745; color:white;{% elif claim.status == 'Rejected' %}background:#dc3545; color:white;{% endif %}">
+                            <span class="badge {% if claim.status == 'Rejected' %}badge-wfh{% else %}badge-office{% endif %}" 
+                                  style="{% if claim.status == 'Rejected' %}background:#dc3545; color:white;{% endif %}">
                                 {{ claim.status }}
                             </span>
                         {% endif %}
