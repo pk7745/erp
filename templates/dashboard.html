@@ -49,6 +49,22 @@
 </div>
 
 <div class="card">
+    <h3>✅ My Daily Tasks</h3>
+    <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" name="title" placeholder="Add a new task..." required style="margin: 0;">
+        <button type="submit" class="btn">Add</button>
+    </form>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for t in tasks %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg); border-radius: 10px;">
+                <span style="{% if t.is_done %}text-decoration: line-through; color: var(--text-light);{% endif %}">{{ t.title }}</span>
+                <a href="{{ url_for('toggle_task', id=t.id) }}" style="text-decoration: none;">{% if t.is_done %}✅{% else %}⭕{% endif %}</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
     <h3>📂 Export Enterprise Data</h3>
     <div style="display: flex; gap: 15px;">
         <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn">Attendance PDF</a>
@@ -73,3 +89,4 @@
     });
 </script>
 {% endblock %}
+
