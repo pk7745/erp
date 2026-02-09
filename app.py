@@ -126,7 +126,12 @@ def forgot_password():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
-    notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
+    # Allows both HR and Accountant to see notifications for the log
+    if session['role'] in ['HR', 'Accountant']:
+        notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
+    else:
+        notifs = []
+    
     tasks = Task.query.filter_by(user_id=user.id).all()
     off = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
@@ -249,7 +254,6 @@ def approve_expense(id, action):
     flash(f'Expense status updated to {claim.status}', 'success')
     return redirect(url_for('expenses'))
 
-# --- NEW ROUTE FOR CSV DOWNLOAD ---
 @app.route('/download_expenses_csv')
 def download_expenses_csv():
     if session.get('role') not in ['HR', 'Accountant']:
@@ -308,22 +312,33 @@ def toggle_task(id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
+# --- UPDATED: 2. Allow Accountant to download payslips ---
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
-    user = User.query.get(uid)
-    month_prefix = get_ist_time().strftime("%Y-%m")
-    days_worked = Attendance.query.filter(Attendance.user_id == uid, Attendance.date.like(f"{month_prefix}%")).count()
-    final_pay = round((user.salary / 30) * days_worked, 2)
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"NEXUS PAYSLIP - {user.full_name}", ln=True, align='C')
-    pdf.ln(10)
-    pdf.set_font("Arial", size=12)
-    pdf.cell(0, 10, txt=f"Days Present: {days_worked}", ln=True)
-    pdf.cell(0, 10, txt=f"Calculated Salary: Rs. {final_pay}", ln=True)
-    out = pdf.output(dest='S').encode('latin-1')
-    return send_file(io.BytesIO(out), as_attachment=True, download_name=f"payslip_{user.username}.pdf")
+    if 'user_id' not in session: return redirect(url_for('login'))
+    
+    # Permission Check: HR, Accountant, or the Employee themselves
+    if session['role'] in ['HR', 'Accountant'] or session['user_id'] == uid:
+        user = User.query.get(uid)
+        month_prefix = get_ist_time().strftime("%Y-%m")
+        days_worked = Attendance.query.filter(Attendance.user_id == uid, Attendance.date.like(f"{month_prefix}%")).count()
+        final_pay = round((user.salary / 30) * days_worked, 2)
+        
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(200, 10, txt=f"NEXUS PAYSLIP - {user.full_name}", ln=True, align='C')
+        pdf.ln(10)
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, txt=f"Base Salary: Rs. {user.salary}", ln=True)
+        pdf.cell(0, 10, txt=f"Days Present: {days_worked}", ln=True)
+        pdf.cell(0, 10, txt=f"Calculated Pay: Rs. {final_pay}", ln=True)
+        
+        out = pdf.output(dest='S').encode('latin-1')
+        return send_file(io.BytesIO(out), as_attachment=True, download_name=f"payslip_{user.username}.pdf")
+    
+    flash("Unauthorized access", "error")
+    return redirect(url_for('dashboard'))
 
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
@@ -361,13 +376,19 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# 1. Edit Employee Salary Route
+# --- UPDATED: 1. HR Edits Salary & Accountant "Receives" Update via Notification ---
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
 def edit_salary(uid):
     if session.get('role') == 'HR':
         user = User.query.get(uid)
         if user:
-            user.salary = int(request.form['new_salary'])
+            new_salary = int(request.form['new_salary'])
+            user.salary = new_salary
+            
+            # Create a specific notification that the Accountant can see
+            note = Notification(message=f"SALARY CHANGE: {user.full_name} updated to ₹{new_salary}")
+            db.session.add(note)
+            
             db.session.commit()
             flash(f'Salary updated for {user.full_name}', 'success')
     return redirect(url_for('staff_directory'))
