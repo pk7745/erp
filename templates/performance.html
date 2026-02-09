@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h2>Performance Analytics</h2>
+    {% if session['role'] == 'HR' %}
+    <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 30px;">
+        <select name="u_id">
+            {% for u in users %}<option value="{{ u.id }}">{{ u.full_name }}</option>{% endfor %}
+        </select>
+        <input type="text" name="month" placeholder="Month (e.g. Jan 2026)">
+        <input type="number" name="rating" placeholder="Rating (1-10)">
+        <textarea name="feedback" placeholder="Feedback..." style="grid-column: span 3;"></textarea>
+        <button type="submit" class="btn" style="grid-column: span 3;">Submit KPI</button>
+    </form>
+    {% endif %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Rating</th>
+                <th>Feedback</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in ratings %}
+            <tr>
+                <td>{{ r.month }}</td>
+                <td><span class="badge badge-office">{{ r.rating }}/10</span></td>
+                <td>{{ r.feedback }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
