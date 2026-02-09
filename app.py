@@ -112,7 +112,6 @@ def forgot_password():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user:
-            # Adds a notification for HR to handle the reset
             db.session.add(Notification(message=f"RESET REQUEST: {user.full_name} ({user.username})"))
             db.session.commit()
             flash('HR has been notified of your reset request.', 'success')
@@ -164,7 +163,6 @@ def approve_leave(id, status):
             flash(f'Leave request {status} successfully.', 'success')
     return redirect(url_for('leave'))
 
-# 1. API for the Chart in your dashboard
 @app.route('/api/stats')
 def get_stats():
     if 'user_id' not in session: return jsonify({'office': 0, 'wfh': 0})
@@ -173,7 +171,6 @@ def get_stats():
     wfh = Attendance.query.filter_by(user_id=u_id, work_mode='WFH').count()
     return jsonify({'office': off, 'wfh': wfh})
 
-# 2. To clear the HR Activity Feed
 @app.route('/clear_notifications')
 def clear_notifications():
     if session.get('role') == 'HR':
@@ -181,7 +178,6 @@ def clear_notifications():
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# 3. To submit the Activity Report (Matches your form)
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -191,7 +187,6 @@ def submit_report():
     flash('Report submitted successfully!', 'success')
     return redirect(url_for('dashboard'))
 
-# 4. To export PDF data (Matches your buttons)
 @app.route('/download_report/<rtype>')
 def download_report(rtype):
     pdf = FPDF()
@@ -212,8 +207,6 @@ def download_report(rtype):
             
     out = pdf.output(dest='S').encode('latin-1')
     return send_file(io.BytesIO(out), as_attachment=True, download_name=f"{rtype}_report.pdf")
-
-# --- New Feature Routes ---
 
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
@@ -255,7 +248,6 @@ def toggle_task(id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# (Original Routes below: Payroll, Leave, Activity, etc., preserved exactly)
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     user = User.query.get(uid)
@@ -276,45 +268,24 @@ def generate_payslip(uid):
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
-    
     user = User.query.get(session['user_id'])
     from datetime import datetime
     current_month = datetime.now().strftime('%m')
-    
     if request.method == 'POST':
-        # Matches your HTML: name="date" and name="reason"
-        new_leave = Leave(
-            user_id=session['user_id'], 
-            date=request.form['date'], 
-            reason=request.form['reason']
-        )
+        new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
         db.session.add(new_leave)
-        # Adds notification for HR feed
         db.session.add(Notification(message=f"LEAVE REQ: {user.full_name} for {request.form['date']}"))
         db.session.commit()
         flash('Leave request submitted!', 'success')
-
-    # Monthly logic: 2 days per month
     leave_limit = 2 
-    leaves_taken = Leave.query.filter(
-        Leave.user_id == user.id, 
-        Leave.status == 'Approved',
-        Leave.date.like(f"%-{current_month}-%")
-    ).count()
-    
+    leaves_taken = Leave.query.filter(Leave.user_id == user.id, Leave.status == 'Approved', Leave.date.like(f"%-{current_month}-%")).count()
     leaves_left = leave_limit - leaves_taken
-
-    # Fetching history for the table
     if session['role'] == 'HR':
         leaves = Leave.query.order_by(Leave.id.desc()).all()
     else:
         leaves = Leave.query.filter_by(user_id=user.id).order_by(Leave.id.desc()).all()
+    return render_template('leave.html', leaves=leaves, leaves_taken=leaves_taken, leaves_left=leaves_left, leave_limit=leave_limit)
 
-    return render_template('leave.html', 
-                           leaves=leaves, 
-                           leaves_taken=leaves_taken, 
-                           leaves_left=leaves_left, 
-                           leave_limit=leave_limit)
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
@@ -330,23 +301,30 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# --- Startup Logic with 5 Initial Users ---
 with app.app_context():
     db.create_all()
+    # 1. Create Admin (HR)
     if not User.query.filter_by(username='admin').first():
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', 
                      full_name='Pavan Kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
-        db.session.commit()
+
+    # 2. Add 4 Employees
+    staff_data = [
+        ('emp1', 'pass123', 'Rajesh Chenni', 'rajesh@nexus.com', 45000, 'Bengaluru'),
+        ('emp2', 'pass123', 'Sneha Reddy', 'sneha@nexus.com', 48000, 'Hyderabad'),
+        ('emp3', 'pass123', 'Amit Sharma', 'amit@nexus.com', 42000, 'Pune'),
+        ('emp4', 'pass123', 'Priya Mani', 'priya@nexus.com', 46000, 'Chennai')
+    ]
+    for uname, pswd, name, mail, sal, addr in staff_data:
+        if not User.query.filter_by(username=uname).first():
+            new_emp = User(username=uname, password=generate_password_hash(pswd), role='Employee', 
+                           full_name=name, email=mail, salary=sal, address=addr)
+            db.session.add(new_emp)
+    
+    db.session.commit()
 
 if __name__ == '__main__':
-    # '0.0.0.0' tells the server to accept external connections
-    # os.environ.get('PORT') is required for deployment platforms
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
-
-
-
-
-
