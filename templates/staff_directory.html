@@ -23,7 +23,7 @@
                 <th>Name</th>
                 <th>Salary (₹)</th>
                 <th>Location</th>
-                <th>Email</th>
+                <th>Payslip</th>
                 {% if session['role'] == 'HR' %}<th>Action</th>{% endif %}
             </tr>
         </thead>
@@ -39,7 +39,13 @@
                     {% endif %}
                 </td>
                 <td>{{ emp.address }}</td>
-                <td>{{ emp.email }}</td>
+                <td>
+                    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
+                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-office" style="text-decoration: none;">Download PDF</a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
                 {% if session['role'] == 'HR' %}
                 <td>
                     {% if emp.role != 'HR' %}
