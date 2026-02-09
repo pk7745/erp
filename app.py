@@ -361,6 +361,39 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# 1. Edit Employee Salary Route
+@app.route('/edit_salary/<int:uid>', methods=['POST'])
+def edit_salary(uid):
+    if session.get('role') == 'HR':
+        user = User.query.get(uid)
+        if user:
+            user.salary = int(request.form['new_salary'])
+            db.session.commit()
+            flash(f'Salary updated for {user.full_name}', 'success')
+    return redirect(url_for('staff_directory'))
+
+# 2. Export Attendance CSV Route
+@app.route('/download_attendance_csv')
+def download_attendance_csv():
+    if session.get('role') != 'HR':
+        return redirect(url_for('login'))
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Employee Name', 'Check In', 'Check Out', 'Work Mode'])
+    
+    records = Attendance.query.all()
+    for r in records:
+        writer.writerow([r.date, r.user.full_name, r.check_in, r.check_out, r.work_mode])
+    
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f"attendance_report_{get_ist_time().strftime('%Y-%m-%d')}.csv"
+    )
+
 # --- Startup Logic with Initial Users ---
 with app.app_context():
     db.create_all()
