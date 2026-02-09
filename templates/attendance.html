@@ -1,38 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Attendance Tracking</h2>
-        <form method="POST" style="display: flex; gap: 10px;">
-            <select name="work_mode" style="width: 150px; margin: 0; padding: 10px;">
-                <option value="Office">🏢 Office</option>
-                <option value="WFH">🏠 WFH</option>
-            </select>
-            <button class="btn">Clock In / Out</button>
-        </form>
-    </div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Attendance Log</h2>
+            <form method="POST" style="display: flex; gap: 10px;">
+                <select name="work_mode" style="width: 150px; margin: 0; padding: 10px;">
+                    <option value="Office">🏢 Office</option>
+                    <option value="WFH">🏠 WFH</option>
+                </select>
+                <button class="btn">Clock In/Out</button>
+            </form>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Employee</th>
-                <th>Mode</th>
-                <th>Check In</th>
-                <th>Check Out</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in history %}
-            <tr>
-                <td>{{ row.date }}</td>
-                <td><strong>{{ row.user.full_name }}</strong></td>
-                <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
-                <td style="color: var(--success); font-weight: bold;">{{ row.check_in }}</td>
-                <td style="color: var(--p); font-weight: bold;">{{ row.check_out or '--:--' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Employee</th>
+                    <th>Mode</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in history %}
+                <tr>
+                    <td>{{ row.date }}</td>
+                    <td><strong>{{ row.user.full_name }}</strong></td>
+                    <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h3>📅 Visual Calendar</h3>
+        <div id='calendar' style="height: 400px;"></div>
+    </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: [
+        {% for row in history %}
+        {
+          title: '{{ row.work_mode }}',
+          start: '{{ row.date }}',
+          color: '{% if row.work_mode == "WFH" %}#05cd99{% else %}#4318ff{% endif %}'
+        },
+        {% endfor %}
+      ]
+    });
+    calendar.render();
+  });
+</script>
 {% endblock %}
