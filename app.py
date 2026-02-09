@@ -2,7 +2,7 @@ import os
 import io
 import pytz
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
@@ -21,7 +21,7 @@ db = SQLAlchemy(app)
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
 
-# --- Models ---
+# --- Models --- (Kept exactly as provided)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -61,7 +61,49 @@ class Notification(db.Model):
     message = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
-# --- Routes ---
+# --- NEW: ADVANCED ROUTES ---
+
+@app.route('/api/stats')
+def get_stats():
+    """Provides data for the Chart.js on dashboard"""
+    if 'user_id' not in session: return jsonify({})
+    u_id = session['user_id']
+    off = Attendance.query.filter_by(user_id=u_id, work_mode='Office').count()
+    wfh = Attendance.query.filter_by(user_id=u_id, work_mode='WFH').count()
+    return jsonify({'office': off, 'wfh': wfh})
+
+@app.route('/generate_payslip/<int:uid>')
+def generate_payslip(uid):
+    """Calculates pay based on attendance and generates PDF"""
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(uid)
+    # Calculate days worked this month
+    month_prefix = get_ist_time().strftime("%Y-%m")
+    days_worked = Attendance.query.filter(Attendance.user_id == uid, Attendance.date.like(f"{month_prefix}%")).count()
+    
+    # Simple payroll logic: (Base Salary / 30 days) * actual days worked
+    per_day = user.salary / 30
+    final_pay = round(per_day * days_worked, 2)
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 20)
+    pdf.cell(200, 20, txt="NEXUS ENTERPRISE - PAYSLIP", ln=True, align='C')
+    pdf.set_font("Arial", size=12)
+    pdf.ln(10)
+    pdf.cell(0, 10, txt=f"Employee Name: {user.full_name}", ln=True)
+    pdf.cell(0, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True)
+    pdf.cell(0, 10, txt=f"Base Salary: Rs. {user.salary}", ln=True)
+    pdf.cell(0, 10, txt=f"Days Present: {days_worked}", ln=True)
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(0, 10, txt=f"TOTAL DISBURSED: Rs. {final_pay}", ln=True)
+    
+    out = pdf.output(dest='S').encode('latin-1')
+    return send_file(io.BytesIO(out), as_attachment=True, download_name=f"payslip_{user.username}.pdf", mimetype='application/pdf')
+
+# --- Existing Routes (Kept exactly as provided) ---
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -82,7 +124,6 @@ def login():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
-    # Activity feed with IST timestamps
     notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] == 'HR' else []
     off = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
@@ -118,24 +159,15 @@ def attendance():
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
     month_prefix = get_ist_time().strftime("%Y-%m")
-    
-    # Logic for Month Balance, Taken, and Left
-    taken = Leave.query.filter(
-        Leave.user_id == session['user_id'], 
-        Leave.date.like(f"{month_prefix}%"), 
-        Leave.status != 'Rejected'
-    ).count()
-    
+    taken = Leave.query.filter(Leave.user_id == session['user_id'], Leave.date.like(f"{month_prefix}%"), Leave.status != 'Rejected').count()
     limit = 2
     left = max(0, limit - taken)
-    
     if request.method == 'POST' and left > 0:
         db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form.get('reason', 'N/A')))
         db.session.add(Notification(message=f"LEAVE REQUEST: {session['name']}"))
         db.session.commit()
         flash('Leave applied successfully!', 'success')
         return redirect(url_for('leave'))
-        
     leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
     return render_template('leave.html', leaves=leaves, leave_limit=limit, leaves_taken=taken, leaves_left=left)
 
@@ -194,7 +226,6 @@ def download_report(rtype):
     pdf.cell(200, 10, txt=f"Nexus Enterprise - {rtype.upper()} Report", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", size=10)
-    
     if rtype == 'attendance':
         data = Attendance.query.all()
         for r in data:
@@ -205,7 +236,6 @@ def download_report(rtype):
             pdf.cell(0, 10, txt=f"Date: {r.timestamp.strftime('%Y-%m-%d')} | Name: {r.rel_user.full_name}", ln=True)
             pdf.multi_cell(0, 10, txt=f"Content: {r.content}")
             pdf.ln(2)
-            
     out = pdf.output(dest='S').encode('latin-1')
     return send_file(io.BytesIO(out), as_attachment=True, download_name=f"{rtype}_report.pdf", mimetype='application/pdf')
 
@@ -229,12 +259,10 @@ with app.app_context():
     if not User.query.filter_by(username='admin').first():
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='pavan kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
-        
         e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=50000, address="Bangalore")
         e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='k@nexus.com', salary=52000, address="Mumbai")
         e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='p@nexus.com', salary=48000, address="Delhi")
         e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy', email='pr@nexus.com', salary=51000, address="Hyderabad")
-        
         db.session.add_all([e1, e2, e3, e4])
         db.session.commit()
 
