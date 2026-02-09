@@ -1,33 +1,48 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width: 600px; margin: 40px auto;">
-    <div class="card" style="text-align: center; padding: 40px; border-top: 5px solid var(--p);">
-        <div style="width: 80px; height: 80px; background: var(--p); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 15px auto; font-weight: bold;">
-            {{ user.full_name[0] }}
-        </div>
-        <h2 style="margin: 0;">{{ user.full_name }}</h2>
-        <p style="color: var(--text-light); margin-bottom: 20px;">{{ user.role }}</p>
+<div style="max-width: 700px; margin: 20px auto;">
+    <div class="card" style="padding: 40px; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 100px; background: linear-gradient(90deg, var(--p), #6060f0); opacity: 0.1;"></div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; background: var(--bg); padding: 20px; border-radius: 12px;">
-            <div>
-                <small style="color: var(--text-light);">Username</small>
-                <div style="font-weight: bold;">@{{ user.username }}</div>
+        <div style="text-align: center; position: relative; z-index: 1;">
+            <div style="width: 100px; height: 100px; background: var(--p); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 15px auto; border: 4px solid var(--card-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                {{ user.full_name[0] }}
             </div>
-            <div>
-                <small style="color: var(--text-light);">Email</small>
-                <div style="font-weight: bold;">{{ user.email }}</div>
+            
+            <h1 style="margin: 0; font-family: 'DM Sans', sans-serif;">{{ user.full_name }}</h1>
+            <span class="badge badge-office" style="margin-top: 10px; padding: 5px 15px; font-size: 0.9rem;">Official Profile</span>
+        </div>
+
+        <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; border-top: 1px solid #eee; padding-top: 30px;">
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Full Name</label>
+                <span style="font-weight: 700; font-size: 1.1rem;">{{ user.full_name }}</span>
             </div>
-            <div>
-                <small style="color: var(--text-light);">Monthly Salary</small>
-                <div style="font-weight: bold;">₹{{ "{:,}".format(user.salary) }}</div>
+
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Designation / Role</label>
+                <span style="font-weight: 700; font-size: 1.1rem; color: var(--p);">{{ user.role }}</span>
             </div>
-            <div>
-                <small style="color: var(--text-light);">Address</small>
-                <div style="font-weight: bold;">{{ user.address or 'N/A' }}</div>
+            
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Username</label>
+                <span style="font-weight: 700; font-size: 1.1rem;">@{{ user.username }}</span>
+            </div>
+            
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Official Email</label>
+                <span style="font-weight: 700; font-size: 1.1rem;">{{ user.email }}</span>
+            </div>
+
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Work Location</label>
+                <span style="font-weight: 700; font-size: 1.1rem;">{{ user.address or 'Nexus HQ' }}</span>
             </div>
         </div>
-        
-        <a href="{{ url_for('dashboard') }}" class="btn" style="margin-top: 25px; display: inline-block; text-decoration: none; width: 100%;">Return to Dashboard</a>
+
+        <div style="margin-top: 40px; text-align: center;">
+            <a href="{{ url_for('dashboard') }}" class="btn" style="text-decoration: none; display: inline-block; padding: 12px 30px;">Return to Workspace</a>
+        </div>
     </div>
 </div>
 {% endblock %}
