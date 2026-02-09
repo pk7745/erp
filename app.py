@@ -140,6 +140,17 @@ def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('staff_directory.html', employees=User.query.all())
 
+@app.route('/approve_leave/<int:id>/<status>')
+def approve_leave(id, status):
+    if session.get('role') == 'HR':
+        leave_req = Leave.query.get(id)
+        if leave_req:
+            leave_req.status = status
+            db.session.add(Notification(message=f"LEAVE {status.upper()}: {leave_req.user.full_name}"))
+            db.session.commit()
+            flash(f'Leave request {status} successfully.', 'success')
+    return redirect(url_for('leave'))
+
 # 1. API for the Chart in your dashboard
 @app.route('/api/stats')
 def get_stats():
@@ -286,6 +297,7 @@ if __name__ == '__main__':
     # os.environ.get('PORT') is required for deployment platforms
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
