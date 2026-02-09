@@ -17,6 +17,8 @@
 <body>
     <div class="sidebar">
         <h2 style="color: var(--p); margin-bottom: 30px; padding-left: 15px;">NEXUS ERP</h2>
+        <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
+        <a href="{{ url_for('performance') }}" class="sidebar-link">📈 My Performance</a>
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
         <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
         <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
@@ -50,3 +52,4 @@
     </script>
 </body>
 </html>
+
