@@ -1,87 +1,109 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-        <h2 style="margin: 0;">👥 Staff Directory</h2>
-        
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="directorySearch" placeholder="Search name, email, or role..." 
-                   style="padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #ddd;">
-            
-            {% if session['role'] == 'HR' %}
-                <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
-            {% endif %}
-        </div>
-    </div>
-
-    <div id="addForm" class="card" style="display:none; background: var(--bg); margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3>Add New Employee</h3>
-            <button class="btn" style="background: #666;" onclick="document.getElementById('addForm').style.display='none'">Cancel</button>
-        </div>
-        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" name="full_name" placeholder="Full Name" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="number" name="salary" placeholder="Monthly Salary (INR)" required>
-            <input type="text" name="address" placeholder="Address">
-            <button type="submit" class="btn" style="grid-column: span 2;">Save Employee</button>
-        </form>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Base Salary</th>
-                <th>Role</th>
-                <th>Payroll</th>
-            </tr>
-        </thead>
-        <tbody id="directoryTable">
-            {% for emp in employees %}
-            <tr>
-                <td><strong>{{ emp.full_name }}</strong></td>
-                <td>{{ emp.email }}</td>
-                
-                <td>
-                    {% if session['role'] == 'HR' %}
-                        <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display: flex; gap: 5px;">
-                            <input type="number" name="new_salary" value="{{ emp.salary }}" 
-                                   style="width: 80px; padding: 2px; border: 1px solid #ccc;">
-                            <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
-                        </form>
-                    {% elif session['role'] == 'Accountant' or session['user_id'] == emp.id %}
-                        ₹{{ "{:,}".format(emp.salary) }}
-                    {% else %}
-                        <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
-                    {% endif %}
-                </td>
-
-                <td><span class="badge badge-office">{{ emp.role }}</span></td>
-                
-                <td>
-                    {% if session['role'] in ['HR', 'Accountant'] or session['user_id'] == emp.id %}
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
-                    {% else %}
-                        <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>Welcome back, {{ user.full_name }}!</h1>
+    <span class="badge badge-office">{{ user.role }} Account</span>
 </div>
 
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin: 20px 0;">
+    <div class="stats-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white;">
+            <h3>Office Days</h3>
+            <p style="font-size: 2.5rem; font-weight: bold;">{{ office_days }}</p>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #05cd99, #48efc1); color: white;">
+            <h3>WFH Days</h3>
+            <p style="font-size: 2.5rem; font-weight: bold;">{{ wfh_days }}</p>
+        </div>
+    </div>
+    <div class="card">
+        <h3>📊 Work Mode Dist.</h3>
+        <canvas id="statsChart" height="150"></canvas>
+    </div>
+</div>
+
+{% if session['role'] == 'Accountant' %}
+<div class="card" style="margin-bottom: 20px; border-left: 5px solid #4318ff;">
+    <h3 style="margin-bottom: 15px;">📊 Salary Change Log</h3>
+    <div style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee;">
+        {% for n in notifications %}
+            {% if "SALARY CHANGE" in n.message %}
+                <div style="padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem;">
+                    <span style="color: #666; font-weight: bold;">[{{ n.timestamp.strftime('%d %b | %I:%M %p') }}]</span> 
+                    <span style="margin-left: 10px;">{{ n.message }}</span>
+                </div>
+            {% endif %}
+        {% else %}
+             <p style="padding: 20px; text-align: center; color: var(--text-light);">No salary updates recorded.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if session['role'] == 'HR' %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="color: #ee5d50; margin: 0;">🔔 Live HR Activity Feed</h3>
+        <a href="{{ url_for('clear_notifications') }}" style="color: var(--danger); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--danger); padding: 4px 10px; border-radius: 6px;">Clear All</a>
+    </div>
+    <div class="notif-panel" style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee;">
+        {% for n in notifications %}
+            <div class="notif-item" style="padding: 12px; border-bottom: 1px solid #f8f9fa;">
+                <strong style="color: var(--p);">{{ n.timestamp.strftime('%I:%M %p') }}</strong> - {{ n.message }}
+            </div>
+        {% else %}
+            <p style="padding: 20px; text-align: center; color: var(--text-light);">No activity logs available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>📝 Submit Daily Activity Report</h3>
+    <form action="{{ url_for('submit_report') }}" method="POST">
+        <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px;"></textarea>
+        <button type="submit" class="btn">Submit Report</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>✅ My Daily Tasks</h3>
+    <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" name="title" placeholder="Add a new task..." required style="margin: 0;">
+        <button type="submit" class="btn">Add</button>
+    </form>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% for t in tasks %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg); border-radius: 10px;">
+                <span style="{% if t.is_done %}text-decoration: line-through; color: var(--text-light);{% endif %}">{{ t.title }}</span>
+                <a href="{{ url_for('toggle_task', id=t.id) }}" style="text-decoration: none;">{% if t.is_done %}✅{% else %}⭕{% endif %}</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h3>📂 Export Enterprise Data</h3>
+    <div style="display: flex; gap: 15px;">
+        <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn">Attendance PDF</a>
+        <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #1b2559;">Activity PDF</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.getElementById('directorySearch').addEventListener('keyup', function() {
-    let filter = this.value.toLowerCase();
-    let rows = document.querySelectorAll('#directoryTable tr');
-    rows.forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    fetch('/api/stats').then(res => res.json()).then(data => {
+        new Chart(document.getElementById('statsChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Office', 'WFH'],
+                datasets: [{
+                    data: [data.office, data.wfh],
+                    backgroundColor: ['#4318ff', '#05cd99']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
     });
-});
 </script>
 {% endblock %}
