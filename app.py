@@ -1,7 +1,7 @@
 import os
 import io
 import pytz
-import csv  # Added for CSV generation
+import csv
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -33,10 +33,20 @@ class User(db.Model):
     email = db.Column(db.String(100))
     salary = db.Column(db.Integer, default=50000)
     address = db.Column(db.String(200))
-    # Relationships
     leaves = db.relationship('Leave', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     tasks = db.relationship('Task', backref='user', lazy=True)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False) 
+    timestamp = db.Column(db.DateTime, default=get_ist_time)
+    
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
 
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -65,8 +75,6 @@ class Notification(db.Model):
     message = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
-# --- NEW MODELS ---
-
 class PerformanceKPI(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -82,8 +90,8 @@ class ExpenseClaim(db.Model):
     amount = db.Column(db.Float)
     status = db.Column(db.String(20), default='Pending')
     description = db.Column(db.String(255))
-    payment_date = db.Column(db.String(20)) # New Field
-    processed_by = db.Column(db.String(50)) # New Field
+    payment_date = db.Column(db.String(20))
+    processed_by = db.Column(db.String(50))
     rel_user = db.relationship('User', backref='claims', lazy=True)
 
 class Task(db.Model):
@@ -110,23 +118,13 @@ def login():
         flash('Invalid Credentials', 'error')
     return render_template('login.html')
 
-@app.route('/forgot_password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user:
-            db.session.add(Notification(message=f"RESET REQUEST: {user.full_name} ({user.username})"))
-            db.session.commit()
-            flash('HR has been notified of your reset request.', 'success')
-        else:
-            flash('Username not found.', 'error')
-    return render_template('forgot_password.html')
-
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
-    # Allows both HR and Accountant to see notifications for the log
+    
+    unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count()
+    
     if session['role'] in ['HR', 'Accountant']:
         notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
     else:
@@ -135,7 +133,42 @@ def dashboard():
     tasks = Task.query.filter_by(user_id=user.id).all()
     off = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
-    return render_template('dashboard.html', user=user, notifications=notifs, office_days=off, wfh_days=wfh, tasks=tasks)
+    return render_template('dashboard.html', user=user, notifications=notifs, 
+                           office_days=off, wfh_days=wfh, tasks=tasks, unread_chats=unread_chats)
+
+@app.route('/chat', methods=['GET', 'POST'])
+@app.route('/chat/<int:receiver_id>', methods=['GET', 'POST'])
+def chat(receiver_id=None):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    current_user_id = session['user_id']
+    
+    if request.method == 'POST':
+        content = request.form.get('content')
+        target_id = request.form.get('receiver_id')
+        if content and target_id:
+            new_msg = Message(sender_id=current_user_id, receiver_id=target_id, content=content)
+            db.session.add(new_msg)
+            db.session.commit()
+            return redirect(url_for('chat', receiver_id=target_id))
+
+    if session['role'] == 'HR':
+        contacts = User.query.filter(User.id != current_user_id).all()
+    else:
+        contacts = User.query.filter_by(role='HR').all()
+
+    messages = []
+    if receiver_id:
+        unread = Message.query.filter_by(sender_id=receiver_id, receiver_id=current_user_id, is_read=False).all()
+        for m in unread:
+            m.is_read = True
+        db.session.commit()
+
+        messages = Message.query.filter(
+            ((Message.sender_id == current_user_id) & (Message.receiver_id == receiver_id)) |
+            ((Message.sender_id == receiver_id) & (Message.receiver_id == current_user_id))
+        ).order_by(Message.timestamp.asc()).all()
+
+    return render_template('chat.html', contacts=contacts, messages=messages, receiver_id=receiver_id)
 
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
@@ -240,13 +273,10 @@ def approve_expense(id, action):
     
     if session['role'] == 'HR' and action == 'hr_approve':
         claim.status = 'Approved by HR'
-    
     elif session['role'] == 'Accountant' and action == 'acc_approve':
         claim.status = 'Finalized'
-        # Record the payment date and the accountant's name
         claim.payment_date = get_ist_time().strftime("%Y-%m-%d %I:%M %p")
         claim.processed_by = session['name']
-        
     elif action == 'reject':
         claim.status = 'Rejected'
         
@@ -258,32 +288,14 @@ def approve_expense(id, action):
 def download_expenses_csv():
     if session.get('role') not in ['HR', 'Accountant']:
         return redirect(url_for('login'))
-    
     output = io.StringIO()
     writer = csv.writer(output)
-    
     writer.writerow(['ID', 'Employee', 'Category', 'Amount (INR)', 'Status', 'Description', 'Payment Date', 'Processed By'])
-    
     claims = ExpenseClaim.query.all()
     for c in claims:
-        writer.writerow([
-            c.id, 
-            c.rel_user.full_name, 
-            c.category, 
-            c.amount, 
-            c.status, 
-            c.description, 
-            c.payment_date or 'N/A', 
-            c.processed_by or 'N/A'
-        ])
-    
+        writer.writerow([c.id, c.rel_user.full_name, c.category, c.amount, c.status, c.description, c.payment_date or 'N/A', c.processed_by or 'N/A'])
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=f"nexus_expenses_{get_ist_time().strftime('%Y-%m-%d')}.csv"
-    )
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name=f"nexus_expenses_{get_ist_time().strftime('%Y-%m-%d')}.csv")
 
 @app.route('/performance', methods=['GET', 'POST'])
 def performance():
@@ -312,18 +324,14 @@ def toggle_task(id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# --- UPDATED: 2. Allow Accountant to download payslips ---
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     if 'user_id' not in session: return redirect(url_for('login'))
-    
-    # Permission Check: HR, Accountant, or the Employee themselves
     if session['role'] in ['HR', 'Accountant'] or session['user_id'] == uid:
         user = User.query.get(uid)
         month_prefix = get_ist_time().strftime("%Y-%m")
         days_worked = Attendance.query.filter(Attendance.user_id == uid, Attendance.date.like(f"{month_prefix}%")).count()
         final_pay = round((user.salary / 30) * days_worked, 2)
-        
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", 'B', 16)
@@ -333,10 +341,8 @@ def generate_payslip(uid):
         pdf.cell(0, 10, txt=f"Base Salary: Rs. {user.salary}", ln=True)
         pdf.cell(0, 10, txt=f"Days Present: {days_worked}", ln=True)
         pdf.cell(0, 10, txt=f"Calculated Pay: Rs. {final_pay}", ln=True)
-        
         out = pdf.output(dest='S').encode('latin-1')
         return send_file(io.BytesIO(out), as_attachment=True, download_name=f"payslip_{user.username}.pdf")
-    
     flash("Unauthorized access", "error")
     return redirect(url_for('dashboard'))
 
@@ -344,7 +350,6 @@ def generate_payslip(uid):
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
-    from datetime import datetime
     current_month = datetime.now().strftime('%m')
     if request.method == 'POST':
         new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
@@ -355,10 +360,7 @@ def leave():
     leave_limit = 2 
     leaves_taken = Leave.query.filter(Leave.user_id == user.id, Leave.status == 'Approved', Leave.date.like(f"%-{current_month}-%")).count()
     leaves_left = leave_limit - leaves_taken
-    if session['role'] == 'HR':
-        leaves = Leave.query.order_by(Leave.id.desc()).all()
-    else:
-        leaves = Leave.query.filter_by(user_id=user.id).order_by(Leave.id.desc()).all()
+    leaves = Leave.query.order_by(Leave.id.desc()).all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=user.id).order_by(Leave.id.desc()).all()
     return render_template('leave.html', leaves=leaves, leaves_taken=leaves_taken, leaves_left=leaves_left, leave_limit=leave_limit)
 
 @app.route('/add_employee', methods=['POST'])
@@ -376,7 +378,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- UPDATED: 1. HR Edits Salary & Accountant "Receives" Update via Notification ---
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
 def edit_salary(uid):
     if session.get('role') == 'HR':
@@ -384,53 +385,42 @@ def edit_salary(uid):
         if user:
             new_salary = int(request.form['new_salary'])
             user.salary = new_salary
-            
-            # Create a specific notification that the Accountant can see
             note = Notification(message=f"SALARY CHANGE: {user.full_name} updated to ₹{new_salary}")
             db.session.add(note)
-            
             db.session.commit()
             flash(f'Salary updated for {user.full_name}', 'success')
     return redirect(url_for('staff_directory'))
 
-# 2. Export Attendance CSV Route
 @app.route('/download_attendance_csv')
 def download_attendance_csv():
     if session.get('role') != 'HR':
         return redirect(url_for('login'))
-    
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Date', 'Employee Name', 'Check In', 'Check Out', 'Work Mode'])
-    
     records = Attendance.query.all()
     for r in records:
         writer.writerow([r.date, r.user.full_name, r.check_in, r.check_out, r.work_mode])
-    
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=f"attendance_report_{get_ist_time().strftime('%Y-%m-%d')}.csv"
-    )
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name=f"attendance_report_{get_ist_time().strftime('%Y-%m-%d')}.csv")
 
-# --- Startup Logic with Initial Users ---
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    return render_template('profile.html', user=user)
+
+# --- Startup Logic ---
 with app.app_context():
     db.create_all()
-    # 1. Create Admin (HR)
     if not User.query.filter_by(username='admin').first():
         admin = User(username='admin', password=generate_password_hash('admin123'), role='HR', 
                      full_name='Pavan Kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
-
-    # 2. Add Accountant
     if not User.query.filter_by(username='acc1').first():
         acc = User(username='acc1', password=generate_password_hash('acc123'), role='Accountant', 
                    full_name='Suresh Finance', email='finance@nexus.com', salary=70000, address="Finance Dept")
         db.session.add(acc)
-
-    # 3. Add 4 Employees
     staff_data = [
         ('emp1', 'pass123', 'Rajesh Chenni', 'rajesh@nexus.com', 45000, 'Bengaluru'),
         ('emp2', 'pass123', 'Sneha Reddy', 'sneha@nexus.com', 48000, 'Hyderabad'),
@@ -442,15 +432,8 @@ with app.app_context():
             new_emp = User(username=uname, password=generate_password_hash(pswd), role='Employee', 
                            full_name=name, email=mail, salary=sal, address=addr)
             db.session.add(new_emp)
-    
     db.session.commit()
 
-@app.route('/profile')
-def profile():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    return render_template('profile.html', user=user)
-    
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
