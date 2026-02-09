@@ -35,11 +35,27 @@
             <tr>
                 <td><strong>{{ emp.full_name }}</strong></td>
                 <td>{{ emp.email }}</td>
-                <td>₹{{ "{:,}".format(emp.salary) }}</td>
-                <td>{{ emp.address or 'N/A' }}</td>
-                <td><span class="badge badge-office">{{ emp.role }}</span></td>
+                
                 <td>
-                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
+                    {% if session['role'] == 'HR' %}
+                        ₹{{ "{:,}".format(emp.salary) }}
+                    {% else %}
+                        {% if session['user_id'] == emp.id %}
+                            ₹{{ "{:,}".format(emp.salary) }}
+                        {% else %}
+                            <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+
+                <td><span class="badge badge-office">{{ emp.role }}</span></td>
+                
+                <td>
+                    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
+                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
+                    {% else %}
+                        <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -47,4 +63,3 @@
     </table>
 </div>
 {% endblock %}
-
