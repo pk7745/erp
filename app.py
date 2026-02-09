@@ -81,6 +81,8 @@ class ExpenseClaim(db.Model):
     amount = db.Column(db.Float)
     status = db.Column(db.String(20), default='Pending')
     description = db.Column(db.String(255))
+    payment_date = db.Column(db.String(20)) # New Field
+    processed_by = db.Column(db.String(50)) # New Field
     rel_user = db.relationship('User', backref='claims', lazy=True)
 
 class Task(db.Model):
@@ -219,7 +221,6 @@ def expenses():
         db.session.commit()
         flash('Expense claim submitted!', 'success')
     
-    # Accountants, HR can see all. Employees see only their own.
     if session['role'] in ['HR', 'Accountant']:
         claims = ExpenseClaim.query.all()
     else:
@@ -233,8 +234,13 @@ def approve_expense(id, action):
     
     if session['role'] == 'HR' and action == 'hr_approve':
         claim.status = 'Approved by HR'
+    
     elif session['role'] == 'Accountant' and action == 'acc_approve':
         claim.status = 'Finalized'
+        # Record the payment date and the accountant's name
+        claim.payment_date = get_ist_time().strftime("%Y-%m-%d %I:%M %p")
+        claim.processed_by = session['name']
+        
     elif action == 'reject':
         claim.status = 'Rejected'
         
