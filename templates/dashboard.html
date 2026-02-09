@@ -5,7 +5,7 @@
     <div style="display: flex; gap: 10px; align-items: center;">
         <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
             💬 Support Chat
-            {% if unread_chats > 0 %}
+            {% if unread_chats and unread_chats > 0 %}
                 <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; 
                              border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                     {{ unread_chats }}
@@ -20,11 +20,11 @@
     <div class="stats-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
         <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white;">
             <h3>Office Days</h3>
-            <p style="font-size: 2.5rem; font-weight: bold;">{{ office_days }}</p>
+            <p style="font-size: 2.5rem; font-weight: bold;">{{ office_days if office_days else 0 }}</p>
         </div>
         <div class="card" style="background: linear-gradient(135deg, #05cd99, #48efc1); color: white;">
             <h3>WFH Days</h3>
-            <p style="font-size: 2.5rem; font-weight: bold;">{{ wfh_days }}</p>
+            <p style="font-size: 2.5rem; font-weight: bold;">{{ wfh_days if wfh_days else 0 }}</p>
         </div>
     </div>
     <div class="card">
@@ -52,7 +52,7 @@
 {% endif %}
 
 {% if session['role'] == 'HR' %}
-<div class="card">
+<div class="card" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h3 style="color: #ee5d50; margin: 0;">🔔 Live HR Activity Feed</h3>
         <a href="{{ url_for('clear_notifications') }}" style="color: var(--danger); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--danger); padding: 4px 10px; border-radius: 6px;">Clear All</a>
@@ -60,7 +60,7 @@
     <div class="notif-panel" style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee;">
         {% for n in notifications %}
             <div class="notif-item" style="padding: 12px; border-bottom: 1px solid #f8f9fa;">
-                <strong style="color: var(--p);">{{ n.timestamp.strftime('%I:%M %p') }}</strong> - {{ n.message }}
+                <strong style="color: var(--p);">{{ n.timestamp.strftime('%I:%M %p') if n.timestamp else '00:00' }}</strong> - {{ n.message }}
             </div>
         {% else %}
             <p style="padding: 20px; text-align: center; color: var(--text-light);">No activity logs available.</p>
@@ -69,7 +69,7 @@
 </div>
 {% endif %}
 
-<div class="card">
+<div class="card" style="margin-bottom: 20px;">
     <h3>📝 Submit Daily Activity Report</h3>
     <form action="{{ url_for('submit_report') }}" method="POST">
         <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px;"></textarea>
@@ -77,7 +77,7 @@
     </form>
 </div>
 
-<div class="card">
+<div class="card" style="margin-bottom: 20px;">
     <h3>✅ My Daily Tasks</h3>
     <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 15px;">
         <input type="text" name="title" placeholder="Add a new task..." required style="margin: 0;">
@@ -104,17 +104,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     fetch('/api/stats').then(res => res.json()).then(data => {
-        new Chart(document.getElementById('statsChart'), {
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        new Chart(ctx, {
             type: 'pie',
             data: {
                 labels: ['Office', 'WFH'],
                 datasets: [{
-                    data: [data.office, data.wfh],
+                    data: [data.office || 0, data.wfh || 0],
                     backgroundColor: ['#4318ff', '#05cd99']
                 }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } } 
+            }
         });
-    });
+    }).catch(err => console.error("Could not load chart data:", err));
 </script>
 {% endblock %}
