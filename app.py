@@ -61,6 +61,33 @@ class Notification(db.Model):
     message = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
+class PerformanceKPI(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    month = db.Column(db.String(20))
+    rating = db.Column(db.Integer)  # Scale 1-10
+    feedback = db.Column(db.String(255))
+
+class ExpenseClaim(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category = db.Column(db.String(50))
+    amount = db.Column(db.Float)
+    status = db.Column(db.String(20), default='Pending') # Pending, Approved, Rejected
+    description = db.Column(db.String(255))
+
+class Asset(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100)) # e.g., MacBook Pro
+    serial = db.Column(db.String(100), unique=True)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100))
+    is_done = db.Column(db.Boolean, default=False)
+
 # --- New Advanced Routes ---
 
 @app.route('/api/stats')
@@ -252,5 +279,41 @@ with app.app_context():
         db.session.add_all([e1, e2])
         db.session.commit()
 
+@app.route('/expenses', methods=['GET', 'POST'])
+def expenses():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    if request.method == 'POST':
+        claim = ExpenseClaim(user_id=session['user_id'], category=request.form['category'], 
+                             amount=float(request.form['amount']), description=request.form['desc'])
+        db.session.add(claim)
+        db.session.add(Notification(message=f"EXPENSE CLAIM: {session['name']} - ₹{request.form['amount']}"))
+        db.session.commit()
+        flash('Expense claim submitted!', 'success')
+    
+    claims = ExpenseClaim.query.all() if session['role'] == 'HR' else ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
+    return render_template('expenses.html', claims=claims)
+
+@app.route('/performance', methods=['GET', 'POST'])
+def performance():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    if request.method == 'POST' and session['role'] == 'HR':
+        kpi = PerformanceKPI(user_id=request.form['u_id'], month=request.form['month'], 
+                             rating=int(request.form['rating']), feedback=request.form['feedback'])
+        db.session.add(kpi)
+        db.session.commit()
+    
+    ratings = PerformanceKPI.query.filter_by(user_id=session['user_id']).all()
+    all_users = User.query.all() if session['role'] == 'HR' else []
+    return render_template('performance.html', ratings=ratings, users=all_users)
+
+@app.route('/toggle_task/<int:id>')
+def toggle_task(id):
+    task = Task.query.get(id)
+    if task:
+        task.is_done = not task.is_done
+        db.session.commit()
+    return redirect(url_for('dashboard'))
+
 if __name__ == '__main__':
     app.run()
+
