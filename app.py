@@ -77,7 +77,14 @@ class ActivityReport(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=get_ist_time)
-
+    
+class PerformanceKPI(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    month = db.Column(db.String(20))
+    rating = db.Column(db.Integer)
+    feedback = db.Column(db.String(255))
+    rel_user = db.relationship('User', backref='kpis')
 # --- ROUTES ---
 
 @app.route('/')
@@ -192,12 +199,33 @@ def download_report(rtype):
     pdf.cell(0, 10, txt=f"Generated for: {user.full_name} | Date: {get_ist_time().strftime('%Y-%m-%d')}", ln=True)
     return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"{rtype}_report.pdf")
 
-@app.route('/performance')
+@app.route('/performance', methods=['GET', 'POST'])
 def performance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    return render_template('performance.html', user=user)
+    
+    # Logic for HR to submit new ratings
+    if request.method == 'POST' and session.get('role') == 'HR':
+        u_id = request.form.get('u_id')
+        month = request.form.get('month')
+        rating = request.form.get('rating')
+        feedback = request.form.get('feedback')
+        
+        new_kpi = PerformanceKPI(user_id=u_id, month=month, rating=rating, feedback=feedback)
+        db.session.add(new_kpi)
+        db.session.commit()
+        flash('Performance KPI updated!', 'success')
+        return redirect(url_for('performance'))
 
+    # Data for the table
+    if session.get('role') == 'HR':
+        # HR sees everything, and needs the user list for the dropdown
+        all_users = User.query.all()
+        all_ratings = PerformanceKPI.query.order_by(PerformanceKPI.id.desc()).all()
+        return render_template('performance.html', users=all_users, ratings=all_ratings)
+    else:
+        # Employees only see their own ratings
+        my_ratings = PerformanceKPI.query.filter_by(user_id=session['user_id']).order_by(PerformanceKPI.id.desc()).all()
+        return render_template('performance.html', ratings=my_ratings)
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
@@ -249,3 +277,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
