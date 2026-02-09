@@ -53,19 +53,17 @@
                                    style="width: 80px; padding: 2px; border: 1px solid #ccc;">
                             <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
                         </form>
+                    {% elif session['role'] == 'Accountant' or session['user_id'] == emp.id %}
+                        ₹{{ "{:,}".format(emp.salary) }}
                     {% else %}
-                        {% if session['user_id'] == emp.id %}
-                            ₹{{ "{:,}".format(emp.salary) }}
-                        {% else %}
-                            <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
-                        {% endif %}
+                        <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
                     {% endif %}
                 </td>
 
                 <td><span class="badge badge-office">{{ emp.role }}</span></td>
                 
                 <td>
-                    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
+                    {% if session['role'] in ['HR', 'Accountant'] or session['user_id'] == emp.id %}
                         <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
                     {% else %}
                         <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
