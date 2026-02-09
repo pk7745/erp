@@ -218,8 +218,32 @@ def expenses():
         db.session.add(Notification(message=f"CLAIM: {session['name']} (₹{request.form['amount']})"))
         db.session.commit()
         flash('Expense claim submitted!', 'success')
-    claims = ExpenseClaim.query.all() if session['role'] == 'HR' else ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
+    
+    # Accountants, HR can see all. Employees see only their own.
+    if session['role'] in ['HR', 'Accountant']:
+        claims = ExpenseClaim.query.all()
+    else:
+        claims = ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
     return render_template('expenses.html', claims=claims)
+
+# --- DUAL APPROVAL ROUTE FOR HR & ACCOUNTANT ---
+@app.route('/approve_expense/<int:id>/<action>')
+def approve_expense(id, action):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    claim = ExpenseClaim.query.get(id)
+    
+    if session['role'] == 'HR' and action == 'hr_approve':
+        claim.status = 'Approved by HR'
+        db.session.add(Notification(message=f"EXPENSE HR-APPROVED: {claim.rel_user.full_name}"))
+    elif session['role'] == 'Accountant' and action == 'acc_approve':
+        claim.status = 'Finalized'
+        db.session.add(Notification(message=f"EXPENSE FINALIZED: {claim.rel_user.full_name}"))
+    elif action == 'reject':
+        claim.status = 'Rejected'
+        
+    db.session.commit()
+    flash(f'Expense status updated to {claim.status}', 'success')
+    return redirect(url_for('expenses'))
 
 @app.route('/performance', methods=['GET', 'POST'])
 def performance():
@@ -301,7 +325,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- Startup Logic with 5 Initial Users ---
+# --- Startup Logic with 6 Initial Users ---
 with app.app_context():
     db.create_all()
     # 1. Create Admin (HR)
@@ -310,7 +334,13 @@ with app.app_context():
                      full_name='Pavan Kumar', email='pk@nexus.com', salary=95000, address="HQ")
         db.session.add(admin)
 
-    # 2. Add 4 Employees
+    # 2. Add Accountant
+    if not User.query.filter_by(username='acc1').first():
+        acc = User(username='acc1', password=generate_password_hash('acc123'), role='Accountant', 
+                   full_name='Suresh Finance', email='finance@nexus.com', salary=70000, address="Finance Dept")
+        db.session.add(acc)
+
+    # 3. Add 4 Employees
     staff_data = [
         ('emp1', 'pass123', 'Rajesh Chenni', 'rajesh@nexus.com', 45000, 'Bengaluru'),
         ('emp2', 'pass123', 'Sneha Reddy', 'sneha@nexus.com', 48000, 'Hyderabad'),
@@ -334,5 +364,3 @@ def profile():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-
