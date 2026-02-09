@@ -21,7 +21,7 @@ db = SQLAlchemy(app)
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
 
-# --- Models --- (Kept exactly as provided)
+# --- Models (Untouched) ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -61,11 +61,10 @@ class Notification(db.Model):
     message = db.Column(db.String(255))
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
-# --- NEW: ADVANCED ROUTES ---
+# --- New Advanced Routes ---
 
 @app.route('/api/stats')
 def get_stats():
-    """Provides data for the Chart.js on dashboard"""
     if 'user_id' not in session: return jsonify({})
     u_id = session['user_id']
     off = Attendance.query.filter_by(user_id=u_id, work_mode='Office').count()
@@ -74,16 +73,10 @@ def get_stats():
 
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
-    """Calculates pay based on attendance and generates PDF"""
-    if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(uid)
-    # Calculate days worked this month
     month_prefix = get_ist_time().strftime("%Y-%m")
     days_worked = Attendance.query.filter(Attendance.user_id == uid, Attendance.date.like(f"{month_prefix}%")).count()
-    
-    # Simple payroll logic: (Base Salary / 30 days) * actual days worked
-    per_day = user.salary / 30
-    final_pay = round(per_day * days_worked, 2)
+    final_pay = round((user.salary / 30) * days_worked, 2)
 
     pdf = FPDF()
     pdf.add_page()
@@ -91,18 +84,14 @@ def generate_payslip(uid):
     pdf.cell(200, 20, txt="NEXUS ENTERPRISE - PAYSLIP", ln=True, align='C')
     pdf.set_font("Arial", size=12)
     pdf.ln(10)
-    pdf.cell(0, 10, txt=f"Employee Name: {user.full_name}", ln=True)
-    pdf.cell(0, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True)
-    pdf.cell(0, 10, txt=f"Base Salary: Rs. {user.salary}", ln=True)
+    pdf.cell(0, 10, txt=f"Employee: {user.full_name}", ln=True)
     pdf.cell(0, 10, txt=f"Days Present: {days_worked}", ln=True)
-    pdf.ln(10)
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 10, txt=f"TOTAL DISBURSED: Rs. {final_pay}", ln=True)
+    pdf.cell(0, 10, txt=f"Total Pay: Rs. {final_pay}", ln=True)
     
     out = pdf.output(dest='S').encode('latin-1')
     return send_file(io.BytesIO(out), as_attachment=True, download_name=f"payslip_{user.username}.pdf", mimetype='application/pdf')
 
-# --- Existing Routes (Kept exactly as provided) ---
+# --- Original Routes ---
 
 @app.route('/')
 def index():
@@ -253,7 +242,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- DB Setup ---
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -261,9 +249,7 @@ with app.app_context():
         db.session.add(admin)
         e1 = User(username='emp1', password=generate_password_hash('pass123'), role='Employee', full_name='John Dsouza', email='john@nexus.com', salary=50000, address="Bangalore")
         e2 = User(username='emp2', password=generate_password_hash('pass123'), role='Employee', full_name='Kartik Sharma', email='k@nexus.com', salary=52000, address="Mumbai")
-        e3 = User(username='emp3', password=generate_password_hash('pass123'), role='Employee', full_name='Pranav Avadhani', email='p@nexus.com', salary=48000, address="Delhi")
-        e4 = User(username='emp4', password=generate_password_hash('pass123'), role='Employee', full_name='Parthiv Reddy', email='pr@nexus.com', salary=51000, address="Hyderabad")
-        db.session.add_all([e1, e2, e3, e4])
+        db.session.add_all([e1, e2])
         db.session.commit()
 
 if __name__ == '__main__':
