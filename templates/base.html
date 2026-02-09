@@ -6,6 +6,13 @@
     <title>Nexus Enterprise ERP</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <style>
+        /* Dark Mode overrides */
+        body.dark-mode { --bg: #0b1437; --sidebar: #111c44; --text: #ffffff; --card-bg: #111c44; }
+        body.dark-mode .card { background: #111c44; color: white; border: 1px solid #1b2559; }
+        body.dark-mode .sidebar { background: #111c44; }
+    </style>
 </head>
 <body>
     <div class="sidebar">
@@ -14,6 +21,9 @@
         <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
         <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
         <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
+        
+        <button onclick="toggleDarkMode()" class="btn" style="width: 80%; margin: 20px auto; display: block; background: #1b2559;">🌙 Toggle Dark</button>
+        
         <a href="{{ url_for('logout') }}" class="sidebar-link" style="margin-top: 50px; color: #ee5d50;">🚪 Logout</a>
     </div>
 
@@ -30,5 +40,13 @@
         
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+        if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+    </script>
 </body>
 </html>
