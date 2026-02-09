@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+    <div class="card">
+        <h3>💰 New Claim</h3>
+        <form method="POST">
+            <input type="text" name="category" placeholder="Category (WiFi, Travel, etc.)" required>
+            <input type="number" name="amount" placeholder="Amount (INR)" required>
+            <textarea name="desc" placeholder="Reason for expense..." required></textarea>
+            <button type="submit" class="btn" style="width: 100%;">Submit Claim</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>📋 Claims History</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in claims %}
+                <tr>
+                    <td>{{ c.category }}</td>
+                    <td><strong>₹{{ c.amount }}</strong></td>
+                    <td><span class="badge {% if c.status == 'Approved' %}badge-wfh{% else %}badge-office{% endif %}">{{ c.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
