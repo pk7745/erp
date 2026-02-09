@@ -16,17 +16,34 @@
         <table>
             <thead>
                 <tr>
+                    <th>Employee</th>
                     <th>Category</th>
                     <th>Amount</th>
-                    <th>Status</th>
+                    <th>Action / Status</th>
                 </tr>
             </thead>
             <tbody>
-                {% for c in claims %}
+                {% for claim in claims %}
                 <tr>
-                    <td>{{ c.category }}</td>
-                    <td><strong>₹{{ c.amount }}</strong></td>
-                    <td><span class="badge {% if c.status == 'Approved' %}badge-wfh{% else %}badge-office{% endif %}">{{ c.status }}</span></td>
+                    <td>{{ claim.rel_user.full_name }}</td>
+                    <td>{{ claim.category }}</td>
+                    <td><strong>₹{{ claim.amount }}</strong></td>
+                    <td>
+                        {% if claim.status == 'Pending' and session['role'] == 'HR' %}
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="badge badge-office">Approve (HR)</a>
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
+                            
+                        {% elif claim.status == 'Approved by HR' and session['role'] == 'Accountant' %}
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='acc_approve') }}" class="badge badge-office" style="background:green; color:white;">Finalize Payment</a>
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
+                            
+                        {% else %}
+                            <span class="badge {% if claim.status == 'Finalized' %}badge-wfh{% elif claim.status == 'Rejected' %}badge-wfh{% else %}badge-office{% endif %}" 
+                                  style="{% if claim.status == 'Finalized' %}background:#28a745; color:white;{% elif claim.status == 'Rejected' %}background:#dc3545; color:white;{% endif %}">
+                                {{ claim.status }}
+                            </span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
