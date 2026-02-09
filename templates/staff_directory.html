@@ -48,7 +48,11 @@
                 
                 <td>
                     {% if session['role'] == 'HR' %}
-                        ₹{{ "{:,}".format(emp.salary) }}
+                        <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display: flex; gap: 5px;">
+                            <input type="number" name="new_salary" value="{{ emp.salary }}" 
+                                   style="width: 80px; padding: 2px; border: 1px solid #ccc;">
+                            <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
+                        </form>
                     {% else %}
                         {% if session['user_id'] == emp.id %}
                             ₹{{ "{:,}".format(emp.salary) }}
@@ -78,7 +82,6 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
     let filter = this.value.toLowerCase();
     let rows = document.querySelectorAll('#directoryTable tr');
     rows.forEach(row => {
-        // Checks all text content in the row for the filter match
         row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
     });
 });
