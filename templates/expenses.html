@@ -12,7 +12,20 @@
     </div>
 
     <div class="card">
-        <h3>📋 Claims History</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3>📋 Claims History</h3>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="expenseSearch" placeholder="Filter claims..." 
+                       style="padding: 8px; width: 200px; border-radius: 5px; border: 1px solid #ddd;">
+                
+                {% if session['role'] in ['HR', 'Accountant'] %}
+                <a href="{{ url_for('download_expenses_csv') }}" class="btn" style="background: #333; font-size: 0.8em; padding: 8px 12px;">
+                    📥 Export CSV
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
         <table>
             <thead>
                 <tr>
@@ -22,7 +35,7 @@
                     <th>Action / Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="expenseTable">
                 {% for claim in claims %}
                 <tr>
                     <td>{{ claim.rel_user.full_name }}</td>
@@ -54,4 +67,14 @@
         </table>
     </div>
 </div>
+
+<script>
+document.getElementById('expenseSearch').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#expenseTable tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}
