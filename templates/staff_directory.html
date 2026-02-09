@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Staff Directory</h2>
-        {% if session['role'] == 'HR' %}
-            <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
-        {% endif %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <h2 style="margin: 0;">👥 Staff Directory</h2>
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="directorySearch" placeholder="Search name, email, or role..." 
+                   style="padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #ddd;">
+            
+            {% if session['role'] == 'HR' %}
+                <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
+            {% endif %}
+        </div>
     </div>
 
     <div id="addForm" class="card" style="display:none; background: var(--bg); margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>Add New Employee</h3>
+            <button class="btn" style="background: #666;" onclick="document.getElementById('addForm').style.display='none'">Cancel</button>
+        </div>
         <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <input type="text" name="full_name" placeholder="Full Name" required>
             <input type="email" name="email" placeholder="Email" required>
@@ -30,7 +40,7 @@
                 <th>Payroll</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="directoryTable">
             {% for emp in employees %}
             <tr>
                 <td><strong>{{ emp.full_name }}</strong></td>
@@ -62,4 +72,15 @@
         </tbody>
     </table>
 </div>
+
+<script>
+document.getElementById('directorySearch').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#directoryTable tr');
+    rows.forEach(row => {
+        // Checks all text content in the row for the filter match
+        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}
