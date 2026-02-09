@@ -301,12 +301,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/profile')
-def profile():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    return render_template('profile.html', user=user)
-
 # --- Startup Logic with 5 Initial Users ---
 with app.app_context():
     db.create_all()
@@ -331,7 +325,14 @@ with app.app_context():
     
     db.session.commit()
 
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    return render_template('profile.html', user=user)
+    
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
