@@ -278,29 +278,34 @@ def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
     
     user = User.query.get(session['user_id'])
+    from datetime import datetime
+    current_month = datetime.now().strftime('%m')
     
     if request.method == 'POST':
-        # Logic to add a new leave request
-        new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'])
+        # Matches your HTML: name="date" and name="reason"
+        new_leave = Leave(
+            user_id=session['user_id'], 
+            date=request.form['date'], 
+            reason=request.form['reason']
+        )
         db.session.add(new_leave)
-        db.session.add(Notification(message=f"LEAVE REQ: {session['name']} for {request.form['date']}"))
+        # Adds notification for HR feed
+        db.session.add(Notification(message=f"LEAVE REQ: {user.full_name} for {request.form['date']}"))
         db.session.commit()
         flash('Leave request submitted!', 'success')
-        from datetime import datetime
-    current_month = datetime.now().strftime('%m') # Gets current month (e.g., '02')
-    
-    leave_limit = 2  # Your monthly limit
-    
-    # Count only approved leaves for THIS specific month
+
+    # Monthly logic: 2 days per month
+    leave_limit = 2 
     leaves_taken = Leave.query.filter(
         Leave.user_id == user.id, 
         Leave.status == 'Approved',
-        Leave.date.like(f"%-{current_month}-%") # Matches the month in your date string
+        Leave.date.like(f"%-{current_month}-%")
     ).count()
     
     leaves_left = leave_limit - leaves_taken
 
-  if session['role'] == 'HR':
+    # Fetching history for the table
+    if session['role'] == 'HR':
         leaves = Leave.query.order_by(Leave.id.desc()).all()
     else:
         leaves = Leave.query.filter_by(user_id=user.id).order_by(Leave.id.desc()).all()
@@ -310,7 +315,6 @@ def leave():
                            leaves_taken=leaves_taken, 
                            leaves_left=leaves_left, 
                            leave_limit=leave_limit)
-
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
@@ -339,6 +343,7 @@ if __name__ == '__main__':
     # os.environ.get('PORT') is required for deployment platforms
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
