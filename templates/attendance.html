@@ -3,13 +3,13 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Attendance Log</h2>
+            <h2>Attendance Tracking</h2>
             <form method="POST" style="display: flex; gap: 10px;">
                 <select name="work_mode" style="width: 150px; margin: 0; padding: 10px;">
                     <option value="Office">🏢 Office</option>
                     <option value="WFH">🏠 WFH</option>
                 </select>
-                <button class="btn">Clock In/Out</button>
+                <button class="btn">Clock In / Out</button>
             </form>
         </div>
 
@@ -19,6 +19,8 @@
                     <th>Date</th>
                     <th>Employee</th>
                     <th>Mode</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,18 +29,21 @@
                     <td>{{ row.date }}</td>
                     <td><strong>{{ row.user.full_name }}</strong></td>
                     <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
+                    <td style="color: var(--success); font-weight: bold;">{{ row.check_in }}</td>
+                    <td style="color: var(--p); font-weight: bold;">{{ row.check_out or '--:--' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    
+
     <div class="card">
-        <h3>📅 Visual Calendar</h3>
-        <div id='calendar' style="height: 400px;"></div>
+        <h3>📅 Visual Monthly Calendar</h3>
+        <div id='calendar' style="height: 450px;"></div>
     </div>
 </div>
 
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
