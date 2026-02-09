@@ -140,6 +140,55 @@ def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('staff_directory.html', employees=User.query.all())
 
+# 1. API for the Chart in your dashboard
+@app.route('/api/stats')
+def get_stats():
+    if 'user_id' not in session: return jsonify({'office': 0, 'wfh': 0})
+    u_id = session['user_id']
+    off = Attendance.query.filter_by(user_id=u_id, work_mode='Office').count()
+    wfh = Attendance.query.filter_by(user_id=u_id, work_mode='WFH').count()
+    return jsonify({'office': off, 'wfh': wfh})
+
+# 2. To clear the HR Activity Feed
+@app.route('/clear_notifications')
+def clear_notifications():
+    if session.get('role') == 'HR':
+        Notification.query.delete()
+        db.session.commit()
+    return redirect(url_for('dashboard'))
+
+# 3. To submit the Activity Report (Matches your form)
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    report = ActivityReport(user_id=session['user_id'], content=request.form['content'])
+    db.session.add(report)
+    db.session.commit()
+    flash('Report submitted successfully!', 'success')
+    return redirect(url_for('dashboard'))
+
+# 4. To export PDF data (Matches your buttons)
+@app.route('/download_report/<rtype>')
+def download_report(rtype):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"Nexus Enterprise - {rtype.upper()} Report", ln=True, align='C')
+    pdf.ln(10)
+    pdf.set_font("Arial", size=10)
+    
+    if rtype == 'attendance':
+        data = Attendance.query.all()
+        for r in data:
+            pdf.cell(0, 10, txt=f"Date: {r.date} | Name: {r.user.full_name} | Mode: {r.work_mode}", ln=True)
+    else:
+        data = ActivityReport.query.all()
+        for r in data:
+            pdf.cell(0, 10, txt=f"User: {r.rel_user.full_name} | Content: {r.content[:50]}...", ln=True)
+            
+    out = pdf.output(dest='S').encode('latin-1')
+    return send_file(io.BytesIO(out), as_attachment=True, download_name=f"{rtype}_report.pdf")
+
 # --- New Feature Routes ---
 
 @app.route('/expenses', methods=['GET', 'POST'])
@@ -234,4 +283,5 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run()
+
 
