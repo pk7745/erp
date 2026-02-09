@@ -107,6 +107,19 @@ def login():
         flash('Invalid Credentials', 'error')
     return render_template('login.html')
 
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        user = User.query.filter_by(username=request.form['username']).first()
+        if user:
+            # Adds a notification for HR to handle the reset
+            db.session.add(Notification(message=f"RESET REQUEST: {user.full_name} ({user.username})"))
+            db.session.commit()
+            flash('HR has been notified of your reset request.', 'success')
+        else:
+            flash('Username not found.', 'error')
+    return render_template('forgot_password.html')
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -297,6 +310,7 @@ if __name__ == '__main__':
     # os.environ.get('PORT') is required for deployment platforms
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
