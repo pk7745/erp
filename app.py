@@ -1,6 +1,7 @@
 import os
 import io
 import pytz
+import csv  # Added for CSV generation
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -247,6 +248,38 @@ def approve_expense(id, action):
     db.session.commit()
     flash(f'Expense status updated to {claim.status}', 'success')
     return redirect(url_for('expenses'))
+
+# --- NEW ROUTE FOR CSV DOWNLOAD ---
+@app.route('/download_expenses_csv')
+def download_expenses_csv():
+    if session.get('role') not in ['HR', 'Accountant']:
+        return redirect(url_for('login'))
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow(['ID', 'Employee', 'Category', 'Amount (INR)', 'Status', 'Description', 'Payment Date', 'Processed By'])
+    
+    claims = ExpenseClaim.query.all()
+    for c in claims:
+        writer.writerow([
+            c.id, 
+            c.rel_user.full_name, 
+            c.category, 
+            c.amount, 
+            c.status, 
+            c.description, 
+            c.payment_date or 'N/A', 
+            c.processed_by or 'N/A'
+        ])
+    
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f"nexus_expenses_{get_ist_time().strftime('%Y-%m-%d')}.csv"
+    )
 
 @app.route('/performance', methods=['GET', 'POST'])
 def performance():
