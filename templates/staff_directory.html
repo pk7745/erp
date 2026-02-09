@@ -1,59 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-{% if session['role'] == 'HR' %}
 <div class="card">
-    <h3>➕ Onboard New Employee</h3>
-    <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <input type="text" name="full_name" placeholder="Full Name" required>
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <input type="number" name="salary" placeholder="Salary (INR)" required>
-        <input type="text" name="address" placeholder="Location/City" required>
-        <button type="submit" class="btn" style="grid-column: span 2;">Save Employee</button>
-    </form>
-</div>
-{% endif %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Staff Directory</h2>
+        {% if session['role'] == 'HR' %}
+            <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
+        {% endif %}
+    </div>
 
-<div class="card">
-    <h2>Company Directory</h2>
+    <div id="addForm" class="card" style="display:none; background: var(--bg); margin-bottom: 20px;">
+        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" name="full_name" placeholder="Full Name" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <input type="number" name="salary" placeholder="Monthly Salary (INR)" required>
+            <input type="text" name="address" placeholder="Address">
+            <button type="submit" class="btn" style="grid-column: span 2;">Save Employee</button>
+        </form>
+    </div>
+
     <table>
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Salary (₹)</th>
-                <th>Location</th>
                 <th>Email</th>
-                <th>Payslip</th>
-                {% if session['role'] == 'HR' %}<th>Action</th>{% endif %}
+                <th>Base Salary</th>
+                <th>Role</th>
+                <th>Payroll</th>
             </tr>
         </thead>
         <tbody>
             {% for emp in employees %}
             <tr>
-                <td><strong>{{ emp.full_name }}</strong> <br><small>{{ emp.role }}</small></td>
+                <td><strong>{{ emp.full_name }}</strong></td>
+                <td>{{ emp.email }}</td>
+                <td>₹{{ "{:,}".format(emp.salary) }}</td>
+                <td><span class="badge badge-office">{{ emp.role }}</span></td>
                 <td>
-                    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
-                        ₹{{ "{:,}".format(emp.salary) }}
-                    {% else %}
-                        XXXXX
-                    {% endif %}
+                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
                 </td>
-                <td>{{ emp.address }}</td>
-                <td>{{ emp.email }}</td> <td>
-                    {% if session['role'] == 'HR' or session['user_id'] == emp.id %}
-                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-office" style="text-decoration: none;">Download PDF</a>
-                    {% else %}
-                    -
-                    {% endif %}
-                </td>
-                {% if session['role'] == 'HR' %}
-                <td>
-                    {% if emp.role != 'HR' %}
-                        <a href="{{ url_for('remove_employee', uid=emp.id) }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Remove</a>
-                    {% endif %}
-                </td>
-                {% endif %}
             </tr>
             {% endfor %}
         </tbody>
