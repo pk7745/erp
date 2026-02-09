@@ -226,7 +226,6 @@ def expenses():
         claims = ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
     return render_template('expenses.html', claims=claims)
 
-# --- DUAL APPROVAL ROUTE FOR HR & ACCOUNTANT ---
 @app.route('/approve_expense/<int:id>/<action>')
 def approve_expense(id, action):
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -234,10 +233,8 @@ def approve_expense(id, action):
     
     if session['role'] == 'HR' and action == 'hr_approve':
         claim.status = 'Approved by HR'
-        db.session.add(Notification(message=f"EXPENSE HR-APPROVED: {claim.rel_user.full_name}"))
     elif session['role'] == 'Accountant' and action == 'acc_approve':
         claim.status = 'Finalized'
-        db.session.add(Notification(message=f"EXPENSE FINALIZED: {claim.rel_user.full_name}"))
     elif action == 'reject':
         claim.status = 'Rejected'
         
@@ -325,7 +322,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- Startup Logic with 6 Initial Users ---
+# --- Startup Logic with Initial Users ---
 with app.app_context():
     db.create_all()
     # 1. Create Admin (HR)
