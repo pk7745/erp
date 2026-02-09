@@ -35,8 +35,9 @@
     <div class="main" style="margin-left: 260px; padding: 40px; width: calc(100% - 260px);">
         <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
             {% if session['name'] %}
-            <a href="{{ url_for('profile') }}" class="profile-link" style="text-decoration: none; color: inherit; font-weight: 700; display: flex; align-items: center; gap: 8px; background: var(--card-bg); padding: 8px 15px; border-radius: 10px; border: 1px solid #eee;">
-                <span style="font-size: 1.2rem;">👤</span> 
+           <a href="{{ url_for('profile') }}" style="text-decoration: none; color: inherit; font-weight: bold;">
+    👤 {{ session['name'] }}
+</a>
                 <span style="font-family: 'DM Sans', sans-serif;">{{ session['name'] }}</span>
             </a>
             {% endif %}
@@ -64,3 +65,4 @@
     </script>
 </body>
 </html>
+
