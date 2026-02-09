@@ -36,6 +36,7 @@
                 <td><strong>{{ emp.full_name }}</strong></td>
                 <td>{{ emp.email }}</td>
                 <td>₹{{ "{:,}".format(emp.salary) }}</td>
+                <td>{{ emp.address or 'N/A' }}</td>
                 <td><span class="badge badge-office">{{ emp.role }}</span></td>
                 <td>
                     <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
@@ -46,3 +47,4 @@
     </table>
 </div>
 {% endblock %}
+
