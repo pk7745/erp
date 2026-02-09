@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="display: grid; grid-template-columns: 250px 1fr; height: 70vh; padding: 0; overflow: hidden;">
+    <div style="border-right: 1px solid #eee; overflow-y: auto; background: #f8f9fa;">
+        <h3 style="padding: 15px; margin: 0; border-bottom: 1px solid #eee;">Contacts</h3>
+        {% for c in contacts %}
+            <a href="{{ url_for('chat', receiver_id=c.id) }}" 
+               style="display: block; padding: 15px; text-decoration: none; color: #333; border-bottom: 1px solid #eee; {% if receiver_id == c.id %}background: #fff; border-left: 4px solid #4318ff; font-weight: bold;{% endif %}">
+                {{ c.full_name }} <br><small style="color: #888;">{{ c.role }}</small>
+            </a>
+        {% endfor %}
+    </div>
+
+    <div style="display: flex; flex-direction: column; background: #fff;">
+        {% if receiver_id %}
+            <div style="flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                {% for msg in messages %}
+                    <div style="max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 0.9rem;
+                        {% if msg.sender_id == session['user_id'] %}
+                            align-self: flex-end; background: #4318ff; color: white; border-bottom-right-radius: 2px;
+                        {% else %}
+                            align-self: flex-start; background: #f1f1f1; color: #333; border-bottom-left-radius: 2px;
+                        {% endif %}">
+                        {{ msg.content }}
+                        <div style="font-size: 0.7rem; margin-top: 5px; opacity: 0.7; text-align: right;">{{ msg.timestamp.strftime('%I:%M %p') }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <form action="{{ url_for('chat') }}" method="POST" style="padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+                <input type="hidden" name="receiver_id" value="{{ receiver_id }}">
+                <input type="text" name="content" placeholder="Type a message..." required style="flex-grow: 1; border-radius: 20px; border: 1px solid #ddd; padding: 10px 20px; margin: 0;">
+                <button type="submit" class="btn" style="border-radius: 50%; width: 45px; height: 45px; padding: 0;">✈</button>
+            </form>
+        {% else %}
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888;">
+                Select a contact to start chatting
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
