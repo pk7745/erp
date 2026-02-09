@@ -14,7 +14,7 @@
         body.dark-mode .sidebar { background: #111c44; }
         
         /* Profile Link Hover Effect */
-        .profile-link:hover { opacity: 0.8; transform: translateY(-1px); transition: all 0.2s; }
+        .profile-link:hover { opacity: 0.8; transform: translateY(-1px); transition: all 0.2s; background: rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -35,10 +35,8 @@
     <div class="main" style="margin-left: 260px; padding: 40px; width: calc(100% - 260px);">
         <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
             {% if session['name'] %}
-           <a href="{{ url_for('profile') }}" style="text-decoration: none; color: inherit; font-weight: bold;">
-    👤 {{ session['name'] }}
-</a>
-                <span style="font-family: 'DM Sans', sans-serif;">{{ session['name'] }}</span>
+            <a href="{{ url_for('profile') }}" class="profile-link" style="text-decoration: none; color: inherit; font-weight: bold; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd; padding: 8px 15px; border-radius: 8px;">
+                <span>👤</span> {{ session['name'] }}
             </a>
             {% endif %}
         </div>
@@ -65,4 +63,3 @@
     </script>
 </body>
 </html>
-
