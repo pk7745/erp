@@ -1,203 +1,70 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="dashboard-container">
-
-    {% if is_birthday or is_anniversary %}
-    <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="font-size: 2.5rem;">{% if is_birthday %}🎂{% else %}🎊{% endif %}</div>
-            <div>
-                <h2 style="margin: 0; font-size: 1.4rem;">
-                    Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!
-                </h2>
-                <p style="margin: 5px 0 0; opacity: 0.9;">The Nexus team wishes you a fantastic day and continued success!</p>
-            </div>
-        </div>
-        <button onclick="document.getElementById('celebration-toast').style.display='none'" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;">Close</button>
-    </div>
-    {% endif %}
-
-    <div style="background: var(--sidebar); color: white; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; overflow: hidden; border: 1px solid rgba(67, 24, 255, 0.2);">
-        <div style="background: var(--p); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-right: 15px; white-space: nowrap;">LATEST NEWS</div>
-        <marquee behavior="scroll" direction="left" scrollamount="6" style="font-size: 0.9rem; font-weight: 500;">
-            🚀 Nexus ERP v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            🏆 Amit Sharma awarded "Employee of the Month" for January! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            📢 New Health Insurance policy documents are now available in the Staff Directory. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            🏢 Quarterly Town Hall meeting on Friday at 4 PM in the Innovation Lab.
-        </marquee>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
-        <h1 style="margin: 0;">Welcome back, {{ user.full_name }}!</h1>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
-                💬 Support Chat
-                {% if unread_chats and unread_chats > 0 %}
-                    <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                        {{ unread_chats }}
-                    </span>
-                {% endif %}
-            </a>
-            <span class="badge badge-office">{{ user.role }} Account</span>
-        </div>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-        <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white; padding: 20px; text-align: center;">
-            <h4 style="margin: 0; opacity: 0.9;">Office Days</h4>
-            <h2 style="margin: 10px 0 0; font-size: 2rem;">{{ office_days if office_days else 0 }}</h2>
-        </div>
-        <div class="card" style="background: linear-gradient(135deg, #05cd99, #48efc1); color: white; padding: 20px; text-align: center;">
-            <h4 style="margin: 0; opacity: 0.9;">WFH Days</h4>
-            <h2 style="margin: 10px 0 0; font-size: 2rem;">{{ wfh_days if wfh_days else 0 }}</h2>
-        </div>
-        <div class="card" style="text-align: center; padding: 20px; border-top: 4px solid var(--p);">
-            <h4 style="margin: 0; color: var(--text-light);">Pending Tasks</h4>
-            <h2 style="margin: 10px 0 0; color: var(--p);">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }}</h2>
-        </div>
-    </div>
-
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard | Nexus ERP</title>
+    <style>
+        /* All the sidebar and layout styles from the previous message go here */
+        body { margin: 0; background: #f4f7fe; display: flex; font-family: 'Segoe UI', sans-serif; }
+        .main-content { margin-left: 280px; padding: 40px; width: 100%; }
         
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div class="card">
-                <h3 style="margin-top: 0;">📝 Submit Daily Activity Report</h3>
-                <form action="{{ url_for('submit_report') }}" method="POST">
-                    <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-family: inherit;"></textarea>
-                    <button type="submit" class="btn">Submit Report</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-top: 0;">🎯 My Task Board</h3>
-                <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <input type="text" name="title" placeholder="What needs to be done?" required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
-                    <button type="submit" class="btn">Add Task</button>
-                </form>
-                <div class="task-list" style="display: flex; flex-direction: column; gap: 10px;">
-                    {% for task in tasks %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border: 1px solid #eee; background: {% if task.is_done %}#f8f9fa{% else %}white{% endif %}; border-radius: 12px; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem; line-height: 1;">
-                                {% if task.is_done %}
-                                <span style="color: #05cd99;">●</span>
-                                {% else %}
-                                <span style="color: #ddd;">○</span>
-                                {% endif %}
-                            </a>
-                            <span style="font-weight: 500; {% if task.is_done %}text-decoration: line-through; color: #a3aed0;{% else %}color: #1b2559;{% endif %}">
-                                {{ task.title }}
-                            </span>
-                        </div>
-                        {% if task.is_done %}
-                        <span style="font-size: 0.75rem; background: #e6fff1; color: #05cd99; padding: 2px 8px; border-radius: 4px; font-weight: bold;">DONE</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-            <div class="card" style="text-align: center;">
-                <h3 style="margin-top: 0;">📊 Work Mode Distro</h3>
-                <div style="height: 180px; position: relative;">
-                    <canvas id="modeChart"></canvas>
-                </div>
-            </div>
-
-            {% if session['role'] == 'Accountant' %}
-            <div class="card" style="border-left: 5px solid #4318ff;">
-                <h3 style="margin-top: 0;">📊 Salary Change Log</h3>
-                <div style="max-height: 200px; overflow-y: auto; font-size: 0.85rem;">
-                    {% for n in notifications %}
-                        {% if "SALARY CHANGE" in n.message %}
-                            <div style="padding: 8px 0; border-bottom: 1px solid #eee;">
-                                <strong>{{ n.timestamp.strftime('%H:%M') }}</strong> - {{ n.message }}
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if session['role'] == 'HR' %}
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="margin: 0; color: #ee5d50;">🔔 HR Feed</h3>
-                    <a href="{{ url_for('clear_notifications') }}" style="font-size: 0.7rem; color: var(--danger); text-decoration: none;">Clear</a>
-                </div>
-                <div style="max-height: 200px; overflow-y: auto;">
-                    {% for n in notifications %}
-                        <div style="padding: 8px; border-bottom: 1px solid #f8f9fa; font-size: 0.8rem;">
-                            <strong style="color: var(--p);">{{ n.timestamp.strftime('%H:%M') }}</strong>: {{ n.message }}
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card">
-                <h3 style="margin-top: 0;">📂 Exports</h3>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn" style="font-size: 0.8rem; text-align: center;">Attendance PDF</a>
-                    <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #1b2559; font-size: 0.8rem; text-align: center;">Activity PDF</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="fab-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px;">
-    <button onclick="toggleFab()" id="fab-main" style="width: 60px; height: 60px; border-radius: 50%; background: #4318ff; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(67, 24, 255, 0.4); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
-        <span id="fab-icon">⚡</span>
-    </button>
-    
-    <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end; animation: fadeIn 0.2s ease;">
-        <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🕒 Mark Attendance</a>
-        <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🌴 Apply Leave</a>
-        <a href="{{ url_for('expenses') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">💰 Claim Expense</a>
-    </div>
-</div>
-
-<style>
-    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-    .fab-item:hover { background: #4318ff !important; color: white !important; transform: translateX(-5px); }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Toggle Floating Action Menu
-    function toggleFab() {
-        const options = document.getElementById('fab-options');
-        const icon = document.getElementById('fab-icon');
-        if (options.style.display === 'none' || options.style.display === '') {
-            options.style.display = 'flex';
-            icon.innerText = '✕';
-        } else {
-            options.style.display = 'none';
-            icon.innerText = '⚡';
+        /* CELEBRATION BANNERS */
+        .banner {
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
-    }
+        .birthday-banner { background: linear-gradient(135deg, #ff6b6b, #f06595); }
+        .anniversary-banner { background: linear-gradient(135deg, #4318ff, #7000ff); }
+    </style>
+</head>
+<body>
 
-    // Chart Logic (Maintained)
-    const ctx = document.getElementById('modeChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Office', 'WFH'],
-            datasets: [{
-                data: [{{ office_days }}, {{ wfh_days }}],
-                backgroundColor: ['#4318ff', '#05cd99'],
-                borderWidth: 0
-            }]
-        },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } } 
-        }
-    });
-</script>
-{% endblock %}
+    <div class="nexus-sidebar">
+        <h2 style="color: #1b2559;">NEXUS<span style="color: #4318ff;">ERP</span></h2>
+        
+        <div class="nav-group-label">Main</div>
+        <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+        <a href="{{ url_for('chat') }}" class="nav-link">Chat ({{ unread_chats }})</a>
+        
+        <div class="nav-group-label">Self-Service</div>
+        <a href="{{ url_for('attendance') }}" class="nav-link">Attendance</a>
+        <a href="{{ url_for('leave') }}" class="nav-link">Leave Request</a>
+        <a href="{{ url_for('generate_id') }}" class="nav-link">ID Card</a>
+        
+        {% if session['role'] == 'HR' %}
+        <div class="nav-group-label">Admin</div>
+        <a href="{{ url_for('staff_directory') }}" class="nav-link">Staff Management</a>
+        {% endif %}
+    </div>
+
+    <div class="main-content">
+        {% if is_birthday %}
+        <div class="banner birthday-banner">
+            🎂 Happy Birthday, {{ user.full_name }}! The Nexus team wishes you a fantastic day!
+        </div>
+        {% endif %}
+
+        {% if is_anniversary %}
+        <div class="banner anniversary-banner">
+            🎊 Happy Work Anniversary! Thank you for your dedication to Nexus!
+        </div>
+        {% endif %}
+
+        <h1>Welcome, {{ user.full_name }}</h1>
+        <p>Your Role: {{ user.role }}</p>
+        
+        <h3>Your Tasks</h3>
+        {% for task in tasks %}
+            <div>{{ task.title }} - {{ 'Done' if task.is_done else 'Pending' }}</div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
