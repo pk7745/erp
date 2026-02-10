@@ -92,12 +92,19 @@
                 <small>Estimated monthly credit amount</small>
             </div>
         </div>
+
         <div class="card" style="margin-top: 20px; padding: 20px;">
-            <h3 style="margin-bottom: 15px;">📈 Salary Growth Trajectory</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">📈 Salary Growth Trajectory</h3>
+                <a href="{{ url_for('download_salary_certificate') }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #4318ff; text-decoration: none;">
+                    📥 Download Salary Certificate
+                </a>
+            </div>
             <div style="height: 300px; width: 100%;">
                 <canvas id="salaryChart"></canvas>
             </div>
         </div>
+
         <div style="margin-top: 20px; text-align: center;">
             <a href="{{ url_for('dashboard') }}" style="text-decoration: none; color: var(--text-light); font-size: 0.9rem;">Return to Workspace</a>
         </div>
