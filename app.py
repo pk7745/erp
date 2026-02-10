@@ -226,19 +226,48 @@ def download_salary_certificate():
     pdf.ln(10)
     
     pdf.set_font("Arial", '', 12)
-    pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a full-time employee at Nexus Intelligence Systems as a {u.role}. Their current monthly gross compensation is INR {u.salary + int(u.salary*0.5) + 2000}.\n\nThis certificate is issued at the request of the employee for official purposes.")
+    # Corrected the logic to match your previous Gross Salary definition
+    gross_val = u.salary + int(u.salary*0.4) + int(u.salary*0.1) + 2000
+    pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a full-time employee at Nexus Intelligence Systems as a {u.role}. Their current monthly gross compensation is INR {gross_val}.\n\nThis certificate is issued at the request of the employee for official purposes.")
     
-    pdf.ln(20)
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, "Authorised Signatory,", ln=True)
-    pdf.cell(0, 10, "Human Resources Department", ln=True)
+    pdf.ln(10)
+
+    # --- NEW: ADDING SEAL AND SIGNATURE SECTION ---
+    # Store current Y position to align Seal and Signature side-by-side
+    current_y = pdf.get_y()
+
+    # 1. Official Company Seal (Drawn on the Left)
+    pdf.set_draw_color(67, 24, 255) # Nexus Blue Border
+    pdf.set_line_width(0.8)
+    pdf.circle(40, current_y + 20, 18, 'D') # Draw Circle Seal
+    pdf.set_font("Arial", 'B', 7)
+    pdf.set_text_color(67, 24, 255)
+    pdf.text(32, current_y + 36, "NEXUS INTELLIGENCE")
+    pdf.text(34, current_y + 39, "OFFICIAL VERIFIED")
+
+    # 2. Digital Signature (Drawn on the Right)
+    pdf.set_xy(130, current_y + 10)
+    pdf.set_font("Courier", 'BI', 12) # Courier gives a "Digital Stamp" look
+    pdf.set_text_color(0, 0, 128) # Navy Blue for ink look
+    pdf.cell(50, 10, "SYSTEM_HR_NEXUS", ln=True, align='C')
     
+    pdf.set_draw_color(0, 0, 0) # Black line
+    pdf.line(135, pdf.get_y(), 175, pdf.get_y()) # Signature line
+    
+    pdf.set_xy(130, pdf.get_y())
+    pdf.set_font("Arial", 'B', 11)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(50, 8, "Authorised Signatory", ln=True, align='C')
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(130) # Offset
+    pdf.cell(50, 5, "Human Resources Dept", ln=True, align='C')
+    
+    # Return the file
     return send_file(
         io.BytesIO(pdf.output(dest='S').encode('latin-1')), 
         as_attachment=True, 
         download_name=f"Salary_Certificate_{u.username}.pdf"
     )
-
 @app.route('/staff_directory')
 def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -405,17 +434,15 @@ def generate_payslip(uid):
     if not u:
         return "User not found", 404
 
-    # --- SALARY CALCULATIONS ---
+    # --- SALARY CALCULATIONS (Unchanged) ---
     basic = u.salary
-    hra = int(basic * 0.40)  # 40% of basic
-    da = int(basic * 0.10)   # 10% of basic
-    ta = 2000                # Fixed Travel Allowance
+    hra = int(basic * 0.40)  
+    da = int(basic * 0.10)   
+    ta = 2000                
     
     gross_salary = basic + hra + da + ta
-    
-    # Deductions
-    epf = int((basic + da) * 0.12)  # 12% of Basic + DA
-    prof_tax = 200                  # Standard Professional Tax
+    epf = int((basic + da) * 0.12)  
+    prof_tax = 200                  
     
     total_deductions = epf + prof_tax
     net_salary = gross_salary - total_deductions
@@ -424,9 +451,9 @@ def generate_payslip(uid):
     pdf = FPDF()
     pdf.add_page()
     
-    # Header
+    # Header (Unchanged)
     pdf.set_font("Arial", 'B', 20)
-    pdf.set_text_color(67, 24, 255) # Nexus Primary Blue
+    pdf.set_text_color(67, 24, 255) 
     pdf.cell(200, 15, txt="NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
     
     pdf.set_font("Arial", 'B', 12)
@@ -435,52 +462,71 @@ def generate_payslip(uid):
     pdf.cell(200, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True, align='C')
     pdf.ln(10)
 
-    # Table Header
-    pdf.set_fill_color(244, 247, 254) # Nexus BG Gray
+    # Table Header (Unchanged)
+    pdf.set_fill_color(244, 247, 254) 
     pdf.set_font("Arial", 'B', 11)
     pdf.cell(95, 10, "EARNINGS", 1, 0, 'C', True)
     pdf.cell(95, 10, "DEDUCTIONS", 1, 1, 'C', True)
 
-    # Table Body (Earnings vs Deductions)
+    # Table Body (Unchanged)
     pdf.set_font("Arial", '', 10)
-    
-    # Row 1
     pdf.cell(60, 10, "Basic Salary", 1); pdf.cell(35, 10, f"INR {basic}", 1, 0, 'R')
     pdf.cell(60, 10, "Provident Fund (EPF)", 1); pdf.cell(35, 10, f"INR {epf}", 1, 1, 'R')
-    
-    # Row 2
     pdf.cell(60, 10, "House Rent (HRA)", 1); pdf.cell(35, 10, f"INR {hra}", 1, 0, 'R')
     pdf.cell(60, 10, "Professional Tax", 1); pdf.cell(35, 10, f"INR {prof_tax}", 1, 1, 'R')
-    
-    # Row 3
     pdf.cell(60, 10, "Dearness (DA)", 1); pdf.cell(35, 10, f"INR {da}", 1, 0, 'R')
-    pdf.cell(95, 10, "", 1, 1) # Empty cell for alignment
-    
-    # Row 4
+    pdf.cell(95, 10, "", 1, 1) 
     pdf.cell(60, 10, "Travel (TA)", 1); pdf.cell(35, 10, f"INR {ta}", 1, 0, 'R')
-    pdf.cell(95, 10, "", 1, 1) # Empty cell for alignment
+    pdf.cell(95, 10, "", 1, 1) 
 
     pdf.ln(5)
 
-    # Totals
+    # Totals (Unchanged)
     pdf.set_font("Arial", 'B', 11)
     pdf.cell(60, 10, "GROSS EARNINGS", 1); pdf.cell(35, 10, f"INR {gross_salary}", 1, 0, 'R', True)
     pdf.cell(60, 10, "TOTAL DEDUCTIONS", 1); pdf.cell(35, 10, f"INR {total_deductions}", 1, 1, 'R', True)
 
     pdf.ln(10)
     
-    # Net Pay Highlight
-    pdf.set_fill_color(5, 205, 153) # Nexus Success Green
+    # Net Pay Highlight (Unchanged)
+    pdf.set_fill_color(5, 205, 153) 
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(190, 15, txt=f"NET TAKE-HOME PAY: INR {net_salary}", border=0, ln=True, align='C', fill=True)
 
-    pdf.ln(20)
-    pdf.set_text_color(163, 174, 208) # Nexus Gray
-    pdf.set_font("Arial", 'I', 8)
-    pdf.cell(190, 5, txt="This is a computer-generated document and does not require a signature.", ln=True, align='C')
+    # --- NEW: SEAL & SIGNATURE SECTION ---
+    pdf.ln(15)
+    current_y = pdf.get_y()
 
-    # Output
+    # 1. Company Seal (Left Side)
+    pdf.set_draw_color(67, 24, 255) # Brand Blue
+    pdf.set_line_width(0.8)
+    pdf.circle(40, current_y + 15, 15, 'D') 
+    pdf.set_font("Arial", 'B', 6)
+    pdf.set_text_color(67, 24, 255)
+    pdf.text(31, current_y + 28, "NEXUS INTELLIGENCE")
+    pdf.text(35, current_y + 31, "OFFICIAL SEAL")
+
+    # 2. Digital Signature (Right Side)
+    pdf.set_xy(130, current_y + 10)
+    pdf.set_font("Courier", 'BI', 12) # Signature style
+    pdf.set_text_color(0, 0, 128) # Ink Blue
+    pdf.cell(50, 10, "FINANCE_DEPT_NEXUS", ln=True, align='C')
+    
+    pdf.set_draw_color(0, 0, 0)
+    pdf.line(135, pdf.get_y(), 175, pdf.get_y()) # Signature line
+    
+    pdf.set_xy(130, pdf.get_y())
+    pdf.set_font("Arial", 'B', 10)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(50, 7, "Accounts Manager", ln=True, align='C')
+
+    # Footer
+    pdf.set_y(-20)
+    pdf.set_text_color(163, 174, 208)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.cell(190, 5, txt="This payslip is digitally verified and issued by the Nexus ERP Finance Module.", ln=True, align='C')
+
     return send_file(
         io.BytesIO(pdf.output(dest='S').encode('latin-1')), 
         as_attachment=True, 
@@ -582,6 +628,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
