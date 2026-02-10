@@ -14,6 +14,39 @@
         </div>
 
         <h2 style="text-align: center; color: var(--p);">Nexus ERP</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<style>
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-weight: 600;
+        text-align: center;
+        animation: shake 0.5s ease-in-out;
+    }
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+</style>
         
         <form method="POST">
             <input type="text" name="username" placeholder="Username" required style="margin-bottom: 10px;">
@@ -27,3 +60,4 @@
     </div>
 </body>
 </html>
+
