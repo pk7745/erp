@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus ERP | Enterprise Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        :root {
+            --primary: #4318ff;
+            --navy: #1b2559;
+            --text-gray: #707eae;
+        }
+
+        body {
+            background: #FAFCFF;
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: 
+                radial-gradient(circle at 90% 10%, rgba(67, 24, 255, 0.08), transparent 40%),
+                radial-gradient(circle at 10% 90%, rgba(5, 205, 153, 0.05), transparent 40%);
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .nav-brand {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--navy);
+            letter-spacing: -1px;
+        }
+
+        .hero-content {
+            max-width: 850px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-content h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            color: var(--navy);
+            margin: 15px 0 25px;
+            line-height: 1.1;
+            font-weight: 800;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .home-btns {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-launch {
+            background: var(--primary);
+            color: white;
+            padding: 18px 45px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.2);
+            transition: 0.3s;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(67, 24, 255, 0.3);
+            filter: brightness(1.1);
+        }
+
+        .feature-ribbon {
+            margin-top: 80px;
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .f-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--navy);
+            font-weight: 600;
+            background: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .dot {
+            height: 8px;
+            width: 8px;
+            background: #05cd99;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="nav-brand">NEXUS<span style="color: var(--primary);">ERP</span></div>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div style="display: inline-block; background: rgba(67, 24, 255, 0.1); color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+                Enterprise Unified Portal
+            </div>
+            
+            <h1>Smart Workspace for <br> <span style="color: var(--primary);">Smart Enterprises.</span></h1>
+            
+            <p>Streamline attendance, manage secure internal communications, and track real-time performance within a single, high-performance ecosystem.</p>
+            
+            <div class="home-btns">
+                <a href="{{ url_for('login') }}" class="btn-launch">Launch Nexus Dashboard</a>
+            </div>
+
+            <div class="feature-ribbon">
+                <div class="f-item"><span class="dot"></span> Secure Chat</div>
+                <div class="f-item"><span class="dot" style="background: var(--primary);"></span> HR Management</div>
+                <div class="f-item"><span class="dot"></span> Smart Analytics</div>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>
