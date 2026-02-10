@@ -66,9 +66,86 @@
             </div>
         </form>
 
+        <div class="card" style="margin-top: 30px; border-top: 4px solid #05cd99; padding: 20px; background: #fff;">
+            <h3 style="margin-top: 0;">💰 My Salary Structure (Monthly)</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: #f4f7fe; padding: 15px; border-radius: 10px;">
+                    <p style="color: #4318ff; font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 10px;">EARNINGS</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>Basic:</span> <span>₹{{ user.salary }}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>HRA (40%):</span> <span>₹{{ payroll.hra }}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>DA (10%):</span> <span>₹{{ payroll.da }}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>TA:</span> <span>₹{{ payroll.ta }}</span></div>
+                    <hr style="border: 0.5px solid #ddd; margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>GROSS:</span> <span>₹{{ payroll.gross }}</span></div>
+                </div>
+                <div style="background: #fff5f5; padding: 15px; border-radius: 10px;">
+                    <p style="color: #ee5d50; font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 10px;">DEDUCTIONS</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>EPF (12%):</span> <span>₹{{ payroll.epf }}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>Prof. Tax:</span> <span>₹{{ payroll.pt }}</span></div>
+                    <div style="height: 40px;"></div>
+                    <hr style="border: 0.5px solid #ddd; margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; color: #ee5d50;"><span>TOTAL:</span> <span>₹{{ payroll.epf + payroll.pt }}</span></div>
+                </div>
+            </div>
+            <div style="background: #05cd99; color: white; padding: 15px; border-radius: 10px; margin-top: 15px; text-align: center;">
+                <h2 style="margin: 0;">Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
+                <small>Estimated monthly credit amount</small>
+            </div>
+        </div>
+        <div class="card" style="margin-top: 20px; padding: 20px;">
+            <h3 style="margin-bottom: 15px;">📈 Salary Growth Trajectory</h3>
+            <div style="height: 300px; width: 100%;">
+                <canvas id="salaryChart"></canvas>
+            </div>
+        </div>
         <div style="margin-top: 20px; text-align: center;">
             <a href="{{ url_for('dashboard') }}" style="text-decoration: none; color: var(--text-light); font-size: 0.9rem;">Return to Workspace</a>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('salaryChart').getContext('2d');
+    const currentSalary = {{ user.salary }};
+    const labels = ['2023', '2024', 'Current (2025)'];
+    const dataPoints = [
+        Math.floor(currentSalary * 0.8),
+        Math.floor(currentSalary * 0.9),
+        currentSalary
+    ];
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Monthly Basic Salary (INR)',
+                data: dataPoints,
+                borderColor: '#4318ff',
+                backgroundColor: 'rgba(67, 24, 255, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#4318ff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: '#f0f0f0' },
+                    ticks: { callback: (value) => '₹' + value.toLocaleString() }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
