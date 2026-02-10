@@ -343,13 +343,90 @@ def download_expenses_csv():
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
-    pdf = FPDF()
-    pdf.add_page(); pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt=f"NEXUS PAYSLIP: {u.full_name}", ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(0, 10, txt=f"Salary: INR {u.salary}", ln=True)
-    return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"payslip_{u.username}.pdf")
+    if not u:
+        return "User not found", 404
 
+    # --- SALARY CALCULATIONS ---
+    basic = u.salary
+    hra = int(basic * 0.40)  # 40% of basic
+    da = int(basic * 0.10)   # 10% of basic
+    ta = 2000                # Fixed Travel Allowance
+    
+    gross_salary = basic + hra + da + ta
+    
+    # Deductions
+    epf = int((basic + da) * 0.12)  # 12% of Basic + DA
+    prof_tax = 200                  # Standard Professional Tax
+    
+    total_deductions = epf + prof_tax
+    net_salary = gross_salary - total_deductions
+
+    # --- PDF GENERATION ---
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Header
+    pdf.set_font("Arial", 'B', 20)
+    pdf.set_text_color(67, 24, 255) # Nexus Primary Blue
+    pdf.cell(200, 15, txt="NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
+    
+    pdf.set_font("Arial", 'B', 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(200, 10, txt=f"PAYSLIP FOR: {u.full_name.upper()}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True, align='C')
+    pdf.ln(10)
+
+    # Table Header
+    pdf.set_fill_color(244, 247, 254) # Nexus BG Gray
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(95, 10, "EARNINGS", 1, 0, 'C', True)
+    pdf.cell(95, 10, "DEDUCTIONS", 1, 1, 'C', True)
+
+    # Table Body (Earnings vs Deductions)
+    pdf.set_font("Arial", '', 10)
+    
+    # Row 1
+    pdf.cell(60, 10, "Basic Salary", 1); pdf.cell(35, 10, f"INR {basic}", 1, 0, 'R')
+    pdf.cell(60, 10, "Provident Fund (EPF)", 1); pdf.cell(35, 10, f"INR {epf}", 1, 1, 'R')
+    
+    # Row 2
+    pdf.cell(60, 10, "House Rent (HRA)", 1); pdf.cell(35, 10, f"INR {hra}", 1, 0, 'R')
+    pdf.cell(60, 10, "Professional Tax", 1); pdf.cell(35, 10, f"INR {prof_tax}", 1, 1, 'R')
+    
+    # Row 3
+    pdf.cell(60, 10, "Dearness (DA)", 1); pdf.cell(35, 10, f"INR {da}", 1, 0, 'R')
+    pdf.cell(95, 10, "", 1, 1) # Empty cell for alignment
+    
+    # Row 4
+    pdf.cell(60, 10, "Travel (TA)", 1); pdf.cell(35, 10, f"INR {ta}", 1, 0, 'R')
+    pdf.cell(95, 10, "", 1, 1) # Empty cell for alignment
+
+    pdf.ln(5)
+
+    # Totals
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(60, 10, "GROSS EARNINGS", 1); pdf.cell(35, 10, f"INR {gross_salary}", 1, 0, 'R', True)
+    pdf.cell(60, 10, "TOTAL DEDUCTIONS", 1); pdf.cell(35, 10, f"INR {total_deductions}", 1, 1, 'R', True)
+
+    pdf.ln(10)
+    
+    # Net Pay Highlight
+    pdf.set_fill_color(5, 205, 153) # Nexus Success Green
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(190, 15, txt=f"NET TAKE-HOME PAY: INR {net_salary}", border=0, ln=True, align='C', fill=True)
+
+    pdf.ln(20)
+    pdf.set_text_color(163, 174, 208) # Nexus Gray
+    pdf.set_font("Arial", 'I', 8)
+    pdf.cell(190, 5, txt="This is a computer-generated document and does not require a signature.", ln=True, align='C')
+
+    # Output
+    return send_file(
+        io.BytesIO(pdf.output(dest='S').encode('latin-1')), 
+        as_attachment=True, 
+        download_name=f"payslip_{u.username}_{get_ist_time().strftime('%m_%Y')}.pdf"
+    )
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
@@ -445,6 +522,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
