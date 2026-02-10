@@ -165,36 +165,39 @@ def generate_id():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     return render_template('id_card.html', user=user, now=get_ist_time().strftime("%Y"))
+
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     
-    if request.method == 'POST':
-        user.full_name = request.form.get('full_name')
-        user.email = request.form.get('email')
-        user.address = request.form.get('address')
-        if request.form.get('password'):
-            user.password = generate_password_hash(request.form.get('password'))
-        db.session.commit()
-        flash('Profile Updated Successfully', 'success')
-
-    # --- ADDED PAYROLL CALCULATION FOR SYNC ---
+    # CALCULATE PAYROLL DATA TO PREVENT JINJA ERROR
     basic = user.salary
-    hra = int(basic * 0.40)
-    da = int(basic * 0.10)
+    hra = int(basic * 0.4)
+    da = int(basic * 0.1)
     ta = 2000
     gross = basic + hra + da + ta
     epf = int((basic + da) * 0.12)
     pt = 200
     net = gross - (epf + pt)
-
-    payroll_data = {
-        'hra': hra, 'da': da, 'ta': ta, 
-        'gross': gross, 'epf': epf, 'pt': pt, 'net': net
-    }
     
+    payroll_data = {
+        'hra': hra, 'da': da, 'ta': ta, 'gross': gross,
+        'epf': epf, 'pt': pt, 'net': net
+    }
+
+    if request.method == 'POST':
+        user.full_name = request.form.get('full_name')
+        user.email = request.form.get('email')
+        user.address = request.form.get('address')
+        new_pass = request.form.get('password')
+        if new_pass:
+            user.password = generate_password_hash(new_pass)
+        db.session.commit()
+        return redirect(url_for('profile'))
+
     return render_template('profile.html', user=user, payroll=payroll_data)
+
 
 @app.route('/download_salary_certificate')
 def download_salary_certificate():
@@ -204,19 +207,17 @@ def download_salary_certificate():
     pdf = FPDF()
     pdf.add_page()
     
-    # --- GENERATE COMPANY LOGO (VIRTUAL) ---
-    pdf.set_fill_color(67, 24, 255) # Nexus Blue
+    # --- LOGO SECTION ---
+    pdf.set_fill_color(67, 24, 255)
     pdf.ellipse(10, 10, 20, 20, 'F')
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 15)
     pdf.text(16, 24, "N")
     
-    # Header Info
+    # Header
     pdf.set_text_color(43, 37, 105)
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(190, 10, "NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
-    pdf.set_font("Arial", '', 10)
-    pdf.cell(190, 5, "123 Nexus Tower, Innovation City, 56789", ln=True, align='C')
     pdf.ln(20)
     
     # Body
@@ -225,49 +226,37 @@ def download_salary_certificate():
     pdf.cell(190, 10, "SALARY CERTIFICATE", ln=True, align='C')
     pdf.ln(10)
     
-    pdf.set_font("Arial", '', 12)
-    # Corrected the logic to match your previous Gross Salary definition
     gross_val = u.salary + int(u.salary*0.4) + int(u.salary*0.1) + 2000
+    pdf.set_font("Arial", '', 12)
     pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a full-time employee at Nexus Intelligence Systems as a {u.role}. Their current monthly gross compensation is INR {gross_val}.\n\nThis certificate is issued at the request of the employee for official purposes.")
     
     pdf.ln(10)
-
-    # --- NEW: ADDING SEAL AND SIGNATURE SECTION ---
-    # Store current Y position to align Seal and Signature side-by-side
     current_y = pdf.get_y()
 
-    # 1. Official Company Seal (Drawn on the Left)
-    pdf.set_draw_color(67, 24, 255) # Nexus Blue Border
+    # --- FIX: USE ELLIPSE INSTEAD OF CIRCLE ---
+    pdf.set_draw_color(67, 24, 255)
     pdf.set_line_width(0.8)
-    pdf.circle(40, current_y + 20, 18, 'D') # Draw Circle Seal
+    # x, y, width, height (width=height makes a circle)
+    pdf.ellipse(25, current_y + 10, 30, 30, 'D') 
+    
     pdf.set_font("Arial", 'B', 7)
     pdf.set_text_color(67, 24, 255)
-    pdf.text(32, current_y + 36, "NEXUS INTELLIGENCE")
-    pdf.text(34, current_y + 39, "OFFICIAL VERIFIED")
+    pdf.text(28, current_y + 24, "NEXUS INTELLIGENCE")
+    pdf.text(32, current_y + 27, "OFFICIAL SEAL")
 
-    # 2. Digital Signature (Drawn on the Right)
+    # Signature
     pdf.set_xy(130, current_y + 10)
-    pdf.set_font("Courier", 'BI', 12) # Courier gives a "Digital Stamp" look
-    pdf.set_text_color(0, 0, 128) # Navy Blue for ink look
+    pdf.set_font("Courier", 'BI', 12)
+    pdf.set_text_color(0, 0, 128)
     pdf.cell(50, 10, "SYSTEM_HR_NEXUS", ln=True, align='C')
-    
-    pdf.set_draw_color(0, 0, 0) # Black line
-    pdf.line(135, pdf.get_y(), 175, pdf.get_y()) # Signature line
-    
+    pdf.line(135, pdf.get_y(), 175, pdf.get_y())
     pdf.set_xy(130, pdf.get_y())
     pdf.set_font("Arial", 'B', 11)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(50, 8, "Authorised Signatory", ln=True, align='C')
-    pdf.set_font("Arial", '', 10)
-    pdf.cell(130) # Offset
-    pdf.cell(50, 5, "Human Resources Dept", ln=True, align='C')
     
-    # Return the file
-    return send_file(
-        io.BytesIO(pdf.output(dest='S').encode('latin-1')), 
-        as_attachment=True, 
-        download_name=f"Salary_Certificate_{u.username}.pdf"
-    )
+    return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"Salary_Certificate_{u.username}.pdf")
+    
 @app.route('/staff_directory')
 def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -494,27 +483,28 @@ def generate_payslip(uid):
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(190, 15, txt=f"NET TAKE-HOME PAY: INR {net_salary}", border=0, ln=True, align='C', fill=True)
 
+   
+
     # --- NEW: SEAL & SIGNATURE SECTION ---
     pdf.ln(15)
     current_y = pdf.get_y()
 
-    # 1. Company Seal (Left Side)
-    pdf.set_draw_color(67, 24, 255) # Brand Blue
+    # FIX: USE ELLIPSE INSTEAD OF CIRCLE
+    pdf.set_draw_color(67, 24, 255)
     pdf.set_line_width(0.8)
-    pdf.circle(40, current_y + 15, 15, 'D') 
+    pdf.ellipse(25, current_y + 5, 30, 30, 'D') 
+    
     pdf.set_font("Arial", 'B', 6)
     pdf.set_text_color(67, 24, 255)
-    pdf.text(31, current_y + 28, "NEXUS INTELLIGENCE")
-    pdf.text(35, current_y + 31, "OFFICIAL SEAL")
+    pdf.text(28, current_y + 19, "NEXUS INTELLIGENCE")
+    pdf.text(32, current_y + 22, "OFFICIAL SEAL")
 
-    # 2. Digital Signature (Right Side)
+    # Signature (Right Side)
     pdf.set_xy(130, current_y + 10)
-    pdf.set_font("Courier", 'BI', 12) # Signature style
-    pdf.set_text_color(0, 0, 128) # Ink Blue
+    pdf.set_font("Courier", 'BI', 12)
+    pdf.set_text_color(0, 0, 128)
     pdf.cell(50, 10, "FINANCE_DEPT_NEXUS", ln=True, align='C')
-    
-    pdf.set_draw_color(0, 0, 0)
-    pdf.line(135, pdf.get_y(), 175, pdf.get_y()) # Signature line
+    pdf.line(135, pdf.get_y(), 175, pdf.get_y())
     
     pdf.set_xy(130, pdf.get_y())
     pdf.set_font("Arial", 'B', 10)
@@ -628,6 +618,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
