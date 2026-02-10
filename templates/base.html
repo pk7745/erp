@@ -19,7 +19,12 @@
 </head>
 <body>
     <div class="sidebar">
-        <h2 style="color: var(--p); margin-bottom: 30px; padding-left: 15px;">NEXUS ERP</h2>
+        <div class="sidebar-brand" style="padding-left: 15px; margin-bottom: 30px;">
+            <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
+                <h2 style="color: var(--p); margin: 0; cursor: pointer;">NEXUS ERP</h2>
+            </a>
+        </div>
+
         <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
         <a href="{{ url_for('performance') }}" class="sidebar-link">📈 My Performance</a>
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
