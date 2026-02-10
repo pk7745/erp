@@ -63,7 +63,7 @@
             <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Base Salary</th>
+                <th>Base Salary & Net Estimate</th>
                 <th>Role</th>
                 <th>Actions & Payroll</th>
             </tr>
@@ -76,10 +76,27 @@
                 
                 <td>
                     {% if session['role'] == 'HR' %}
-                        <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display: flex; gap: 5px;">
-                            <input type="number" name="new_salary" value="{{ emp.salary }}" 
-                                   style="width: 80px; padding: 2px; border: 1px solid #ccc;">
-                            <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
+                        <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display: flex; flex-direction: column; gap: 5px;">
+                            <div class="salary-edit-container">
+                                <label style="font-size: 0.7rem; color: #666;">Basic Salary</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="number" 
+                                           name="new_salary" 
+                                           id="salaryInput_{{ emp.id }}" 
+                                           value="{{ emp.salary }}" 
+                                           oninput="calculateLiveNet({{ emp.id }})" 
+                                           style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                                    <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
+                                </div>
+                                
+                                <div style="background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px; min-width: 180px;">
+                                    <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">EST. TAKE-HOME (NET)</p>
+                                    <h4 id="netDisplay_{{ emp.id }}" style="margin: 2px 0; color: #05cd99;">₹0</h4>
+                                    <small id="breakdown_{{ emp.id }}" style="color: #1b2559; font-size: 0.65rem; display: block;">
+                                        Calculating...
+                                    </small>
+                                </div>
+                                </div>
                         </form>
                     {% elif session['role'] == 'Accountant' or session['user_id'] == emp.id %}
                         ₹{{ "{:,}".format(emp.salary) }}
@@ -108,12 +125,43 @@
 </div>
 
 <script>
+// Search Functionality (Existing)
 document.getElementById('directorySearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
     let rows = document.querySelectorAll('#directoryTable tr');
     rows.forEach(row => {
         row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
     });
+});
+
+// Live Net Salary Calculation (New)
+function calculateLiveNet(empId) {
+    const basic = parseFloat(document.getElementById('salaryInput_' + empId).value) || 0;
+    
+    // Earnings
+    const hra = Math.floor(basic * 0.40);
+    const da = Math.floor(basic * 0.10);
+    const ta = 2000;
+    const gross = basic + hra + da + ta;
+    
+    // Deductions
+    const epf = Math.floor((basic + da) * 0.12);
+    const pt = 200;
+    const totalDeductions = epf + pt;
+    
+    const net = gross - totalDeductions;
+
+    // Update the UI
+    document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    document.getElementById('breakdown_' + empId).innerHTML = 
+        `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')}`;
+}
+
+// Run once on load to show current values
+document.addEventListener('DOMContentLoaded', function() {
+    {% for emp in employees %}
+        calculateLiveNet({{ emp.id }});
+    {% endfor %}
 });
 </script>
 {% endblock %}
