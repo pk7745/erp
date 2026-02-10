@@ -1,133 +1,145 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="dashboard-container">
 
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-    <h1>Welcome back, {{ user.full_name }}!</h1>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
-            💬 Support Chat
-            {% if unread_chats and unread_chats > 0 %}
-                <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; 
-                             border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                    {{ unread_chats }}
-                </span>
-            {% endif %}
-        </a>
-        <span class="badge badge-office">{{ user.role }} Account</span>
+    <div style="background: var(--sidebar); color: white; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; overflow: hidden; border: 1px solid rgba(67, 24, 255, 0.2);">
+        <div style="background: var(--p); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-right: 15px; white-space: nowrap;">LATEST NEWS</div>
+        <marquee behavior="scroll" direction="left" scrollamount="6" style="font-size: 0.9rem; font-weight: 500;">
+            🚀 Nexus ERP v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            🏆 Amit Sharma awarded "Employee of the Month" for January! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            📢 New Health Insurance policy documents are now available in the Staff Directory. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+            🏢 Quarterly Town Hall meeting on Friday at 4 PM in the Innovation Lab.
+        </marquee>
     </div>
-</div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin: 20px 0; align-items: start;">
-    
-    <div class="stats-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white; height: 160px; display: flex; flex-direction: column; justify-content: center; padding: 20px;">
-            <h3 style="margin: 0; font-size: 1rem; opacity: 0.9;">Office Days</h3>
-            <p style="font-size: 2.5rem; font-weight: bold; margin: 5px 0 0 0;">{{ office_days if office_days else 0 }}</p>
-        </div>
-        <div class="card" style="background: linear-gradient(135deg, #05cd99, #48efc1); color: white; height: 160px; display: flex; flex-direction: column; justify-content: center; padding: 20px;">
-            <h3 style="margin: 0; font-size: 1rem; opacity: 0.9;">WFH Days</h3>
-            <p style="font-size: 2.5rem; font-weight: bold; margin: 5px 0 0 0;">{{ wfh_days if wfh_days else 0 }}</p>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
+        <h1 style="margin: 0;">Welcome back, {{ user.full_name }}!</h1>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                💬 Support Chat
+                {% if unread_chats and unread_chats > 0 %}
+                    <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                        {{ unread_chats }}
+                    </span>
+                {% endif %}
+            </a>
+            <span class="badge badge-office">{{ user.role }} Account</span>
         </div>
     </div>
 
-    <div class="card" style="height: 160px; display: flex; flex-direction: column; padding: 15px; align-self: start;">
-        <h3 style="margin: 0 0 10px 0; font-size: 1rem;">📊 Work Mode Dist.</h3>
-        <div style="flex-grow: 1; position: relative; width: 100%; height: 100px;">
-            <canvas id="statsChart"></canvas>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white; padding: 20px; text-align: center;">
+            <h4 style="margin: 0; opacity: 0.9;">Office Days</h4>
+            <h2 style="margin: 10px 0 0; font-size: 2rem;">{{ office_days if office_days else 0 }}</h2>
+        </div>
+        <div class="card" style="background: linear-gradient(135deg, #05cd99, #48efc1); color: white; padding: 20px; text-align: center;">
+            <h4 style="margin: 0; opacity: 0.9;">WFH Days</h4>
+            <h2 style="margin: 10px 0 0; font-size: 2rem;">{{ wfh_days if wfh_days else 0 }}</h2>
+        </div>
+        <div class="card" style="text-align: center; padding: 20px; border-top: 4px solid var(--p);">
+            <h4 style="margin: 0; color: var(--text-light);">Pending Tasks</h4>
+            <h2 style="margin: 10px 0 0; color: var(--p);">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }}</h2>
         </div>
     </div>
-</div>
 
-{% if session['role'] == 'Accountant' %}
-<div class="card" style="margin-bottom: 20px; border-left: 5px solid #4318ff;">
-    <h3 style="margin-bottom: 15px;">📊 Salary Change Log</h3>
-    <div style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee;">
-        {% for n in notifications %}
-            {% if "SALARY CHANGE" in n.message %}
-                <div style="padding: 12px; border-bottom: 1px solid #eee; font-size: 0.9rem;">
-                    <span style="color: #666; font-weight: bold;">[{{ n.timestamp.strftime('%d %b | %I:%M %p') }}]</span> 
-                    <span style="margin-left: 10px;">{{ n.message }}</span>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+        
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card">
+                <h3 style="margin-top: 0;">📝 Submit Daily Activity Report</h3>
+                <form action="{{ url_for('submit_report') }}" method="POST">
+                    <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px;"></textarea>
+                    <button type="submit" class="btn">Submit Report</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">🎯 My Task Board</h3>
+                <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" name="title" placeholder="What needs to be done?" required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
+                    <button type="submit" class="btn">Add Task</button>
+                </form>
+                <div class="task-list">
+                    {% for task in tasks %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: var(--bg); border-radius: 8px; margin-bottom: 5px;">
+                        <span style="{% if task.is_done %}text-decoration: line-through; color: gray;{% endif %}">{{ task.title }}</span>
+                        <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.2rem;">
+                            {% if task.is_done %}✅{% else %}⭕{% endif %}
+                        </a>
+                    </div>
+                    {% endfor %}
                 </div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="card" style="text-align: center;">
+                <h3 style="margin-top: 0;">📊 Work Mode Distro</h3>
+                <div style="height: 180px; position: relative;">
+                    <canvas id="modeChart"></canvas>
+                </div>
+            </div>
+
+            {% if session['role'] == 'Accountant' %}
+            <div class="card" style="border-left: 5px solid #4318ff;">
+                <h3 style="margin-top: 0;">📊 Salary Change Log</h3>
+                <div style="max-height: 200px; overflow-y: auto; font-size: 0.85rem;">
+                    {% for n in notifications %}
+                        {% if "SALARY CHANGE" in n.message %}
+                            <div style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <strong>{{ n.timestamp.strftime('%H:%M') }}</strong> - {{ n.message }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
             {% endif %}
-        {% else %}
-             <p style="padding: 20px; text-align: center; color: var(--text-light);">No salary updates recorded.</p>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
 
-{% if session['role'] == 'HR' %}
-<div class="card" style="margin-bottom: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 style="color: #ee5d50; margin: 0;">🔔 Live HR Activity Feed</h3>
-        <a href="{{ url_for('clear_notifications') }}" style="color: var(--danger); font-size: 0.8rem; text-decoration: none; border: 1px solid var(--danger); padding: 4px 10px; border-radius: 6px;">Clear All</a>
-    </div>
-    <div class="notif-panel" style="max-height: 200px; overflow-y: auto; border-top: 1px solid #eee;">
-        {% for n in notifications %}
-            <div class="notif-item" style="padding: 12px; border-bottom: 1px solid #f8f9fa;">
-                <strong style="color: var(--p);">{{ n.timestamp.strftime('%I:%M %p') if n.timestamp else '00:00' }}</strong> - {{ n.message }}
+            {% if session['role'] == 'HR' %}
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: #ee5d50;">🔔 HR Feed</h3>
+                    <a href="{{ url_for('clear_notifications') }}" style="font-size: 0.7rem; color: var(--danger); text-decoration: none;">Clear</a>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    {% for n in notifications %}
+                        <div style="padding: 8px; border-bottom: 1px solid #f8f9fa; font-size: 0.8rem;">
+                            <strong style="color: var(--p);">{{ n.timestamp.strftime('%H:%M') }}</strong>: {{ n.message }}
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-        {% else %}
-            <p style="padding: 20px; text-align: center; color: var(--text-light);">No activity logs available.</p>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
+            {% endif %}
 
-<div class="card" style="margin-bottom: 20px;">
-    <h3>📝 Submit Daily Activity Report</h3>
-    <form action="{{ url_for('submit_report') }}" method="POST">
-        <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px;"></textarea>
-        <button type="submit" class="btn">Submit Report</button>
-    </form>
-</div>
-
-<div class="card" style="margin-bottom: 20px;">
-    <h3>✅ My Daily Tasks</h3>
-    <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <input type="text" name="title" placeholder="Add a new task..." required style="margin: 0;">
-        <button type="submit" class="btn">Add</button>
-    </form>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-        {% for t in tasks %}
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg); border-radius: 10px;">
-                <span style="{% if t.is_done %}text-decoration: line-through; color: var(--text-light);{% endif %}">{{ t.title }}</span>
-                <a href="{{ url_for('toggle_task', id=t.id) }}" style="text-decoration: none;">{% if t.is_done %}✅{% else %}⭕{% endif %}</a>
+            <div class="card">
+                <h3 style="margin-top: 0;">📂 Exports</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn" style="font-size: 0.8rem; text-align: center;">Attendance PDF</a>
+                    <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #1b2559; font-size: 0.8rem; text-align: center;">Activity PDF</a>
+                </div>
             </div>
-        {% endfor %}
-    </div>
-</div>
-
-<div class="card">
-    <h3>📂 Export Enterprise Data</h3>
-    <div style="display: flex; gap: 15px;">
-        <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn">Attendance PDF</a>
-        <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #1b2559;">Activity PDF</a>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    fetch('/api/stats').then(res => res.json()).then(data => {
-        const ctx = document.getElementById('statsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: ['Office', 'WFH'],
-                datasets: [{
-                    data: [data.office || 0, data.wfh || 0],
-                    backgroundColor: ['#4318ff', '#05cd99'],
-                    borderWidth: 0
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } 
-                }
-            }
-        });
-    }).catch(err => console.error("Stats fail:", err));
+    const ctx = document.getElementById('modeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Office', 'WFH'],
+            datasets: [{
+                data: [{{ office_days }}, {{ wfh_days }}],
+                backgroundColor: ['#4318ff', '#05cd99'],
+                borderWidth: 0
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } } 
+        }
+    });
 </script>
 {% endblock %}
