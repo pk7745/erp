@@ -2,6 +2,21 @@
 {% block content %}
 <div class="dashboard-container">
 
+    {% if is_birthday or is_anniversary %}
+    <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 2.5rem;">{% if is_birthday %}🎂{% else %}🎊{% endif %}</div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.4rem;">
+                    Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!
+                </h2>
+                <p style="margin: 5px 0 0; opacity: 0.9;">The Nexus team wishes you a fantastic day and continued success!</p>
+            </div>
+        </div>
+        <button onclick="document.getElementById('celebration-toast').style.display='none'" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;">Close</button>
+    </div>
+    {% endif %}
+
     <div style="background: var(--sidebar); color: white; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; overflow: hidden; border: 1px solid rgba(67, 24, 255, 0.2);">
         <div style="background: var(--p); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-right: 15px; white-space: nowrap;">LATEST NEWS</div>
         <marquee behavior="scroll" direction="left" scrollamount="6" style="font-size: 0.9rem; font-weight: 500;">
@@ -48,7 +63,7 @@
             <div class="card">
                 <h3 style="margin-top: 0;">📝 Submit Daily Activity Report</h3>
                 <form action="{{ url_for('submit_report') }}" method="POST">
-                    <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px;"></textarea>
+                    <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-family: inherit;"></textarea>
                     <button type="submit" class="btn">Submit Report</button>
                 </form>
             </div>
@@ -59,13 +74,24 @@
                     <input type="text" name="title" placeholder="What needs to be done?" required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
                     <button type="submit" class="btn">Add Task</button>
                 </form>
-                <div class="task-list">
+                <div class="task-list" style="display: flex; flex-direction: column; gap: 10px;">
                     {% for task in tasks %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: var(--bg); border-radius: 8px; margin-bottom: 5px;">
-                        <span style="{% if task.is_done %}text-decoration: line-through; color: gray;{% endif %}">{{ task.title }}</span>
-                        <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.2rem;">
-                            {% if task.is_done %}✅{% else %}⭕{% endif %}
-                        </a>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border: 1px solid #eee; background: {% if task.is_done %}#f8f9fa{% else %}white{% endif %}; border-radius: 12px; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem; line-height: 1;">
+                                {% if task.is_done %}
+                                <span style="color: #05cd99;">●</span>
+                                {% else %}
+                                <span style="color: #ddd;">○</span>
+                                {% endif %}
+                            </a>
+                            <span style="font-weight: 500; {% if task.is_done %}text-decoration: line-through; color: #a3aed0;{% else %}color: #1b2559;{% endif %}">
+                                {{ task.title }}
+                            </span>
+                        </div>
+                        {% if task.is_done %}
+                        <span style="font-size: 0.75rem; background: #e6fff1; color: #05cd99; padding: 2px 8px; border-radius: 4px; font-weight: bold;">DONE</span>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -122,8 +148,40 @@
     </div>
 </div>
 
+<div id="fab-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px;">
+    <button onclick="toggleFab()" id="fab-main" style="width: 60px; height: 60px; border-radius: 50%; background: #4318ff; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(67, 24, 255, 0.4); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
+        <span id="fab-icon">⚡</span>
+    </button>
+    
+    <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end; animation: fadeIn 0.2s ease;">
+        <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🕒 Mark Attendance</a>
+        <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🌴 Apply Leave</a>
+        <a href="{{ url_for('expenses') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">💰 Claim Expense</a>
+    </div>
+</div>
+
+<style>
+    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .fab-item:hover { background: #4318ff !important; color: white !important; transform: translateX(-5px); }
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Toggle Floating Action Menu
+    function toggleFab() {
+        const options = document.getElementById('fab-options');
+        const icon = document.getElementById('fab-icon');
+        if (options.style.display === 'none' || options.style.display === '') {
+            options.style.display = 'flex';
+            icon.innerText = '✕';
+        } else {
+            options.style.display = 'none';
+            icon.innerText = '⚡';
+        }
+    }
+
+    // Chart Logic (Maintained)
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
