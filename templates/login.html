@@ -32,7 +32,7 @@
             text-align: center;
         }
 
-        /* ALERT STYLING - SYNCED WITH FLASK FLASH */
+        /* ALERT STYLING */
         .alert-box {
             background: #fff5f5;
             color: var(--error);
@@ -97,14 +97,31 @@
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 25px rgba(67, 24, 255, 0.25);
             filter: brightness(1.1);
+        }
+
+        /* RESTORED FEATURE: FORGOT PASSWORD */
+        .forgot-link {
+            display: block;
+            margin-top: 20px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+            opacity: 0.8;
         }
 
         .footer-text {
             margin-top: 25px;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -112,7 +129,7 @@
 
     <div class="login-card">
         <div class="brand-name">NEXUS<span style="color: var(--primary);">ERP</span></div>
-        <p style="color: var(--text-gray); margin-bottom: 30px;">Enter your credentials to access the workspace.</p>
+        <p style="color: var(--text-gray); margin-bottom: 30px;">Sign in to your enterprise workspace.</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -127,11 +144,13 @@
         <form method="POST">
             <input type="text" name="username" placeholder="Username / Nexus ID" required>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="btn-login">Sign In to Dashboard</button>
+            <button type="submit" class="btn-login">Sign In</button>
         </form>
 
+        <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot Password?</a>
+
         <div class="footer-text">
-            Secure Enterprise Encryption Enabled
+            Secure Nexus Gateway v2.0
         </div>
     </div>
 
