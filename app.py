@@ -100,7 +100,7 @@ class ActivityReport(db.Model):
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
 # ==========================================
-# 2. APP ROUTES (Including New Home Route)
+# 2. APP ROUTES (Fully Synced)
 # ==========================================
 
 @app.route('/')
@@ -108,6 +108,13 @@ def home():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
     return render_template('home.html')
+
+# UPDATION: New Route for "NEXUS ERP" title click
+@app.route('/about')
+def about():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('about.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
