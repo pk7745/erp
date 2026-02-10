@@ -9,6 +9,7 @@
             --primary: #4318ff;
             --navy: #1b2559;
             --error: #ea3a3a;
+            --text-gray: #707eae;
         }
 
         body {
@@ -18,29 +19,33 @@
             align-items: center;
             justify-content: center;
             background: #f4f7fe;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         }
 
         .login-card {
             background: white;
-            padding: 40px;
+            padding: 45px;
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.04);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
         }
 
-        /* ALERT STYLING */
+        /* ALERT STYLING - SYNCED WITH FLASK FLASH */
         .alert-box {
             background: #fff5f5;
             color: var(--error);
-            padding: 12px;
-            border-radius: 12px;
+            padding: 14px;
+            border-radius: 14px;
             border: 1px solid #fed7d7;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             animation: shake 0.4s ease-in-out;
         }
 
@@ -50,46 +55,70 @@
             75% { transform: translateX(8px); }
         }
 
+        .brand-name {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--navy);
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
         input {
             width: 100%;
-            padding: 15px;
-            margin: 10px 0;
+            padding: 16px;
+            margin: 12px 0;
             border: 1px solid #e0e5f2;
-            border-radius: 12px;
+            border-radius: 14px;
             box-sizing: border-box;
+            font-size: 1rem;
             outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1);
         }
 
         .btn-login {
             width: 100%;
             background: var(--primary);
             color: white;
-            padding: 15px;
+            padding: 16px;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             font-weight: 700;
+            font-size: 1.1rem;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 15px;
             transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.15);
         }
 
         .btn-login:hover {
-            filter: brightness(1.1);
             transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(67, 24, 255, 0.25);
+            filter: brightness(1.1);
+        }
+
+        .footer-text {
+            margin-top: 25px;
+            font-size: 0.9rem;
+            color: var(--text-gray);
         }
     </style>
 </head>
 <body>
 
     <div class="login-card">
-        <h2 style="color: var(--navy); margin-bottom: 10px;">Welcome Back</h2>
-        <p style="color: #a3aed0; margin-bottom: 30px;">Enter your Nexus ID to continue</p>
+        <div class="brand-name">NEXUS<span style="color: var(--primary);">ERP</span></div>
+        <p style="color: var(--text-gray); margin-bottom: 30px;">Enter your credentials to access the workspace.</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for message in messages %}
               <div class="alert-box">
-                ⚠️ {{ message }}
+                <span>⚠️</span> {{ message }}
               </div>
             {% endfor %}
           {% endif %}
@@ -98,8 +127,12 @@
         <form method="POST">
             <input type="text" name="username" placeholder="Username / Nexus ID" required>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="btn-login">Sign In</button>
+            <button type="submit" class="btn-login">Sign In to Dashboard</button>
         </form>
+
+        <div class="footer-text">
+            Secure Enterprise Encryption Enabled
+        </div>
     </div>
 
 </body>
