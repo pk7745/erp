@@ -22,18 +22,21 @@ def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
 
 # ==========================================
-# 1. DATABASE MODELS (Strictly Synced)
+# 1. DATABASE MODELS (Appended - No removal)
 # ==========================================
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='Employee') # HR, Accountant, Employee
+    role = db.Column(db.String(20), default='Employee') 
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
     salary = db.Column(db.Integer, default=50000)
     address = db.Column(db.String(200))
+    # NEW FIELDS FOR ANNIVERSARY/ID CARD (Database Update)
+    dob = db.Column(db.String(20), default="1995-01-01") 
+    join_date = db.Column(db.String(20), default="2023-01-01")
     
     tasks = db.relationship('Task', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
@@ -46,7 +49,7 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    content = db.Column(db.Text)
+    content = db.Text
     is_read = db.Column(db.Boolean, default=False) 
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
@@ -109,7 +112,6 @@ def home():
         return redirect(url_for('dashboard'))
     return render_template('home.html')
 
-# UPDATION: New Route for "NEXUS ERP" title click
 @app.route('/about')
 def about():
     if 'user_id' not in session:
@@ -132,12 +134,26 @@ def login():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    
+    today_md = get_ist_time().strftime("%m-%d")
+    is_birthday = user.dob[5:] == today_md if user.dob else False
+    is_anniversary = user.join_date[5:] == today_md if user.join_date else False
+
     unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count()
     tasks = Task.query.filter_by(user_id=user.id).all()
     off_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] in ['HR', 'Accountant'] else []
-    return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats)
+    
+    return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, 
+                           wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats,
+                           is_birthday=is_birthday, is_anniversary=is_anniversary)
+
+@app.route('/generate_id')
+def generate_id():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    return render_template('id_card.html', user=user, now=get_ist_time().strftime("%Y"))
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -168,7 +184,9 @@ def add_employee():
             email=request.form['email'],
             salary=int(request.form['salary']),
             address=request.form['address'],
-            role='Employee'
+            role='Employee',
+            dob=request.form.get('dob', '1995-01-01'),
+            join_date=request.form.get('join_date', '2023-01-01')
         )
         db.session.add(new_user)
         db.session.commit()
@@ -357,8 +375,8 @@ def clear_notifications():
 @app.route('/api/stats')
 def get_stats():
     u_id = session.get('user_id')
-    off = Attendance.query.filter_by(user_id=u_id, work_mode='Office').count()
-    wfh = Attendance.query.filter_by(user_id=u_id, work_mode='WFH').count()
+    off = Attendance.query.filter_by(u_id, work_mode='Office').count()
+    wfh = Attendance.query.filter_by(u_id, work_mode='WFH').count()
     return jsonify({'office': off, 'wfh': wfh})
 
 @app.route('/logout')
@@ -367,22 +385,51 @@ def logout():
     return redirect(url_for('login'))
 
 # ==========================================
-# 4. INITIAL SETUP (Seed 4 Employees)
+# 4. INITIAL SETUP (Updated with Unique Seed Data)
 # ==========================================
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
-        db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@nexus.com'))
-        db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='finance@nexus.com'))
+        # UPDATED: Admin (HR) with unique DOB and Join Date
+        db.session.add(User(
+            username='admin', 
+            password=generate_password_hash('admin123'), 
+            role='HR', 
+            full_name='System Admin', 
+            email='hr@nexus.com',
+            dob='1985-10-25',
+            join_date='2018-05-10'
+        ))
         
+        # UPDATED: Accountant with unique DOB and Join Date
+        db.session.add(User(
+            username='acc1', 
+            password=generate_password_hash('pay123'), 
+            role='Accountant', 
+            full_name='Rajesh Finance', 
+            email='finance@nexus.com',
+            dob='1990-03-12',
+            join_date='2020-11-20'
+        ))
+        
+        # Employees with individual DOB and Join Dates
         emps = [
-            ('emp1', 'Amit Sharma', 45000, 'emp1@nexus.com'),
-            ('emp2', 'Priya Singh', 48000, 'emp2@nexus.com'),
-            ('emp3', 'Vikram Aditya', 52000, 'emp3@nexus.com'),
-            ('emp4', 'Sneha Reddy', 46000, 'emp4@nexus.com')
+            ('emp1', 'Amit Sharma', 45000, 'emp1@nexus.com', '1992-05-15', '2021-06-01'),
+            ('emp2', 'Priya Singh', 48000, 'emp2@nexus.com', '1994-08-22', '2022-01-15'),
+            ('emp3', 'Vikram Aditya', 52000, 'emp3@nexus.com', '1990-12-10', '2020-03-20'),
+            ('emp4', 'Sneha Reddy', 46000, 'emp4@nexus.com', '1997-02-10', '2023-09-05')
         ]
-        for u, f, s, e in emps:
-            db.session.add(User(username=u, password=generate_password_hash('emp123'), role='Employee', full_name=f, salary=s, email=e))
+        for u, f, s, e, d, j in emps:
+            db.session.add(User(
+                username=u, 
+                password=generate_password_hash('emp123'), 
+                role='Employee', 
+                full_name=f, 
+                salary=s, 
+                email=e,
+                dob=d,        
+                join_date=j   
+            ))
         db.session.commit()
 
 if __name__ == '__main__':
