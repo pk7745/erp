@@ -463,8 +463,9 @@ def clear_notifications():
 @app.route('/api/stats')
 def get_stats():
     u_id = session.get('user_id')
-    off = Attendance.query.filter_by(u_id, work_mode='Office').count()
-    wfh = Attendance.query.filter_by(u_id, work_mode='WFH').count()
+    # This line below will cause an error because it's missing 'user_id='
+    off = Attendance.query.filter_by(user_id=u_id, work_mode='Office').count() 
+    wfh = Attendance.query.filter_by(user_id=u_id, work_mode='WFH').count()
     return jsonify({'office': off, 'wfh': wfh})
 
 @app.route('/logout')
@@ -522,6 +523,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
