@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; padding: 20px;">
+    
+    <div id="id-card-render" style="width: 350px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); overflow: hidden; position: relative; border: 1px solid #eee;">
+        
+        <div style="height: 150px; background: linear-gradient(135deg, #4318ff, #707eff); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+            <div style="font-weight: 800; font-size: 1.5rem; letter-spacing: 2px;">NEXUS</div>
+            <div style="font-size: 0.7rem; opacity: 0.8; letter-spacing: 1px;">ULTIMATE ERP v2.0</div>
+            
+            <div style="width: 110px; height: 110px; background: #f4f7fe; border-radius: 50%; position: absolute; bottom: -55px; border: 5px solid white; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <span style="font-size: 3rem;">👤</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 65px; text-align: center; padding: 0 20px;">
+            <h2 style="margin: 0; color: #1b2559; font-size: 1.6rem;">{{ user.full_name }}</h2>
+            <p style="margin: 5px 0; color: #4318ff; font-weight: bold; font-size: 0.9rem; text-transform: uppercase;">{{ user.role }}</p>
+            
+            <div style="margin: 25px 0; border-top: 1px solid #eee; padding-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left;">
+                <div>
+                    <small style="color: #a3aed0; display: block;">Employee ID</small>
+                    <strong style="color: #1b2559;">#NX-{{ user.id + 1000 }}</strong>
+                </div>
+                <div>
+                    <small style="color: #a3aed0; display: block;">Joined</small>
+                    <strong style="color: #1b2559;">{{ user.join_date }}</strong>
+                </div>
+                <div style="grid-column: span 2;">
+                    <small style="color: #a3aed0; display: block;">Email</small>
+                    <strong style="color: #1b2559; font-size: 0.85rem;">{{ user.email }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div style="position: absolute; bottom: 0; width: 100%; height: 80px; background: #f4f7fe; display: flex; align-items: center; justify-content: space-around; padding: 0 20px; border-top: 1px solid #e9edf7;">
+            <div style="text-align: left;">
+                <p style="margin: 0; font-size: 0.6rem; color: #a3aed0;">Validity</p>
+                <p style="margin: 0; font-size: 0.8rem; font-weight: bold; color: #1b2559;">DEC {{ now }}</p>
+            </div>
+            <div style="display: flex; gap: 2px;">
+                {% for i in range(15) %}
+                <div style="width: {{ [1, 2, 3]|random }}px; height: 30px; background: #1b2559;"></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; gap: 15px;">
+        <button onclick="window.print()" class="btn" style="background: #1b2559;">🖨️ Print ID Card</button>
+        <a href="{{ url_for('dashboard') }}" class="btn" style="background: transparent; border: 1px solid #ddd; color: #777; text-decoration: none;">Back to Dashboard</a>
+    </div>
+
+</div>
+
+<style>
+    @media print {
+        body * { visibility: hidden; }
+        #id-card-render, #id-card-render * { visibility: visible; }
+        #id-card-render {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: none;
+            border: 1px solid #000;
+        }
+    }
+</style>
+{% endblock %}
