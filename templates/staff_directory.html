@@ -14,19 +14,47 @@
         </div>
     </div>
 
-    <div id="addForm" class="card" style="display:none; background: var(--bg); margin-bottom: 20px;">
+    <div id="addForm" class="card" style="display:none; background: var(--bg); margin-bottom: 20px; border: 1px solid var(--p);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3>Add New Employee</h3>
+            <h3 style="margin:0;">Add New Employee</h3>
             <button class="btn" style="background: #666;" onclick="document.getElementById('addForm').style.display='none'">Cancel</button>
         </div>
-        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" name="full_name" placeholder="Full Name" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="number" name="salary" placeholder="Monthly Salary (INR)" required>
-            <input type="text" name="address" placeholder="Address">
-            <button type="submit" class="btn" style="grid-column: span 2;">Save Employee</button>
+        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Full Name</label>
+                <input type="text" name="full_name" placeholder="John Doe" required style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Email Address</label>
+                <input type="email" name="email" placeholder="john@nexus.com" required style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Username</label>
+                <input type="text" name="username" placeholder="johndoe123" required style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Monthly Salary (INR)</label>
+                <input type="number" name="salary" placeholder="50000" required style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Office/Home Address</label>
+                <input type="text" name="address" placeholder="City, Country" style="width:100%;">
+            </div>
+            
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Date of Birth</label>
+                <input type="date" name="dob" required style="width:100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Joining Date</label>
+                <input type="date" name="join_date" required style="width:100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+            </div>
+
+            <button type="submit" class="btn" style="grid-column: span 2; margin-top: 10px;">Save Employee</button>
         </form>
     </div>
 
@@ -37,7 +65,7 @@
                 <th>Email</th>
                 <th>Base Salary</th>
                 <th>Role</th>
-                <th>Payroll</th>
+                <th>Actions & Payroll</th>
             </tr>
         </thead>
         <tbody id="directoryTable">
@@ -63,11 +91,15 @@
                 <td><span class="badge badge-office">{{ emp.role }}</span></td>
                 
                 <td>
-                    {% if session['role'] in ['HR', 'Accountant'] or session['user_id'] == emp.id %}
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Download PDF</a>
-                    {% else %}
-                        <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
-                    {% endif %}
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        {% if session['role'] in ['HR', 'Accountant'] or session['user_id'] == emp.id %}
+                            <a href="{{ url_for('generate_id') }}" class="badge" style="background: #4318ff; color: white; text-decoration: none;">🪪 ID Card</a>
+                            
+                            <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Payslip</a>
+                        {% else %}
+                            <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
             {% endfor %}
