@@ -1,63 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Nexus Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Nexus ERP</title>
+    <style>
+        :root {
+            --primary: #4318ff;
+            --navy: #1b2559;
+            --error: #ea3a3a;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f7fe;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* ALERT STYLING */
+        .alert-box {
+            background: #fff5f5;
+            color: var(--error);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #fed7d7;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #e0e5f2;
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .btn-login:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
-<body style="background: var(--bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-    <div class="card" style="width: 350px; position: relative;">
-        
-        <div style="margin-bottom: 20px;">
-            <a href="{{ url_for('home') }}" style="text-decoration: none; color: #4318ff; font-size: 0.9rem; display: flex; align-items: center; gap: 5px;">
-                ← Back to Home
-            </a>
-        </div>
+<body>
 
-        <h2 style="text-align: center; color: var(--p);">Nexus ERP</h2>
+    <div class="login-card">
+        <h2 style="color: var(--navy); margin-bottom: 10px;">Welcome Back</h2>
+        <p style="color: #a3aed0; margin-bottom: 30px;">Enter your Nexus ID to continue</p>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ category }}">
-        {{ message }}
-      </div>
-    {% endfor %}
-  {% endif %}
-{% endwith %}
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert-box">
+                ⚠️ {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-<style>
-    .alert {
-        padding: 15px;
-        margin-bottom: 20px;
-        border: 1px solid transparent;
-        border-radius: 12px;
-        font-weight: 600;
-        text-align: center;
-        animation: shake 0.5s ease-in-out;
-    }
-    .alert-danger {
-        color: #721c24;
-        background-color: #f8d7da;
-        border-color: #f5c6cb;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-</style>
-        
         <form method="POST">
-            <input type="text" name="username" placeholder="Username" required style="margin-bottom: 10px;">
-            <input type="password" name="password" placeholder="Password" required style="margin-bottom: 10px;">
-            <button type="submit" class="btn" style="width: 100%;">Login</button>
+            <input type="text" name="username" placeholder="Username / Nexus ID" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit" class="btn-login">Sign In</button>
         </form>
-
-        <div style="text-align: center; margin-top: 15px;">
-            <a href="{{ url_for('forgot_password') }}" style="color: var(--text-light); text-decoration: none;">Forgot Password?</a>
-        </div>
     </div>
+
 </body>
 </html>
-
