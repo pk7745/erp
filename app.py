@@ -35,14 +35,11 @@ class User(db.Model):
     salary = db.Column(db.Integer, default=50000)
     address = db.Column(db.String(200))
     
-    # Relationships synced with template logic
     tasks = db.relationship('Task', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
-    # Matches 'claim.rel_user' in expenses.html
     claims = db.relationship('ExpenseClaim', backref='rel_user', lazy=True)
     kpis = db.relationship('PerformanceKPI', backref='user', lazy=True)
-    # Required for the "unread dot" logic in chat.html
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender_info', lazy=True)
 
 class Message(db.Model):
@@ -75,7 +72,6 @@ class ExpenseClaim(db.Model):
     amount = db.Column(db.Float)
     status = db.Column(db.String(20), default='Pending')
     description = db.Column(db.String(255))
-    # Added fields to support the accountant workflow in expenses.html
     payment_date = db.Column(db.String(50))
     processed_by = db.Column(db.String(100))
 
@@ -104,12 +100,14 @@ class ActivityReport(db.Model):
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
 # ==========================================
-# 2. APP ROUTES (Fully Synced with Templates)
+# 2. APP ROUTES (Including New Home Route)
 # ==========================================
 
 @app.route('/')
-def index():
-    return redirect(url_for('login'))
+def home():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('home.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -252,7 +250,6 @@ def chat(receiver_id=None):
     contacts = User.query.filter(User.id != curr_id).all()
     messages = []
     if receiver_id:
-        # Mark messages as read when opening chat
         unread = Message.query.filter_by(sender_id=receiver_id, receiver_id=curr_id, is_read=False).all()
         for m in unread: m.is_read = True
         db.session.commit()
@@ -282,7 +279,7 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 # ==========================================
-# 3. UTILITY & EXPORT (For templates)
+# 3. UTILITY & EXPORT
 # ==========================================
 
 @app.route('/download_attendance_csv')
@@ -368,11 +365,9 @@ def logout():
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
-        # Admin & Accountant
         db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@nexus.com'))
         db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='finance@nexus.com'))
         
-        # 4 Employees Requested
         emps = [
             ('emp1', 'Amit Sharma', 45000, 'emp1@nexus.com'),
             ('emp2', 'Priya Singh', 48000, 'emp2@nexus.com'),
