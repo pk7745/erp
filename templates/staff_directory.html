@@ -134,7 +134,7 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
     });
 });
 
-// Live Net Salary Calculation (New)
+// Live Net Salary Calculation (Updated with Tax Warning)
 function calculateLiveNet(empId) {
     const basic = parseFloat(document.getElementById('salaryInput_' + empId).value) || 0;
     
@@ -153,8 +153,17 @@ function calculateLiveNet(empId) {
 
     // Update the UI
     document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    
+    // Tax Warning Logic (Threshold: 62,500 monthly gross)
+    let taxWarning = "";
+    if (gross > 62500) {
+        taxWarning = `<div style="margin-top:5px; color: #e53e3e; font-weight: bold; font-size: 0.65rem; border: 1px dashed #e53e3e; padding: 2px; border-radius: 4px; text-align: center;">
+                        ⚠️ TDS may apply (Gross > ₹7.5L p.a.)
+                      </div>`;
+    }
+
     document.getElementById('breakdown_' + empId).innerHTML = 
-        `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')}`;
+        `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
 }
 
 // Run once on load to show current values
