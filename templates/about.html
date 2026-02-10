@@ -19,12 +19,40 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: var(--navy);
             margin: 0;
+            scroll-behavior: smooth; /* Enables smooth scrolling for navigation */
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 40px 20px;
+        }
+
+        /* NEW: Quick Navigation Bar */
+        .quick-nav {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            position: sticky;
+            top: 20px;
+            z-index: 1000;
+        }
+
+        .quick-nav a {
+            text-decoration: none;
+            color: var(--navy);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+
+        .quick-nav a:hover {
+            color: var(--primary);
         }
 
         /* Hero Section */
@@ -99,14 +127,20 @@
             align-items: center;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .leader-card:hover {
+            transform: translateY(-5px);
         }
 
         .leader-img {
             width: 100px;
             height: 100px;
-            background: #e0e5f2;
             border-radius: 15px;
             margin-right: 20px;
+            object-fit: cover;
+            border: 2px solid var(--light-bg);
         }
 
         .history-item {
@@ -137,19 +171,33 @@
 
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
 
-        .gallery-img {
-            height: 150px;
-            background: #cbd5e0;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
+        .gallery-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .gallery-img-box {
+            height: 180px;
+            width: 100%;
+            object-fit: cover;
+            transition: 0.5s;
+        }
+
+        .gallery-card:hover .gallery-img-box {
+            transform: scale(1.1);
+        }
+
+        .gallery-info {
+            padding: 15px;
+            text-align: center;
             font-weight: bold;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -158,12 +206,20 @@
     <div class="container">
         <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
 
+        <nav class="quick-nav">
+            <a href="#mission">Our Mission</a>
+            <a href="#leadership">Leadership</a>
+            <a href="#journey">Journey</a>
+            <a href="#infrastructure">Infrastructure</a>
+            <a href="#facilities">Facilities</a>
+        </nav>
+
         <header class="about-hero">
             <h1 style="margin-bottom: 10px;">Beyond the Dashboard</h1>
             <p style="opacity: 0.9;">Empowering 500+ Enterprises with Seamless Intelligence</p>
         </header>
 
-        <div class="vision-mission-box">
+        <div id="mission" class="vision-mission-box">
             <div class="vm-card">
                 <div class="icon-circle">🎯</div>
                 <h2 style="margin-top: 0;">Our Mission</h2>
@@ -176,10 +232,10 @@
             </div>
         </div>
 
-        <h2 style="margin-bottom: 25px; font-weight: 800; letter-spacing: -0.5px;">Corporate Leadership</h2>
+        <h2 id="leadership" style="margin-bottom: 25px; font-weight: 800; letter-spacing: -0.5px;">Corporate Leadership</h2>
         <div class="leader-section">
             <div class="leader-card">
-                <div class="leader-img" style="background: url('https://img.icons8.com/bubbles/100/businesswoman.png') center/cover;"></div>
+                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&h=200&fit=crop" class="leader-img" alt="Founder">
                 <div>
                     <h4 style="margin: 0;">Dr. Elena Vance</h4>
                     <p style="color: var(--primary); font-weight: bold; margin: 5px 0; font-size: 0.9rem;">Founder & Visionary</p>
@@ -187,7 +243,7 @@
                 </div>
             </div>
             <div class="leader-card">
-                <div class="leader-img" style="background: url('https://img.icons8.com/bubbles/100/businessman.png') center/cover;"></div>
+                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&h=200&fit=crop" class="leader-img" alt="CEO">
                 <div>
                     <h4 style="margin: 0;">Marcus Sterling</h4>
                     <p style="color: var(--primary); font-weight: bold; margin: 5px 0; font-size: 0.9rem;">Chief Executive Officer</p>
@@ -197,7 +253,7 @@
         </div>
 
         <div class="info-grid">
-            <div class="info-card">
+            <div id="journey" class="info-card">
                 <h3>📜 Our Journey</h3>
                 <div class="history-item">
                     <strong>2022:</strong> Nexus Labs founded in Bengaluru tech hub.
@@ -210,7 +266,7 @@
                 </div>
             </div>
 
-            <div class="info-card">
+            <div id="infrastructure" class="info-card">
                 <h3>🏗️ Infrastructure</h3>
                 <p style="font-size: 0.95rem; color: var(--text-gray);">We operate on a <strong>Tier-4 Data Center</strong> with ISO 27001 certification and multi-region backup.</p>
                 <ul style="padding-left: 20px; font-size: 0.9rem; color: var(--text-gray); margin-top: 10px;">
@@ -230,12 +286,24 @@
             </div>
         </div>
 
-        <h2 style="margin-bottom: 25px; font-weight: 800;">Global Facilities</h2>
+        <h2 id="facilities" style="margin-bottom: 25px; font-weight: 800;">Global Facilities</h2>
         <div class="gallery">
-            <div class="gallery-img" style="background: var(--primary); opacity: 0.9;">Main HQ</div>
-            <div class="gallery-img" style="background: var(--navy);">Data Vault</div>
-            <div class="gallery-img" style="background: var(--success);">Innovation Lab</div>
-            <div class="gallery-img" style="background: #ffb547;">Client Zone</div>
+            <div class="gallery-card">
+                <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400&h=250&fit=crop" class="gallery-img-box" alt="HQ">
+                <div class="gallery-info" style="color: var(--primary);">Main HQ - Bengaluru</div>
+            </div>
+            <div class="gallery-card">
+                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc51?q=80&w=400&h=250&fit=crop" class="gallery-img-box" alt="Data Vault">
+                <div class="gallery-info" style="color: var(--navy);">Secure Data Vault</div>
+            </div>
+            <div class="gallery-card">
+                <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=400&h=250&fit=crop" class="gallery-img-box" alt="Innovation Lab">
+                <div class="gallery-info" style="color: var(--success);">Innovation Lab</div>
+            </div>
+            <div class="gallery-card">
+                <img src="https://images.unsplash.com/photo-1606857521015-7f9fdf423740?q=80&w=400&h=250&fit=crop" class="gallery-img-box" alt="Client Zone">
+                <div class="gallery-info" style="color: #ffb547;">Executive Client Zone</div>
+            </div>
         </div>
 
         <footer style="margin-top: 80px; text-align: center; color: var(--text-gray); font-size: 0.85rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px;">
