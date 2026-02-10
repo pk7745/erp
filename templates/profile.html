@@ -36,6 +36,22 @@
             </div>
 
             <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">📅 Date of Birth</label>
+                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0; color: #1b2559;">
+                    {{ user.dob }}
+                </span>
+                <small style="color: var(--text-light); font-size: 0.7rem;">(Locked Milestone)</small>
+            </div>
+
+            <div class="info-group">
+                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🗓️ Joining Date</label>
+                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0; color: #1b2559;">
+                    {{ user.join_date }}
+                </span>
+                <small style="color: var(--text-light); font-size: 0.7rem;">(Work Anniversary)</small>
+            </div>
+
+            <div class="info-group">
                 <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Username</label>
                 <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0;">@{{ user.username }}</span>
             </div>
