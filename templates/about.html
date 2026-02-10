@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | Nexus ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        :root {
+            --primary: #4318ff;
+            --navy: #1b2559;
+            --text-gray: #707eae;
+            --light-bg: #f4f7fe;
+            --success: #05cd99;
+        }
+
+        body {
+            background: var(--light-bg);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--navy);
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Hero Section */
+        .about-hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--primary) 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+            border-radius: 24px;
+            margin-bottom: 50px;
+            box-shadow: 0 20px 40px rgba(67, 24, 255, 0.2);
+        }
+
+        /* Vision & Mission Section */
+        .vision-mission-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .vm-card {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            border: 1px solid rgba(67, 24, 255, 0.05);
+        }
+
+        .icon-circle {
+            width: 70px;
+            height: 70px;
+            background: rgba(67, 24, 255, 0.1);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin: 0 auto 20px;
+        }
+
+        /* Info Grid & Leadership */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .info-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .leader-section {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+
+        .leader-card {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .leader-img {
+            width: 100px;
+            height: 100px;
+            background: #e0e5f2;
+            border-radius: 15px;
+            margin-right: 20px;
+        }
+
+        .history-item {
+            border-left: 3px solid var(--primary);
+            padding-left: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 0;
+            width: 15px;
+            height: 15px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-img {
+            height: 150px;
+            background: #cbd5e0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+
+        <header class="about-hero">
+            <h1 style="margin-bottom: 10px;">Beyond the Dashboard</h1>
+            <p style="opacity: 0.9;">Empowering 500+ Enterprises with Seamless Intelligence</p>
+        </header>
+
+        <div class="vision-mission-box">
+            <div class="vm-card">
+                <div class="icon-circle">🎯</div>
+                <h2 style="margin-top: 0;">Our Mission</h2>
+                <p style="color: var(--text-gray); line-height: 1.6;">To democratize enterprise intelligence by providing scalable, secure, and user-centric ERP solutions that transform how modern teams collaborate.</p>
+            </div>
+            <div class="vm-card">
+                <div class="icon-circle">🚀</div>
+                <h2 style="margin-top: 0;">Our Vision</h2>
+                <p style="color: var(--text-gray); line-height: 1.6;">To become the global standard for the "Smart Workspace," where AI-driven insights and human creativity converge to build the future of work.</p>
+            </div>
+        </div>
+
+        <h2 style="margin-bottom: 25px; font-weight: 800; letter-spacing: -0.5px;">Corporate Leadership</h2>
+        <div class="leader-section">
+            <div class="leader-card">
+                <div class="leader-img" style="background: url('https://img.icons8.com/bubbles/100/businesswoman.png') center/cover;"></div>
+                <div>
+                    <h4 style="margin: 0;">Dr. Elena Vance</h4>
+                    <p style="color: var(--primary); font-weight: bold; margin: 5px 0; font-size: 0.9rem;">Founder & Visionary</p>
+                    <small style="color: var(--text-gray);">Stanford AI Researcher & Pioneer in Data Architecture.</small>
+                </div>
+            </div>
+            <div class="leader-card">
+                <div class="leader-img" style="background: url('https://img.icons8.com/bubbles/100/businessman.png') center/cover;"></div>
+                <div>
+                    <h4 style="margin: 0;">Marcus Sterling</h4>
+                    <p style="color: var(--primary); font-weight: bold; margin: 5px 0; font-size: 0.9rem;">Chief Executive Officer</p>
+                    <small style="color: var(--text-gray);">Expert in scaling SaaS ecosystems to global markets.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>📜 Our Journey</h3>
+                <div class="history-item">
+                    <strong>2022:</strong> Nexus Labs founded in Bengaluru tech hub.
+                </div>
+                <div class="history-item">
+                    <strong>2024:</strong> Launched Nexus ERP v1.0 with integrated AI.
+                </div>
+                <div class="history-item">
+                    <strong>2026:</strong> Voted #1 Enterprise Tool for Scalability.
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3>🏗️ Infrastructure</h3>
+                <p style="font-size: 0.95rem; color: var(--text-gray);">We operate on a <strong>Tier-4 Data Center</strong> with ISO 27001 certification and multi-region backup.</p>
+                <ul style="padding-left: 20px; font-size: 0.9rem; color: var(--text-gray); margin-top: 10px;">
+                    <li>99.99% Guaranteed Uptime</li>
+                    <li>End-to-End AES-256 Encryption</li>
+                    <li>Automatic Failover Protection</li>
+                </ul>
+            </div>
+
+            <div class="info-card" style="border-top: 5px solid var(--success);">
+                <h3>🛠️ 24/7 Help Desk</h3>
+                <div style="background: rgba(5, 205, 153, 0.1); color: #047481; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; text-align: center; font-size: 0.85rem;">
+                    ● Systems Operational
+                </div>
+                <p style="margin: 5px 0;"><strong>Support:</strong> ext 404 / ext 405</p>
+                <p style="margin: 5px 0;"><strong>IT Tickets:</strong> support@nexus-erp.com</p>
+            </div>
+        </div>
+
+        <h2 style="margin-bottom: 25px; font-weight: 800;">Global Facilities</h2>
+        <div class="gallery">
+            <div class="gallery-img" style="background: var(--primary); opacity: 0.9;">Main HQ</div>
+            <div class="gallery-img" style="background: var(--navy);">Data Vault</div>
+            <div class="gallery-img" style="background: var(--success);">Innovation Lab</div>
+            <div class="gallery-img" style="background: #ffb547;">Client Zone</div>
+        </div>
+
+        <footer style="margin-top: 80px; text-align: center; color: var(--text-gray); font-size: 0.85rem; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px;">
+            © 2026 Nexus ERP Intelligence Systems. All Rights Reserved.
+        </footer>
+    </div>
+
+</body>
+</html>
