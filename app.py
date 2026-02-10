@@ -165,11 +165,11 @@ def generate_id():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     return render_template('id_card.html', user=user, now=get_ist_time().strftime("%Y"))
-
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    
     if request.method == 'POST':
         user.full_name = request.form.get('full_name')
         user.email = request.form.get('email')
@@ -178,7 +178,66 @@ def profile():
             user.password = generate_password_hash(request.form.get('password'))
         db.session.commit()
         flash('Profile Updated Successfully', 'success')
-    return render_template('profile.html', user=user)
+
+    # --- ADDED PAYROLL CALCULATION FOR SYNC ---
+    basic = user.salary
+    hra = int(basic * 0.40)
+    da = int(basic * 0.10)
+    ta = 2000
+    gross = basic + hra + da + ta
+    epf = int((basic + da) * 0.12)
+    pt = 200
+    net = gross - (epf + pt)
+
+    payroll_data = {
+        'hra': hra, 'da': da, 'ta': ta, 
+        'gross': gross, 'epf': epf, 'pt': pt, 'net': net
+    }
+    
+    return render_template('profile.html', user=user, payroll=payroll_data)
+
+@app.route('/download_salary_certificate')
+def download_salary_certificate():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    u = User.query.get(session['user_id'])
+    
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # --- GENERATE COMPANY LOGO (VIRTUAL) ---
+    pdf.set_fill_color(67, 24, 255) # Nexus Blue
+    pdf.ellipse(10, 10, 20, 20, 'F')
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Arial", 'B', 15)
+    pdf.text(16, 24, "N")
+    
+    # Header Info
+    pdf.set_text_color(43, 37, 105)
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(190, 10, "NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(190, 5, "123 Nexus Tower, Innovation City, 56789", ln=True, align='C')
+    pdf.ln(20)
+    
+    # Body
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", 'B', 18)
+    pdf.cell(190, 10, "SALARY CERTIFICATE", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", '', 12)
+    pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a full-time employee at Nexus Intelligence Systems as a {u.role}. Their current monthly gross compensation is INR {u.salary + int(u.salary*0.5) + 2000}.\n\nThis certificate is issued at the request of the employee for official purposes.")
+    
+    pdf.ln(20)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(0, 10, "Authorised Signatory,", ln=True)
+    pdf.cell(0, 10, "Human Resources Department", ln=True)
+    
+    return send_file(
+        io.BytesIO(pdf.output(dest='S').encode('latin-1')), 
+        as_attachment=True, 
+        download_name=f"Salary_Certificate_{u.username}.pdf"
+    )
 
 @app.route('/staff_directory')
 def staff_directory():
@@ -523,6 +582,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
