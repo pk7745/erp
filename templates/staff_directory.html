@@ -36,10 +36,21 @@
                 <label style="font-size: 0.8rem; color: #666;">Password</label>
                 <input type="password" name="password" placeholder="••••••••" required style="width:100%;">
             </div>
+            
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Monthly Salary (INR)</label>
-                <input type="number" name="salary" placeholder="50000" required style="width:100%;">
+                <input type="number" name="salary" id="salaryInput_NEW" placeholder="50000" required 
+                       oninput="calculateLiveNet('NEW')" style="width:100%;">
+                
+                <div id="calc_NEW" style="display:none; background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                    <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">EST. TAKE-HOME (NET)</p>
+                    <h4 id="netDisplay_NEW" style="margin: 2px 0; color: #05cd99;">₹0</h4>
+                    <small id="breakdown_NEW" style="color: #1b2559; font-size: 0.65rem; display: block;">
+                        Breakdown will appear here
+                    </small>
+                </div>
             </div>
+
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Office/Home Address</label>
                 <input type="text" name="address" placeholder="City, Country" style="width:100%;">
@@ -125,18 +136,12 @@
 </div>
 
 <script>
-// Search Functionality (Existing)
-document.getElementById('directorySearch').addEventListener('keyup', function() {
-    let filter = this.value.toLowerCase();
-    let rows = document.querySelectorAll('#directoryTable tr');
-    rows.forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
-    });
-});
-
-// Live Net Salary Calculation (Updated with Tax Warning)
+// UPDATED SCRIPT FOR LIVE CALCULATION
 function calculateLiveNet(empId) {
-    const basic = parseFloat(document.getElementById('salaryInput_' + empId).value) || 0;
+    const inputElement = document.getElementById('salaryInput_' + empId);
+    if (!inputElement) return;
+
+    const basic = parseFloat(inputElement.value) || 0;
     
     // Earnings
     const hra = Math.floor(basic * 0.40);
@@ -148,13 +153,20 @@ function calculateLiveNet(empId) {
     const epf = Math.floor((basic + da) * 0.12);
     const pt = 200;
     const totalDeductions = epf + pt;
-    
     const net = gross - totalDeductions;
 
+    // Show the calculator box for the "Add New" form specifically
+    if (empId === 'NEW' && basic > 0) {
+        document.getElementById('calc_NEW').style.display = 'block';
+    }
+
     // Update the UI
-    document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    const netDisp = document.getElementById('netDisplay_' + empId);
+    const breakDisp = document.getElementById('breakdown_' + empId);
+
+    if (netDisp) netDisp.innerText = '₹' + net.toLocaleString('en-IN');
     
-    // Tax Warning Logic (Threshold: 62,500 monthly gross)
+    // Tax Warning Logic
     let taxWarning = "";
     if (gross > 62500) {
         taxWarning = `<div style="margin-top:5px; color: #e53e3e; font-weight: bold; font-size: 0.65rem; border: 1px dashed #e53e3e; padding: 2px; border-radius: 4px; text-align: center;">
@@ -162,11 +174,22 @@ function calculateLiveNet(empId) {
                       </div>`;
     }
 
-    document.getElementById('breakdown_' + empId).innerHTML = 
-        `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
+    if (breakDisp) {
+        breakDisp.innerHTML = 
+            `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
+    }
 }
 
-// Run once on load to show current values
+// Search Functionality
+document.getElementById('directorySearch').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#directoryTable tr');
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    });
+});
+
+// Run once on load for existing staff
 document.addEventListener('DOMContentLoaded', function() {
     {% for emp in employees %}
         calculateLiveNet({{ emp.id }});
