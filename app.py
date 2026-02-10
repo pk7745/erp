@@ -118,8 +118,6 @@ def about():
         return redirect(url_for('login'))
     return render_template('about.html')
 
-from flask import flash, redirect, url_for, render_template, request
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -128,14 +126,20 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         
-        if user and user.password == password: # Note: Use werkzeug.security for hashed passwords in production
+        # CORRECTED CHECK: Use check_password_hash because passwords in DB are hashed
+        if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
+            session['role'] = user.role  # Ensure role is in session
+            session['name'] = user.full_name
             return redirect(url_for('dashboard'))
         else:
-            # THIS IS THE ALERT LOGIC
+            # Only flashes if the check fails
             flash('Invalid Username or Password. Please try again.', 'danger')
             
     return render_template('login.html')
+
+
+    
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -440,4 +444,5 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
