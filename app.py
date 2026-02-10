@@ -116,7 +116,8 @@ def home():
 def about():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('about.html')
+    user = User.query.get(session['user_id']) # Get the specific user
+    return render_template('about.html', user=user) # Pass user to the page
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -444,5 +445,6 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
