@@ -19,7 +19,7 @@
                        style="padding: 8px; width: 200px; border-radius: 5px; border: 1px solid #ddd;">
                 
                 {% if session['role'] in ['HR', 'Accountant'] %}
-                <a href="{{ url_for('download_expenses_csv') }}" class="btn" style="background: #333; font-size: 0.8em; padding: 8px 12px;">
+              <a href="{{ url_for('export_csv', rtype='expenses') }}" class="btn">Download CSV</a>
                     📥 Export CSV
                 </a>
                 {% endif %}
