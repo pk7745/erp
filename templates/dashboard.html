@@ -1,6 +1,59 @@
 {% extends "base.html" %}
 {% block content %}
+<div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+
 <div class="dashboard-container">
+
+    {% if request.args.get('join_meet') %}
+    <div class="card shadow mb-4" style="border: 2px solid #4318ff; position: relative;">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background: #f4f7fe; padding: 15px;">
+            <div>
+                <h3 style="margin:0; display: inline-block;">🎥 Room: {{ request.args.get('join_meet') }}</h3>
+                <span style="margin-left:15px; cursor:help; font-size: 0.8rem; color: #4318ff;" title="Click the monitor icon in the video bar below to share your screen.">💻 Screen Share Guide</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="startRecording()" class="btn" style="background: #05cd99; font-size: 0.8rem;">🔴 Record Session</button>
+                <a href="{{ url_for('dashboard') }}" class="btn" style="background:#ee5d50; font-size: 0.8rem; text-decoration: none;">Leave Meeting</a>
+            </div>
+        </div>
+        <div id="jitsi-container" style="height: 600px; width: 100%;"></div>
+    </div>
+    
+    <div id="recording-guide" style="display:none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 10001; max-width: 400px; text-align: center;">
+        <h3 style="color: #4318ff;">Meeting Recording</h3>
+        <p>To record, click the <strong>three dots (...)</strong> in the video window and select <strong>'Start Recording'</strong>.</p>
+        <p style="font-size: 0.8rem; color: #707eff;">Note: Jitsi recordings are typically saved to your linked Dropbox account or local browser cache.</p>
+        <button onclick="document.getElementById('recording-guide').style.display='none'" class="btn">Got it!</button>
+    </div>
+
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <script>
+        const domain = "meet.jit.si";
+        const options = {
+            roomName: "{{ request.args.get('join_meet') }}",
+            width: "100%",
+            height: 600,
+            parentNode: document.querySelector('#jitsi-container'),
+            userInfo: { displayName: "{{ session['name'] }}" },
+            configOverwrite: { startWithAudioMuted: true },
+            interfaceConfigOverwrite: {
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                    'framerate', 'chat', 'recording', 'livestreaming', 'etherpad', 
+                    'sharedvideo', 'settings', 'raisehand', 'videoquality', 'filmstrip', 
+                    'invite', 'feedback', 'stats', 'shortcuts', 'tileview', 'videobackgroundblur', 
+                    'download', 'help', 'mute-everyone', 'e2ee'
+                ]
+            }
+        };
+        const api = new JitsiMeetExternalAPI(domain, options);
+
+        function startRecording() {
+            document.getElementById('recording-guide').style.display = 'block';
+            fetch('/notify_recording/{{ request.args.get("join_meet") }}');
+        }
+    </script>
+    {% endif %}
 
     {% if is_birthday or is_anniversary %}
     <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;">
@@ -61,6 +114,14 @@
         
         <div style="display: flex; flex-direction: column; gap: 20px;">
             <div class="card">
+                <h3 style="margin-top: 0;">🤝 Start an Instant Meeting</h3>
+                <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 10px;">
+                    <input type="text" name="room_name" placeholder="Enter Meeting Topic..." required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
+                    <button type="submit" class="btn">Launch Video Room</button>
+                </form>
+            </div>
+
+            <div class="card">
                 <h3 style="margin-top: 0;">📝 Submit Daily Activity Report</h3>
                 <form action="{{ url_for('submit_report') }}" method="POST">
                     <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-family: inherit;"></textarea>
@@ -109,8 +170,13 @@
             {% if session['role'] in ['HR', 'Accountant'] %}
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: none; border-bottom: 1px solid #eee;">
-                    <h3 style="margin: 0; color: #4318ff;">🔔 Live Feed</h3>
+                    <h3 style="margin: 0; color: #4318ff;">🔔 Live Feed <span id="unread-badge" style="background: #ee5d50; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; display: none;">0</span></h3>
                     <button onclick="clearAllNotifs()" style="background: none; border: none; font-size: 0.7rem; color: #ee5d50; cursor: pointer; text-decoration: underline;">Clear All</button>
+                </div>
+                <div style="display: flex; gap: 5px; padding: 10px; background: #f8f9fa; font-size: 0.7rem;">
+                    <button onclick="filterFeed('CLOCK')" class="badge" style="border:none; background:#05cd99; color:white; cursor:pointer;">Attendance</button>
+                    <button onclick="filterFeed('EXPENSE')" class="badge" style="border:none; background:#4318ff; color:white; cursor:pointer;">Expenses</button>
+                    <button onclick="filterFeed('')" class="badge" style="border:none; background:#1b2559; color:white; cursor:pointer;">All</button>
                 </div>
                 <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 10px;">
                     <ul id="notification-list" style="list-style: none; padding: 0; margin: 0;">
@@ -120,6 +186,7 @@
             </div>
             <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
             {% endif %}
+
             <div class="card">
                 <h3 style="margin-top: 0;">📂 Exports</h3>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -135,7 +202,6 @@
     <button onclick="toggleFab()" id="fab-main" style="width: 60px; height: 60px; border-radius: 50%; background: #4318ff; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(67, 24, 255, 0.4); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
         <span id="fab-icon">⚡</span>
     </button>
-    
     <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end; animation: fadeIn 0.2s ease;">
         <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🕒 Mark Attendance</a>
         <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🌴 Apply Leave</a>
@@ -146,16 +212,25 @@
 <style>
     @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes toastFade { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
     .fab-item:hover { background: #4318ff !important; color: white !important; transform: translateX(-5px); }
-    /* New Notification Styling */
     .notif-item { padding: 10px; border-bottom: 1px solid #f8f9fa; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.3s; }
     .notif-item:hover { background: #fcfcff; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // --- REAL-TIME NOTIFICATION SCRIPT (UPDATED) ---
     let lastKnownId = 0;
+    let unreadCount = 0;
+
+    function showToast(msg) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.style = "background: white; border-left: 5px solid #4318ff; padding: 15px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); animation: toastFade 0.4s ease-out; min-width: 250px; font-size: 0.85rem;";
+        toast.innerHTML = `<strong>New Update</strong><br>${msg}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
 
     function fetchLiveNotifications() {
         fetch('/api/notifications')
@@ -164,28 +239,65 @@
                 if (data.length > 0) {
                     if (lastKnownId !== 0 && data[0].id > lastKnownId) {
                         document.getElementById('notif-sound').play();
+                        unreadCount += (data[0].id - lastKnownId);
+                        updateBadge();
+                        showToast(data[0].msg);
                     }
                     lastKnownId = data[0].id;
-
-                    const list = document.getElementById('notification-list');
-                    list.innerHTML = data.map(n => {
-                        let textColor = '#1b2559'; 
-                        if (n.msg.includes('CLOCK-IN')) textColor = '#05cd99'; // Green
-                        if (n.msg.includes('CLOCK-OUT')) textColor = '#ffb547'; // Orange
-                        if (n.msg.includes('EXPENSE')) textColor = '#4318ff'; // Blue
-                        if (n.msg.includes('PASSWORD')) textColor = '#ee5d50'; // Red
-                        if (n.msg.includes('REPORT')) textColor = '#00b5dd'; // Cyan
-
-                        return `
-                            <li class="notif-item">
-                                <span style="color: ${textColor}; font-weight: 600;">${n.msg}</span>
-                                <small style="color: #a3aed0; font-size: 0.7rem; white-space: nowrap; margin-left: 10px;">${n.time}</small>
-                            </li>
-                        `;
-                    }).join('');
+                    renderFeed(data);
                 }
             });
     }
+
+    function updateBadge() {
+        const badge = document.getElementById('unread-badge');
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    function renderFeed(data, filter = '') {
+        const list = document.getElementById('notification-list');
+        if (!list) return;
+        
+        list.innerHTML = data
+            .filter(n => n.msg.includes(filter))
+            .map(n => {
+                let textColor = '#1b2559'; 
+                if (n.msg.includes('CLOCK-IN')) textColor = '#05cd99';
+                if (n.msg.includes('CLOCK-OUT')) textColor = '#ffb547';
+                if (n.msg.includes('EXPENSE')) textColor = '#4318ff';
+                if (n.msg.includes('PASSWORD')) textColor = '#ee5d50';
+                if (n.msg.includes('RECORDING')) textColor = '#ee5d50'; // RED for Recording
+                
+                let msgText = n.msg;
+                if (n.msg.includes('MEETING:')) {
+                    const parts = n.msg.split('meeting: ');
+                    const room = parts[1];
+                    msgText += ` <a href="/dashboard?join_meet=${room}" style="color:#7928ca; font-weight:bold;">[JOIN]</a>`;
+                }
+
+                return `<li class="notif-item">
+                    <span style="color: ${textColor}; font-weight: 600;">${msgText}</span>
+                    <small style="color: #a3aed0; font-size: 0.7rem; white-space: nowrap; margin-left: 10px;">${n.time}</small>
+                </li>`;
+            }).join('');
+    }
+
+    function filterFeed(type) {
+        fetch('/api/notifications').then(res => res.json()).then(data => renderFeed(data, type));
+    }
+
+    // Reset badge when hovering over the feed
+    document.querySelector('.card-body')?.addEventListener('mouseenter', () => {
+        unreadCount = 0;
+        updateBadge();
+    });
 
     if (document.getElementById('notification-list')) {
         fetchLiveNotifications();
@@ -196,10 +308,11 @@
         fetch('/clear_notifications').then(() => {
             document.getElementById('notification-list').innerHTML = '<p class="text-center text-muted">Feed Cleared.</p>';
             lastKnownId = 0;
+            unreadCount = 0;
+            updateBadge();
         });
     }
 
-    // --- EXISTING SCRIPTS ---
     function toggleFab() {
         const options = document.getElementById('fab-options');
         const icon = document.getElementById('fab-icon');
