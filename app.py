@@ -101,6 +101,12 @@ class ActivityReport(db.Model):
     content = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
+class Meeting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room_name = db.Column(db.String(100))
+    created_by = db.Column(db.String(100))
+    timestamp = db.Column(db.DateTime, default=get_ist_time)
+
 # ==========================================
 # 2. APP ROUTES (Fully Synced & Updated)
 # ==========================================
@@ -208,6 +214,23 @@ def download_salary_certificate():
 def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('staff_directory.html', employees=User.query.all())
+
+@app.route('/create_meeting', methods=['POST'])
+def create_meeting():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    room = request.form.get('room_name').replace(" ", "-")
+    new_meet = Meeting(room_name=room, created_by=session['name'])
+    db.session.add(new_meet)
+    db.session.add(Notification(message=f"MEETING: {session['name']} started a meeting: {room}"))
+    db.session.commit()
+    return redirect(url_for('dashboard', join_meet=room))
+
+@app.route('/notify_recording/<room_name>')
+def notify_recording(room_name):
+    if 'user_id' not in session: return jsonify({"status": "error"})
+    db.session.add(Notification(message=f"RECORDING: {session['name']} has started recording meeting: {room_name}"))
+    db.session.commit()
+    return jsonify({"status": "success"})
 
 @app.route('/api/notifications')
 def get_notifications():
@@ -482,4 +505,5 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
