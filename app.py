@@ -395,27 +395,51 @@ def forgot_password():
 # 3. UTILITY & EXPORT
 # ==========================================
 
-@app.route('/download_attendance_csv')
-def download_attendance_csv():
-    def generate():
-        data = io.StringIO()
-        w = csv.writer(data)
-        w.writerow(['Name', 'Date', 'Mode', 'In', 'Out'])
-        for a in Attendance.query.all():
-            w.writerow([a.user.full_name, a.date, a.work_mode, a.check_in, a.check_out])
-        yield data.getvalue()
-    return Response(generate(), mimetype='text/csv', headers={"Content-disposition":"attachment; filename=attendance.csv"})
+@app.route('/export_csv/<rtype>')
+def export_csv(rtype):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
 
-@app.route('/download_expenses_csv')
-def download_expenses_csv():
-    def generate():
-        data = io.StringIO()
-        w = csv.writer(data)
-        w.writerow(['Employee', 'Category', 'Amount', 'Status'])
-        for c in ExpenseClaim.query.all():
-            w.writerow([c.rel_user.full_name, c.category, c.amount, c.status])
-        yield data.getvalue()
-    return Response(generate(), mimetype='text/csv', headers={"Content-disposition":"attachment; filename=expenses.csv"})
+    if rtype == 'attendance':
+        # Header
+        writer.writerow(['Employee Name', 'Date', 'Work Mode', 'Check-In', 'Check-Out'])
+        
+        # Data
+        records = Attendance.query.all()
+        for rec in records:
+            # SAFETY CHECK: Handle cases where the user might be deleted
+            # We check for both 'rel_user' and 'user' to ensure compatibility with your model
+            user_obj = getattr(rec, 'rel_user', getattr(rec, 'user', None))
+            name = user_obj.full_name if user_obj else "Unknown/Deleted"
+            
+            # Use safe getattr for fields to prevent crashes if 'status' or 'work_mode' is missing
+            mode = getattr(rec, 'status', getattr(rec, 'work_mode', 'N/A'))
+            
+            writer.writerow([name, rec.date, mode, rec.check_in, rec.check_out])
+            
+    elif rtype == 'expenses':
+        # Header
+        writer.writerow(['Employee Name', 'Category', 'Amount', 'Status', 'Date'])
+        
+        # Data
+        claims = ExpenseClaim.query.all()
+        for c in claims:
+            # SAFETY CHECK: Handle deleted users
+            user_obj = getattr(c, 'rel_user', getattr(c, 'user', None))
+            name = user_obj.full_name if user_obj else "Unknown/Deleted"
+            
+            writer.writerow([name, c.category, c.amount, c.status, c.payment_date])
+
+    # Reset pointer to start of file before sending
+    output.seek(0)
+    
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename={rtype}_report.csv"}
+    )
 
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
@@ -618,6 +642,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
