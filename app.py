@@ -209,6 +209,21 @@ def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     return render_template('staff_directory.html', employees=User.query.all())
 
+@app.route('/api/notifications')
+def get_notifications():
+    if session.get('role') not in ['HR', 'Accountant']:
+        return jsonify([])
+    
+    # Fetch latest 10 notifications
+    notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(10).all()
+    
+    # Return as JSON
+    return jsonify([{
+        'id': n.id,
+        'msg': n.message,
+        'time': n.timestamp.strftime('%I:%M %p')
+    } for n in notifs])
+
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') == 'HR':
@@ -467,3 +482,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
