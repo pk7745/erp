@@ -493,6 +493,7 @@ def logout():
 # ==========================================
 # 4. INITIAL SETUP (Untouched)
 # ==========================================
+from app import app, db
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -505,5 +506,6 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
