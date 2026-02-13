@@ -35,11 +35,15 @@
             height: 600,
             parentNode: document.querySelector('#jitsi-container'),
             userInfo: { displayName: "{{ session['name'] }}" },
-            configOverwrite: { startWithAudioMuted: true },
+            configOverwrite: { 
+                startWithAudioMuted: true,
+                disableScreensharing: false,
+                enableFeaturesBasedOnTokens: false
+            },
             interfaceConfigOverwrite: {
                 TOOLBAR_BUTTONS: [
                     'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                    'framerate', 'chat', 'recording', 'livestreaming', 'etherpad', 
+                    'fodeviceselection', 'chat', 'recording', 'livestreaming', 'etherpad', 
                     'sharedvideo', 'settings', 'raisehand', 'videoquality', 'filmstrip', 
                     'invite', 'feedback', 'stats', 'shortcuts', 'tileview', 'videobackgroundblur', 
                     'download', 'help', 'mute-everyone', 'e2ee'
@@ -47,6 +51,14 @@
             }
         };
         const api = new JitsiMeetExternalAPI(domain, options);
+
+        // Explicitly set permissions for the iframe to allow screen sharing
+        api.addEventListener('videoConferenceJoined', () => {
+            const iframe = api.getIFrame();
+            if (iframe) {
+                iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write");
+            }
+        });
 
         function startRecording() {
             document.getElementById('recording-guide').style.display = 'block';
