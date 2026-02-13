@@ -603,13 +603,13 @@ def principal_request_salary(uid):
 
 @app.route('/admin_verify_salary/<int:req_id>')
 def admin_verify_salary(req_id):
-    if session.get('role') != 'HR': return "Unauthorized", 403 # Your 'HR' role acts as Admin
-    req = SalaryUpdate.query.get(req_id)
-    req.status = 'Pending Accountant Configuration'
-    db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id} moved to Accountant"))
-    db.session.commit()
-    flash("Admin verified. Accountant must now configure payroll percentages.", "success")
-    return redirect(url_for('staff_directory'))
+     if session.get('role') != 'HR': return "Unauthorized", 403 # Your 'HR' role acts as Admin
+     req = SalaryUpdate.query.get(req_id)
+     req.status = 'Pending Accountant Configuration'
+     db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id} moved to Accountant"))
+     db.session.commit()
+     flash("Admin verified. Accountant must now configure payroll percentages.", "success")
+     return redirect(url_for('staff_directory'))
 
 # --- WORKFLOW 2 & 3: ACCOUNTANT CONFIGURATION ---
 
@@ -693,6 +693,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
