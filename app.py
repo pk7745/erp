@@ -9,11 +9,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
 
 app = Flask(__name__)
-app.secret_key = "nexus_ultimate_v200"
+# Updated Secret Key
+app.secret_key = "bms_college_ultimate_v200"
 
 # Database Configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'nexus_ultimate.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'bms_college.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -22,20 +23,23 @@ def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
 
 # ==========================================
-# 1. DATABASE MODELS (Untouched)
+# 1. DATABASE MODELS
 # ==========================================
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='Employee') 
+    role = db.Column(db.String(50), default='Faculty') 
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
     salary = db.Column(db.Integer, default=50000)
     address = db.Column(db.String(200))
     dob = db.Column(db.String(20), default="1995-01-01") 
     join_date = db.Column(db.String(20), default="2023-01-01")
+    
+    caste = db.Column(db.String(50), default='General')
+    religion = db.Column(db.String(50), default='Not Specified')
     
     tasks = db.relationship('Task', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
@@ -108,7 +112,7 @@ class Meeting(db.Model):
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
 # ==========================================
-# 2. APP ROUTES (Fully Synced & Updated)
+# 2. APP ROUTES 
 # ==========================================
 
 @app.route('/')
@@ -152,8 +156,18 @@ def dashboard():
     off_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     
-    # HR/Accountant Feed
-    notifs = Notification.query.order_by(Notification.timestamp.desc()).all() if session['role'] in ['HR', 'Accountant'] else []
+    # Logic: Filter notifications based on role
+    privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
+    if session['role'] in privileged_roles:
+        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
+        if session['role'] == 'Accountant':
+            # Accountants see everything EXCEPT clock-in and clock-out
+            notifs = [n for n in all_notifs if "CLOCK-IN" not in n.message and "CLOCK-OUT" not in n.message]
+        else:
+            # HR, Principal, and HOD see all notifications
+            notifs = all_notifs
+    else:
+        notifs = []
     
     return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, 
                            wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats,
@@ -180,6 +194,9 @@ def profile():
         user.full_name = request.form.get('full_name')
         user.email = request.form.get('email')
         user.address = request.form.get('address')
+        if request.form.get('caste'): user.caste = request.form.get('caste')
+        if request.form.get('religion'): user.religion = request.form.get('religion')
+        
         new_pass = request.form.get('password')
         if new_pass:
             user.password = generate_password_hash(new_pass)
@@ -193,27 +210,35 @@ def download_salary_certificate():
     u = User.query.get(session['user_id'])
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_fill_color(67, 24, 255); pdf.ellipse(10, 10, 20, 20, 'F')
-    pdf.set_text_color(255, 255, 255); pdf.set_font("Arial", 'B', 15); pdf.text(16, 24, "N")
-    pdf.set_text_color(43, 37, 105); pdf.set_font("Arial", 'B', 16)
-    pdf.cell(190, 10, "NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
+    pdf.set_fill_color(0, 51, 102); pdf.ellipse(10, 10, 20, 20, 'F')
+    pdf.set_text_color(255, 255, 255); pdf.set_font("Arial", 'B', 15); pdf.text(16, 24, "B")
+    pdf.set_text_color(0, 51, 102); pdf.set_font("Arial", 'B', 14)
+    pdf.cell(190, 10, "BMS COLLEGE OF COMMERCE AND MANAGEMENT", ln=True, align='C')
     pdf.ln(20)
     pdf.set_text_color(0, 0, 0); pdf.set_font("Arial", 'B', 18); pdf.cell(190, 10, "SALARY CERTIFICATE", ln=True, align='C')
     pdf.ln(10)
     gross_val = u.salary + int(u.salary*0.4) + int(u.salary*0.1) + 2000
     pdf.set_font("Arial", '', 12)
-    pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a full-time employee at Nexus Intelligence Systems as a {u.role}. Their current monthly gross compensation is INR {gross_val}.\n\nThis certificate is issued at the request of the employee for official purposes.")
+    pdf.multi_cell(0, 10, f"Date: {get_ist_time().strftime('%d-%m-%Y')}\n\nTo Whom It May Concern,\n\nThis is to certify that {u.full_name} is a permanent staff member at BMS College of Commerce and Management as a {u.role}. Their current monthly gross compensation is INR {gross_val}.\n\nThis certificate is issued at the request of the faculty for official purposes.")
     pdf.ln(10); current_y = pdf.get_y()
-    pdf.set_draw_color(67, 24, 255); pdf.set_line_width(0.8); pdf.ellipse(25, current_y + 10, 30, 30, 'D') 
-    pdf.set_font("Arial", 'B', 7); pdf.set_text_color(67, 24, 255); pdf.text(28, current_y + 24, "NEXUS INTELLIGENCE"); pdf.text(32, current_y + 27, "OFFICIAL SEAL")
-    pdf.set_xy(130, current_y + 10); pdf.set_font("Courier", 'BI', 12); pdf.set_text_color(0, 0, 128); pdf.cell(50, 10, "SYSTEM_HR_NEXUS", ln=True, align='C')
-    pdf.line(135, pdf.get_y(), 175, pdf.get_y()); pdf.set_xy(130, pdf.get_y()); pdf.set_font("Arial", 'B', 11); pdf.set_text_color(0, 0, 0); pdf.cell(50, 8, "Authorised Signatory", ln=True, align='C')
+    pdf.set_draw_color(0, 51, 102); pdf.set_line_width(0.8); pdf.ellipse(25, current_y + 10, 30, 30, 'D') 
+    pdf.set_font("Arial", 'B', 7); pdf.set_text_color(0, 51, 102); pdf.text(28, current_y + 24, "BMS COLLEGE"); pdf.text(32, current_y + 27, "OFFICIAL SEAL")
+    pdf.set_xy(130, current_y + 10); pdf.set_font("Courier", 'BI', 12); pdf.set_text_color(0, 0, 128); pdf.cell(50, 10, "ADMIN_BMS_COLLEGE", ln=True, align='C')
+    pdf.line(135, pdf.get_y(), 175, pdf.get_y()); pdf.set_xy(130, pdf.get_y()); pdf.set_font("Arial", 'B', 11); pdf.set_text_color(0, 0, 0); pdf.cell(50, 8, "Principal / Auth Signatory", ln=True, align='C')
     return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"Salary_Certificate_{u.username}.pdf")
 
 @app.route('/staff_directory')
 def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
-    return render_template('staff_directory.html', employees=User.query.all())
+    curr_user = User.query.get(session['user_id'])
+    
+    # Logic: Only HR, Accountant, and Principal see the full list. Faculty see only themselves.
+    if curr_user.role in ['HR', 'Accountant', 'Principal']:
+        employees = User.query.all()
+    else:
+        employees = [curr_user]
+        
+    return render_template('staff_directory.html', employees=employees)
 
 @app.route('/create_meeting', methods=['POST'])
 def create_meeting():
@@ -234,18 +259,23 @@ def notify_recording(room_name):
 
 @app.route('/api/notifications')
 def get_notifications():
-    if session.get('role') not in ['HR', 'Accountant']:
+    privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
+    if session.get('role') not in privileged_roles:
         return jsonify([])
     
-    # Fetch latest 10 notifications
-    notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(10).all()
+    all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
     
-    # Return as JSON
+    # Apply the same filtering for the real-time API
+    if session.get('role') == 'Accountant':
+        filtered_notifs = [n for n in all_notifs if "CLOCK-IN" not in n.message and "CLOCK-OUT" not in n.message]
+    else:
+        filtered_notifs = all_notifs
+
     return jsonify([{
         'id': n.id,
         'msg': n.message,
         'time': n.timestamp.strftime('%I:%M %p')
-    } for n in notifs])
+    } for n in filtered_notifs])
 
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
@@ -257,13 +287,15 @@ def add_employee():
             email=request.form['email'],
             salary=int(request.form['salary']),
             address=request.form['address'],
-            role='Employee',
+            role='Faculty', 
             dob=request.form.get('dob', '1995-01-01'),
-            join_date=request.form.get('join_date', '2023-01-01')
+            join_date=request.form.get('join_date', '2023-01-01'),
+            caste=request.form.get('caste', 'General'),
+            religion=request.form.get('religion', 'Not Specified')
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('New Employee Registered', 'success')
+        flash('New Faculty Member Registered', 'success')
     return redirect(url_for('staff_directory'))
 
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
@@ -288,11 +320,9 @@ def attendance():
         if not att:
             mode = request.form['work_mode']
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=t_now, work_mode=mode))
-            # NOTIFICATION TRIGGER
             db.session.add(Notification(message=f"CLOCK-IN: {user.full_name} checked in ({mode}) at {t_now}"))
         else:
             att.check_out = t_now
-            # NOTIFICATION TRIGGER
             db.session.add(Notification(message=f"CLOCK-OUT: {user.full_name} checked out at {t_now}"))
         db.session.commit()
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
@@ -322,7 +352,6 @@ def expenses():
     if request.method == 'POST':
         amt = float(request.form['amount'])
         db.session.add(ExpenseClaim(user_id=session['user_id'], category=request.form['category'], amount=amt, description=request.form['desc']))
-        # NOTIFICATION TRIGGER
         db.session.add(Notification(message=f"EXPENSE: {user.full_name} submitted a claim for INR {amt}"))
         db.session.commit()
     claims = ExpenseClaim.query.all() if session['role'] in ['HR', 'Accountant'] else ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
@@ -347,7 +376,6 @@ def chat(receiver_id=None):
     if request.method == 'POST':
         rid = request.form['receiver_id']
         db.session.add(Message(sender_id=curr_id, receiver_id=rid, content=request.form['content']))
-        # NOTIFICATION TRIGGER
         db.session.add(Notification(message=f"MESSAGE: New internal message from {sender.full_name}"))
         db.session.commit()
         return redirect(url_for('chat', receiver_id=rid))
@@ -381,8 +409,9 @@ def forgot_password():
             flash('HR notified.', 'success')
         else: flash('Invalid user', 'error')
     return render_template('forgot_password.html')
+
 # ==========================================
-# 3. UTILITY & EXPORT (Kept Exactly As Provided)
+# 3. UTILITY & EXPORT
 # ==========================================
 
 @app.route('/export_csv/<rtype>')
@@ -391,7 +420,7 @@ def export_csv(rtype):
     output = io.StringIO()
     writer = csv.writer(output)
     if rtype == 'attendance':
-        writer.writerow(['Employee Name', 'Date', 'Work Mode', 'Check-In', 'Check-Out'])
+        writer.writerow(['Faculty Name', 'Date', 'Work Mode', 'Check-In', 'Check-Out'])
         records = Attendance.query.all()
         for rec in records:
             user_obj = getattr(rec, 'rel_user', getattr(rec, 'user', None))
@@ -399,7 +428,7 @@ def export_csv(rtype):
             mode = getattr(rec, 'status', getattr(rec, 'work_mode', 'N/A'))
             writer.writerow([name, rec.date, mode, rec.check_in, rec.check_out])
     elif rtype == 'expenses':
-        writer.writerow(['Employee Name', 'Category', 'Amount', 'Status', 'Date'])
+        writer.writerow(['Faculty Name', 'Category', 'Amount', 'Status', 'Date'])
         claims = ExpenseClaim.query.all()
         for c in claims:
             user_obj = getattr(c, 'rel_user', getattr(c, 'user', None))
@@ -417,8 +446,8 @@ def generate_payslip(uid):
     gross = basic + hra + da + ta
     epf, pt = int((basic + da) * 0.12), 200
     net = gross - (epf + pt)
-    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 20); pdf.set_text_color(67, 24, 255) 
-    pdf.cell(200, 15, txt="NEXUS INTELLIGENCE SYSTEMS", ln=True, align='C')
+    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 18); pdf.set_text_color(0, 51, 102) 
+    pdf.cell(200, 15, txt="BMS COLLEGE OF COMMERCE & MANAGEMENT", ln=True, align='C')
     pdf.set_font("Arial", 'B', 12); pdf.set_text_color(0, 0, 0)
     pdf.cell(200, 10, txt=f"PAYSLIP FOR: {u.full_name.upper()}", ln=True, align='C')
     pdf.cell(200, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True, align='C')
@@ -433,20 +462,19 @@ def generate_payslip(uid):
     pdf.cell(60, 10, "Travel (TA)", 1); pdf.cell(35, 10, f"INR {ta}", 1, 0, 'R'); pdf.cell(95, 10, "", 1, 1) 
     pdf.ln(5); pdf.set_font("Arial", 'B', 11); pdf.cell(60, 10, "GROSS EARNINGS", 1); pdf.cell(35, 10, f"INR {gross}", 1, 0, 'R', True)
     pdf.cell(60, 10, "TOTAL DEDUCTIONS", 1); pdf.cell(35, 10, f"INR {epf+pt}", 1, 1, 'R', True)
-    pdf.ln(10); pdf.set_fill_color(5, 205, 153); pdf.set_text_color(255, 255, 255); pdf.set_font("Arial", 'B', 14)
+    pdf.ln(10); pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255); pdf.set_font("Arial", 'B', 14)
     pdf.cell(190, 15, txt=f"NET TAKE-HOME PAY: INR {net}", border=0, ln=True, align='C', fill=True)
-    pdf.ln(15); current_y = pdf.get_y(); pdf.set_draw_color(67, 24, 255); pdf.set_line_width(0.8); pdf.ellipse(25, current_y + 5, 30, 30, 'D') 
-    pdf.set_font("Arial", 'B', 6); pdf.set_text_color(67, 24, 255); pdf.text(28, current_y + 19, "NEXUS INTELLIGENCE"); pdf.text(32, current_y + 22, "OFFICIAL SEAL")
-    pdf.set_xy(130, current_y + 10); pdf.set_font("Courier", 'BI', 12); pdf.set_text_color(0, 0, 128); pdf.cell(50, 10, "FINANCE_DEPT_NEXUS", ln=True, align='C')
+    pdf.ln(15); current_y = pdf.get_y(); pdf.set_draw_color(0, 51, 102); pdf.set_line_width(0.8); pdf.ellipse(25, current_y + 5, 30, 30, 'D') 
+    pdf.set_font("Arial", 'B', 6); pdf.set_text_color(0, 51, 102); pdf.text(28, current_y + 19, "BMS COLLEGE"); pdf.text(32, current_y + 22, "OFFICIAL SEAL")
+    pdf.set_xy(130, current_y + 10); pdf.set_font("Courier", 'BI', 12); pdf.set_text_color(0, 0, 128); pdf.cell(50, 10, "FINANCE_BMSCCM", ln=True, align='C')
     pdf.line(135, pdf.get_y(), 175, pdf.get_y()); pdf.set_xy(130, pdf.get_y()); pdf.set_font("Arial", 'B', 10); pdf.set_text_color(0, 0, 0); pdf.cell(50, 7, "Accounts Manager", ln=True, align='C')
-    pdf.set_y(-20); pdf.set_text_color(163, 174, 208); pdf.set_font("Arial", 'I', 8); pdf.cell(190, 5, txt="This payslip is digitally verified and issued by the Nexus ERP Finance Module.", ln=True, align='C')
+    pdf.set_y(-20); pdf.set_text_color(163, 174, 208); pdf.set_font("Arial", 'I', 8); pdf.cell(190, 5, txt="This payslip is digitally verified and issued by the BMS College Finance Module.", ln=True, align='C')
     return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"payslip_{u.username}_{get_ist_time().strftime('%m_%Y')}.pdf")
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     user = User.query.get(session['user_id'])
     db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
-    # NOTIFICATION TRIGGER
     db.session.add(Notification(message=f"REPORT: {user.full_name} submitted a new activity report"))
     db.session.commit()
     flash('Report Sent', 'success')
@@ -463,7 +491,6 @@ def toggle_task(id):
     t = Task.query.get(id)
     if t: 
         t.is_done = not t.is_done
-        # NOTIFICATION TRIGGER (Only on Completion)
         if t.is_done:
             db.session.add(Notification(message=f"TASK: {t.user.full_name} marked task '{t.title}' as COMPLETED"))
     db.session.commit()
@@ -471,7 +498,7 @@ def toggle_task(id):
 
 @app.route('/download_report/<rtype>')
 def download_report(rtype):
-    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 16); pdf.cell(200, 10, txt=f"NEXUS {rtype.upper()} REPORT", ln=True, align='C')
+    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 16); pdf.cell(200, 10, txt=f"BMS COLLEGE {rtype.upper()} REPORT", ln=True, align='C')
     return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"{rtype}.pdf")
 
 @app.route('/clear_notifications')
@@ -491,21 +518,45 @@ def logout():
     session.clear(); return redirect(url_for('login'))
 
 # ==========================================
-# 4. INITIAL SETUP (Untouched)
+# 4. INITIAL SETUP 
 # ==========================================
 from app import app, db
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
-        db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@nexus.com', dob='1985-10-25', join_date='2018-05-10'))
-        db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='finance@nexus.com', dob='1990-03-12', join_date='2020-11-20'))
-        emps = [('emp1', 'Amit Sharma', 45000, 'emp1@nexus.com', '1992-05-15', '2021-06-01'), ('emp2', 'Priya Singh', 48000, 'emp2@nexus.com', '1994-08-22', '2022-01-15'), ('emp3', 'Vikram Aditya', 52000, 'emp3@nexus.com', '1990-12-10', '2020-03-20'), ('emp4', 'Sneha Reddy', 46000, 'emp4@nexus.com', '1997-02-10', '2023-09-05')]
-        for u, f, s, e, d, j in emps:
-            db.session.add(User(username=u, password=generate_password_hash('emp123'), role='Employee', full_name=f, salary=s, email=e, dob=d, join_date=j))
-        db.session.commit()
+        db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@bmsccm.edu', dob='1985-10-25', join_date='2018-05-10'))
+        
+    if not User.query.filter_by(username='acc1').first():
+        db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='accounts@bmsccm.edu', dob='1990-03-12', join_date='2020-11-20'))
+        
+    # Updated Faculty List with Different DOB and Join Dates
+    faculties = [
+        ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
+        ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
+        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
+        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
+        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
+        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
+        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
+        ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
+    ]
+    
+    for u, f, r, e, c, rel, d, j in faculties:
+        if not User.query.filter_by(username=u).first():
+            db.session.add(User(
+                username=u, 
+                password=generate_password_hash('bms123'),
+                role=r,
+                full_name=f, 
+                salary=50000, 
+                email=e, 
+                dob=d, 
+                join_date=j,
+                caste=c, 
+                religion=rel
+            ))
+            
+    db.session.commit()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-
-
-
