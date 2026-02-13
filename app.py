@@ -324,7 +324,7 @@ def add_employee():
         db.session.add(new_user)
         db.session.commit()
         flash('Employee Added. Pending Admin document verification.', 'success')
-    return redirect(url_for('staff_directory'))
+  return redirect(url_for('staff_directory'))
 
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
 def edit_salary(uid):
@@ -706,6 +706,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
