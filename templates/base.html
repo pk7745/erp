@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Enterprise ERP</title>
+    <title>BMS COLLEGE OF COMMERCE AND MANAGEMENT</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
@@ -13,6 +13,16 @@
         body.dark-mode .card { background: #111c44; color: white; border: 1px solid #1b2559; }
         body.dark-mode .sidebar { background: #111c44; }
         
+        /* High Contrast Notification Styles */
+        .flash-msg {
+            font-weight: 600;
+            color: #1a1a1a; /* Very dark text for light mode */
+            transition: all 0.3s ease;
+        }
+        body.dark-mode .flash-msg {
+            color: #ffffff; /* White text for dark mode */
+        }
+
         /* Profile Link Hover Effect */
         .profile-link:hover { opacity: 0.8; transform: translateY(-1px); transition: all 0.2s; background: rgba(0,0,0,0.05); }
 
@@ -54,8 +64,8 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="card" style="background: {% if category == 'error' %}#fff5f5{% else %}#f0fff4{% endif %}; border-left: 5px solid {% if category == 'error' %}var(--danger){% else %}var(--success){% endif %}; margin-bottom: 20px; padding: 15px;">
-                        {{ message }}
+                    <div class="card flash-msg" style="background: {% if category == 'error' %}#fee2e2{% else %}#d1fae5{% endif %}; border-left: 5px solid {% if category == 'error' %}#dc2626{% else %}#059669{% endif %}; margin-bottom: 20px; padding: 15px;">
+                        {% if category == 'error' %}⚠️{% else %}✅{% endif %} {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
