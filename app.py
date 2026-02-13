@@ -34,6 +34,7 @@ class User(db.Model):
     full_name = db.Column(db.String(100))
     email = db.Column(db.String(100))
     salary = db.Column(db.Integer, default=50000)
+    status = db.Column(db.String(50), default='Active')
     address = db.Column(db.String(200))
     dob = db.Column(db.String(20), default="1995-01-01") 
     join_date = db.Column(db.String(20), default="2023-01-01")
@@ -595,9 +596,8 @@ def principal_request_salary(uid):
         return "Unauthorized", 403
         
     new_val = int(request.form.get('new_salary'))
-    
-    # Check if a request already exists
     existing = SalaryUpdate.query.filter_by(user_id=uid).first()
+    
     if existing:
         existing.new_salary = new_val
         existing.status = 'Pending Admin Approval'
@@ -606,21 +606,18 @@ def principal_request_salary(uid):
         db.session.add(new_req)
     
     db.session.commit()
-    # This is Line 326 - it MUST have exactly 4 spaces/1 tab at the start
     return redirect(url_for('staff_directory'))
     
 @app.route('/admin_verify_salary/<int:req_id>')
 def admin_verify_salary(req_id):
-     if session.get('role') != 'HR':
-          return "Unauthorized", 403 # Your 'HR' role acts as Admin
-     req = SalaryUpdate.query.get(req_id)
-     req.status = 'Pending Accountant Configuration'
-     db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id} moved to Accountant"))
-     db.session.commit()
-     flash("Admin verified. Accountant must now configure payroll percentages.", "success")
-     return redirect(url_for('staff_directory'))
-
-# --- WORKFLOW 2 & 3: ACCOUNTANT CONFIGURATION ---
+    if session.get('role') != 'HR':
+        return "Unauthorized", 403
+    req = SalaryUpdate.query.get(req_id)
+    req.status = 'Pending Accountant Configuration'
+    db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id}"))
+    db.session.commit()
+    flash("Admin verified. Accountant must now configure payroll.", "success")
+    return redirect(url_for('staff_directory'))
 
 @app.route('/finalize_payroll_config', methods=['POST'])
 def finalize_payroll_config():
@@ -704,6 +701,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
