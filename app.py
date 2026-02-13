@@ -304,6 +304,7 @@ def add_employee():
         db.session.commit()
         flash('Employee Added. Pending Admin document verification.', 'success')
   return redirect(url_for('staff_directory'))
+    
 @app.route('/api/notifications')
 def get_notifications():
     role = session.get('role')
@@ -377,6 +378,7 @@ def leave():
         new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status)
         db.session.add(new_leave)
         db.session.add(Notification(message=msg))
+        db.session.add(Notification(message=f"LEAVE REQUEST: {user.full_name} ({user.role}) requested leave for {request.form['date']}"))
         db.session.commit()
         flash('Leave request processed.', 'success')
 
@@ -706,6 +708,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
