@@ -117,7 +117,8 @@ class SalaryUpdate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     new_salary = db.Column(db.Integer)
-    status = db.Column(db.String(50), default='Pending Admin Approval') # Pending Admin, Pending Accountant
+    status = db.Column(db.String(50), default='Pending Admin Approval')# Pending Admin, Pending Accountant
+    user = db.relationship('User', backref=db.backref('salary_updates', lazy=True))
 
 class PayrollStructure(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -258,13 +259,13 @@ def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_user = User.query.get(session['user_id'])
     
-    # Logic: Only HR, Accountant, and Principal see the full list. Faculty see only themselves.
     if curr_user.role in ['HR', 'Accountant', 'Principal']:
         employees = User.query.all()
     else:
         employees = [curr_user]
         
-    return render_template('staff_directory.html', employees=employees)
+    # ADD 'SalaryUpdate=SalaryUpdate' TO THE LINE BELOW
+    return render_template('staff_directory.html', employees=employees, SalaryUpdate=SalaryUpdate)
 
 @app.route('/create_meeting', methods=['POST'])
 def create_meeting():
@@ -708,6 +709,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
