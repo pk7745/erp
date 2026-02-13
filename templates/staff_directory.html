@@ -8,7 +8,8 @@
             <input type="text" id="directorySearch" placeholder="Search name, email, or role..." 
                    style="padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #ddd;">
             
-            {% if session['role'] == 'HR' %}
+            {# Updated: Both HR and Principal can now trigger the Add Employee form #}
+            {% if session['role'] in ['HR', 'Principal'] %}
                 <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
             {% endif %}
         </div>
@@ -36,35 +37,27 @@
                 <label style="font-size: 0.8rem; color: #666;">Password</label>
                 <input type="password" name="password" placeholder="••••••••" required style="width:100%;">
             </div>
-            
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Monthly Salary (INR)</label>
                 <input type="number" name="salary" id="salaryInput_NEW" placeholder="50000" required 
                        oninput="calculateLiveNet('NEW')" style="width:100%;">
-                
                 <div id="calc_NEW" style="display:none; background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px;">
                     <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">EST. TAKE-HOME (NET)</p>
                     <h4 id="netDisplay_NEW" style="margin: 2px 0; color: #05cd99;">₹0</h4>
-                    <small id="breakdown_NEW" style="color: #1b2559; font-size: 0.65rem; display: block;">
-                        Breakdown will appear here
-                    </small>
                 </div>
             </div>
-
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Office/Home Address</label>
                 <input type="text" name="address" placeholder="City, Country" style="width:100%;">
             </div>
-            
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Date of Birth</label>
-                <input type="date" name="dob" required style="width:100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                <input type="date" name="dob" required style="width:100%; padding: 8px;">
             </div>
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Joining Date</label>
-                <input type="date" name="join_date" required style="width:100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                <input type="date" name="join_date" required style="width:100%; padding: 8px;">
             </div>
-
             <button type="submit" class="btn" style="grid-column: span 2; margin-top: 10px;">Save Employee</button>
         </form>
     </div>
@@ -74,61 +67,76 @@
             <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Net Pay</th>
-                <th>Role</th>
-                <th>Actions & Payroll</th>
+                <th>Status & Workflow</th>
+                <th>Salary Management</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="directoryTable">
             {% for emp in employees %}
             <tr>
-                <td><strong>{{ emp.full_name }}</strong></td>
+                <td><strong>{{ emp.full_name }}</strong><br><small class="badge">{{ emp.role }}</small></td>
                 <td>{{ emp.email }}</td>
                 
                 <td>
-                    {% if session['role'] == 'HR' %}
-                        <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display: flex; flex-direction: column; gap: 5px;">
-                            <div class="salary-edit-container">
-                                <label style="font-size: 0.7rem; color: #666;">Basic Salary</label>
-                                <div style="display: flex; gap: 5px;">
-                                    <input type="number" 
-                                           name="new_salary" 
-                                           id="salaryInput_{{ emp.id }}" 
-                                           value="{{ emp.salary }}" 
-                                           oninput="calculateLiveNet({{ emp.id }})" 
-                                           style="width: 100px; padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-                                    <button type="submit" class="badge badge-office" style="border:none; cursor:pointer;">Update</button>
-                                </div>
-                                
-                                <div style="background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px; min-width: 180px;">
-                                    <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">EST. TAKE-HOME (NET)</p>
-                                    <h4 id="netDisplay_{{ emp.id }}" style="margin: 2px 0; color: #05cd99;">₹0</h4>
-                                    <small id="breakdown_{{ emp.id }}" style="color: #1b2559; font-size: 0.65rem; display: block;">Calculating...</small>
-                                </div>
-                            </div>
-                        </form>
-                    {% elif session['role'] in ['Principal', 'Accountant'] or session['user_id'] == emp.id %}
-                        <div id="salaryInput_{{ emp.id }}" data-value="{{ emp.salary }}">
-                            <strong>₹{{ "{:,}".format(emp.salary) }}</strong>
+                    {% if emp.status == 'Pending Admin Verification' %}
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <span class="badge" style="background:#f6e05e; color:#856404;">📂 Docs Pending</span>
+                            {% if session['role'] == 'HR' %}
+                                <a href="{{ url_for('admin_verify_docs', uid=emp.id) }}" class="badge" style="background:#4318ff; color:white; text-decoration:none; text-align:center;">Verify Now</a>
+                            {% endif %}
                         </div>
-                        <div style="background: #f4f7fe; padding: 5px; border-radius: 4px; margin-top: 5px; font-size: 0.75rem;">
-                            <span style="color: #a3aed0;">Est. Net:</span> <span id="netDisplay_{{ emp.id }}" style="color: #05cd99; font-weight: bold;">₹0</span>
-                        </div>
+                    {% elif emp.status == 'Pending Payroll Config' %}
+                        <span class="badge" style="background:#bee3f8; color:#2c5282;">💰 Awaiting Accountant</span>
                     {% else %}
-                        <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
+                        <span class="badge" style="background:#c6f6d5; color:#22543d;">✓ Active</span>
                     {% endif %}
                 </td>
 
-                <td><span class="badge badge-office">{{ emp.role }}</span></td>
-                
                 <td>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        {% if session['role'] in ['HR', 'Accountant', 'Principal'] or session['user_id'] == emp.id %}
-                            <a href="{{ url_for('generate_id') }}" class="badge" style="background: #4318ff; color: white; text-decoration: none;">🪪 ID Card</a>
-                            <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Payslip</a>
-                        {% else %}
-                            <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
+                    <div style="margin-bottom: 8px;">
+                        <small style="color:#a3aed0;">Current Basic: </small><strong>₹{{ "{:,}".format(emp.salary) }}</strong>
+                    </div>
+
+                    {# 1. Principal View: Can request changes #}
+                    {% if session['role'] == 'Principal' %}
+                        <form action="{{ url_for('principal_request_salary', uid=emp.id) }}" method="POST" style="display:flex; gap:5px;">
+                            <input type="number" name="new_salary" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}" 
+                                   oninput="calculateLiveNet({{ emp.id }})" style="width:90px; padding:4px;">
+                            <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem;">Request</button>
+                        </form>
+
+                    {# 2. Admin (HR) View: Can verify Principal's request #}
+                    {% elif session['role'] == 'HR' %}
+                        {% set req = SalaryUpdate.query.filter_by(user_id=emp.id, status='Pending Admin Approval').first() %}
+                        {% if req %}
+                            <div style="background:#fffaf0; border:1px solid #fbd38d; padding:5px; border-radius:5px;">
+                                <div style="color: #c53030; font-size: 0.75rem; font-weight:bold;">Proposed: ₹{{ "{:,}".format(req.new_salary) }}</div>
+                                <a href="{{ url_for('admin_verify_salary', req_id=req.id) }}" class="badge" style="background:#f6ad55; text-decoration:none; display:block; text-align:center; margin-top:3px;">Approve Request</a>
+                            </div>
                         {% endif %}
+
+                    {# 3. Accountant View: Can finalize #}
+                    {% elif session['role'] == 'Accountant' %}
+                        {% set req = SalaryUpdate.query.filter_by(user_id=emp.id, status='Pending Accountant Configuration').first() %}
+                        {% if req or emp.status == 'Pending Payroll Config' %}
+                            <button onclick="openPayrollConfig({{ emp.id }}, '{{ emp.full_name }}', {{ req.new_salary if req else emp.salary }})" 
+                                    class="badge" style="background:#4318ff; color:white; border:none; cursor:pointer; width:100%;">
+                                ⚙️ Configure Payroll
+                            </button>
+                        {% endif %}
+                    {% endif %}
+
+                    <div id="netDisplayContainer_{{ emp.id }}" style="margin-top:5px; font-size: 0.75rem; color:#05cd99;">
+                        Est. Net: <span id="netDisplay_{{ emp.id }}" style="font-weight:bold;">₹0</span>
+                        <div id="breakdown_{{ emp.id }}" style="font-size:0.6rem; color:#a3aed0;"></div>
+                    </div>
+                </td>
+
+                <td>
+                    <div style="display: flex; gap: 5px;">
+                        <a href="{{ url_for('generate_id') }}" class="badge" style="background: #4318ff; color: white; text-decoration: none;">🪪 ID</a>
+                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Payslip</a>
                     </div>
                 </td>
             </tr>
@@ -138,65 +146,43 @@
 </div>
 
 <script>
+// Main Calculation Logic (Maintained from your original)
 function calculateLiveNet(empId) {
-    const element = document.getElementById('salaryInput_' + empId);
-    if (!element) return;
-
-    let basic = 0;
-    if (element.tagName === 'INPUT') {
-        basic = parseFloat(element.value) || 0;
-    } else {
-        basic = parseFloat(element.getAttribute('data-value')) || 0;
-    }
+    const input = document.getElementById('salaryInput_' + empId);
+    if (!input) return;
     
-    // Earnings
+    let basic = parseFloat(input.value || input.getAttribute('data-value')) || 0;
+    
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
     const ta = 2000;
     const gross = basic + hra + da + ta;
-    
-    // Deductions
     const epf = Math.floor((basic + da) * 0.12);
     const pt = 200;
-    const totalDeductions = epf + pt;
-    const net = gross - totalDeductions;
+    const net = gross - (epf + pt);
 
-    if (empId === 'NEW' && basic > 0) {
-        document.getElementById('calc_NEW').style.display = 'block';
-    }
+    if (empId === 'NEW' && basic > 0) document.getElementById('calc_NEW').style.display = 'block';
 
     const netDisp = document.getElementById('netDisplay_' + empId);
     const breakDisp = document.getElementById('breakdown_' + empId);
 
     if (netDisp) netDisp.innerText = '₹' + net.toLocaleString('en-IN');
-    
-    let taxWarning = "";
-    if (gross > 62500) {
-        taxWarning = `<div style="margin-top:5px; color: #e53e3e; font-weight: bold; font-size: 0.65rem; border: 1px dashed #e53e3e; padding: 2px; border-radius: 4px; text-align: center;">⚠️ TDS may apply</div>`;
-    }
-
-    if (breakDisp) {
-        breakDisp.innerHTML = `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
-    }
+    if (breakDisp) breakDisp.innerHTML = `HRA: ${hra} | DA: ${da} | EPF: ${epf}`;
 }
 
-// Search Functionality
+// Ensure Net Pay calculates on page load
+document.addEventListener('DOMContentLoaded', () => {
+    {% for emp in employees %}
+        calculateLiveNet({{ emp.id }});
+    {% endfor %}
+});
+
+// Search
 document.getElementById('directorySearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
-    let rows = document.querySelectorAll('#directoryTable tr');
-    rows.forEach(row => {
+    document.querySelectorAll('#directoryTable tr').forEach(row => {
         row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
     });
 });
-
-// Run once on load for visible salaries
-document.addEventListener('DOMContentLoaded', function() {
-    {% for emp in employees %}
-        if (document.getElementById('salaryInput_{{ emp.id }}')) {
-            calculateLiveNet({{ emp.id }});
-        }
-    {% endfor %}
-});
 </script>
 {% endblock %}
-
