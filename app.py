@@ -445,23 +445,44 @@ def approve_expense(id, action):
 @app.route('/chat', methods=['GET', 'POST'])
 @app.route('/chat/<int:receiver_id>', methods=['GET', 'POST'])
 def chat(receiver_id=None):
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+        
     curr_id = session['user_id']
     sender = User.query.get(curr_id)
+    
     if request.method == 'POST':
-        rid = request.form['receiver_id']
-        db.session.add(Message(sender_id=curr_id, receiver_id=rid, content=request.form['content']))
-        db.session.add(Notification(message=f"MESSAGE: New internal message from {sender.full_name}"))
-        db.session.commit()
-        return redirect(url_for('chat', receiver_id=rid))
+        # Use the receiver_id from the URL as the source of truth
+        target_id = receiver_id
+        content = request.form.get('content')
+        
+        if target_id and content:
+            new_msg = Message(sender_id=curr_id, receiver_id=target_id, content=content)
+            db.session.add(new_msg)
+            
+            # Add notification
+            notif = Notification(message=f"MESSAGE: New internal message from {sender.full_name}")
+            db.session.add(notif)
+            
+            db.session.commit()
+            return redirect(url_for('chat', receiver_id=target_id))
     
     contacts = User.query.filter(User.id != curr_id).all()
     messages = []
+    
     if receiver_id:
+        # Mark as read
         unread = Message.query.filter_by(sender_id=receiver_id, receiver_id=curr_id, is_read=False).all()
-        for m in unread: m.is_read = True
+        for m in unread: 
+            m.is_read = True
         db.session.commit()
-        messages = Message.query.filter(((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))).order_by(Message.timestamp.asc()).all()
+        
+        # Fetch conversation
+        messages = Message.query.filter(
+            ((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | 
+            ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))
+        ).order_by(Message.timestamp.asc()).all()
+        
     return render_template('chat.html', contacts=contacts, messages=messages, receiver_id=receiver_id)
 
 @app.route('/performance', methods=['GET', 'POST'])
@@ -711,6 +732,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
