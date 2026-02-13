@@ -591,16 +591,24 @@ def logout():
 
 @app.route('/principal_request_salary/<int:uid>', methods=['POST'])
 def principal_request_salary(uid):
-    if session.get('role') != 'Principal': return "Unauthorized", 403
+    if session.get('role') != 'Principal': 
+        return "Unauthorized", 403
+        
     new_val = int(request.form.get('new_salary'))
-    # Create request for Admin to see
-    update_req = SalaryUpdate(user_id=uid, new_salary=new_val, status='Pending Admin Approval')
-    db.session.add(update_req)
-    db.session.add(Notification(message=f"SALARY CHANGE REQ: Principal requested ₹{new_val} for UID:{uid}"))
+    
+    # Check if a request already exists
+    existing = SalaryUpdate.query.filter_by(user_id=uid).first()
+    if existing:
+        existing.new_salary = new_val
+        existing.status = 'Pending Admin Approval'
+    else:
+        new_req = SalaryUpdate(user_id=uid, new_salary=new_val)
+        db.session.add(new_req)
+    
     db.session.commit()
-    flash("Salary update sent to Admin for verification.", "success")
+    # This is Line 326 - it MUST have exactly 4 spaces/1 tab at the start
     return redirect(url_for('staff_directory'))
-
+    
 @app.route('/admin_verify_salary/<int:req_id>')
 def admin_verify_salary(req_id):
      if session.get('role') != 'HR': return "Unauthorized", 403 # Your 'HR' role acts as Admin
@@ -693,6 +701,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
