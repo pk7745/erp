@@ -621,21 +621,26 @@ def admin_verify_salary(req_id):
 
 @app.route('/finalize_payroll_config', methods=['POST'])
 def finalize_payroll_config():
-    if session.get('role') != 'Accountant': return "Unauthorized", 403
+    if session.get('role') != 'Accountant': 
+        return "Unauthorized", 403
     
     uid = request.form.get('user_id')
     u = User.query.get(uid)
+    if not u:
+        flash("User not found", "danger")
+        return redirect(url_for('staff_directory'))
     
     # 1. Update the percentages in PayrollStructure
     struct = PayrollStructure.query.filter_by(user_id=uid).first()
-    if not struct: struct = PayrollStructure(user_id=uid)
+    if not struct: 
+        struct = PayrollStructure(user_id=uid)
     
-    struct.hra_percent = float(request.form.get('hra_pc'))
-    struct.da_percent = float(request.form.get('da_pc'))
-    struct.epf_percent = float(request.form.get('epf_pc'))
-    struct.ta_fixed = int(request.form.get('ta_fixed'))
+    struct.hra_percent = float(request.form.get('hra_pc', 40.0))
+    struct.da_percent = float(request.form.get('da_pc', 10.0))
+    struct.epf_percent = float(request.form.get('epf_pc', 12.0))
+    struct.ta_fixed = int(request.form.get('ta_fixed', 2000))
     
-    # 2. Update the actual Salary from the request
+    # 2. Update the actual Salary from the request if it exists
     req = SalaryUpdate.query.filter_by(user_id=uid).first()
     if req:
         u.salary = req.new_salary
@@ -701,6 +706,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
