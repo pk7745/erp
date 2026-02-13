@@ -7,7 +7,7 @@
             <a href="{{ url_for('dashboard') }}" class="btn" style="background: #1b2559; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 10px 18px;">
                 ← Back to Dashboard
             </a>
-            <h1 style="margin: 0;">Nexus Connect</h1>
+            <h1 style="margin: 0;">BMS Connect</h1>
         </div>
         <span class="badge badge-office">Live Secure Chat</span>
     </div>
@@ -26,7 +26,6 @@
                             <small style="color: #888; font-weight: normal;">{{ contact.role }}</small>
                         </div>
                         
-                        {# Notification Dot Logic - Unaffected and maintained #}
                         {% set unread_count = contact.sent_messages|selectattr('receiver_id', 'equalto', session['user_id'])|selectattr('is_read', 'equalto', False)|list|length %}
                         {% if unread_count > 0 and receiver_id != contact.id %}
                             <span style="background: #ee5d50; width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 5px rgba(238, 93, 80, 0.5);"></span>
@@ -56,17 +55,16 @@
 
                 <form action="{{ url_for('chat', receiver_id=receiver_id) }}" method="POST" 
                       style="padding: 20px; background: #fff; border-top: 1px solid #eee; display: flex; gap: 12px; align-items: center;">
-                    <input type="hidden" name="receiver_id" value="{{ receiver_id }}">
                     <input type="text" name="content" placeholder="Write your message..." required autocomplete="off"
                            style="flex-grow: 1; border: 1px solid #e0e0e0; border-radius: 30px; padding: 12px 20px; outline: none; background: #f9f9f9; margin: 0;">
-                    <button type="submit" class="btn" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center; background: #4318ff; flex-shrink: 0;">
+                    <button type="submit" class="btn" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center; background: #4318ff; flex-shrink: 0; border: none; color: white;">
                         <span style="font-size: 1.2rem; transform: rotate(45deg); display: inline-block; margin-bottom: 2px; margin-right: 2px;">✈</span>
                     </button>
                 </form>
             {% else %}
                 <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #a3aed0; text-align: center; padding: 40px;">
                     <div style="font-size: 5rem; margin-bottom: 15px; opacity: 0.3;">💬</div>
-                    <h3 style="margin: 0;">Nexus Connect</h3>
+                    <h3 style="margin: 0;">BMS connect</h3>
                     <p style="max-width: 300px; margin-top: 10px;">Select an employee from the left to start a secure internal conversation.</p>
                 </div>
             {% endif %}
@@ -75,7 +73,6 @@
 </div>
 
 <script>
-    // Auto-scroll logic strictly maintained
     window.onload = function() {
         const chatBox = document.getElementById('chat-box');
         if (chatBox) {
