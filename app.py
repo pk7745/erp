@@ -283,27 +283,6 @@ def notify_recording(room_name):
     db.session.commit()
     return jsonify({"status": "success"})
 
-@app.route('/api/notifications')
-def get_notifications():
-    privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
-    if session.get('role') not in privileged_roles:
-        return jsonify([])
-    
-    # Fetch more to ensure we have enough after filtering
-    all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(30).all()
-    
-    if session.get('role') == 'Accountant':
-        # Apply the same filter to the real-time notification API
-        excluded_keywords = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
-        filtered_notifs = [n for n in all_notifs if not any(word in n.message for word in excluded_keywords)]
-    else:
-        filtered_notifs = all_notifs
-
-    return jsonify([{
-        'id': n.id,
-        'msg': n.message,
-        'time': n.timestamp.strftime('%I:%M %p')
-    } for n in filtered_notifs[:10]]) # Return the latest 10 filtered results
 
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
@@ -325,7 +304,24 @@ def add_employee():
         db.session.commit()
         flash('Employee Added. Pending Admin document verification.', 'success')
   return redirect(url_for('staff_directory'))
+@app.route('/api/notifications')
+def get_notifications():
+    role = session.get('role')
+    # Principal and HR see all logs
+    if role in ['Principal', 'HR']:
+        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(10).all()
+    elif role == 'Accountant':
+        # Accountant sees only finance related
+        all_notifs = Notification.query.filter(Notification.message.contains('SALARY')).limit(10).all()
+    else:
+        return jsonify([])
 
+    return jsonify([{
+        'id': n.id,
+        'msg': n.message,
+        'time': n.timestamp.strftime('%I:%M %p')
+    } for n in all_notifs])
+    
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
 def edit_salary(uid):
     if session.get('role') == 'HR':
@@ -342,16 +338,19 @@ def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
     today = get_ist_time().strftime("%Y-%m-%d")
     user = User.query.get(session['user_id'])
+    
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         t_now = get_ist_time().strftime("%I:%M %p")
+        
         if not att:
             mode = request.form['work_mode']
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=t_now, work_mode=mode))
-            db.session.add(Notification(message=f"CLOCK-IN: {user.full_name} checked in ({mode}) at {t_now}"))
+            # Trigger real-time notification
+            db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} ({user.role}) CLOCKED-IN at {t_now}"))
         else:
             att.check_out = t_now
-            db.session.add(Notification(message=f"CLOCK-OUT: {user.full_name} checked out at {t_now}"))
+            db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} ({user.role}) CLOCKED-OUT at {t_now}"))
         db.session.commit()
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history)
@@ -557,13 +556,14 @@ def add_task():
     db.session.commit()
     return redirect(url_for('dashboard'))
 
+# --- TASK COMPLETION ---
 @app.route('/toggle_task/<int:id>')
 def toggle_task(id):
     t = Task.query.get(id)
     if t: 
         t.is_done = not t.is_done
         if t.is_done:
-            db.session.add(Notification(message=f"TASK: {t.user.full_name} marked task '{t.title}' as COMPLETED"))
+            db.session.add(Notification(message=f"TASK COMPLETED: {t.user.full_name} finished '{t.title}'"))
     db.session.commit()
     return redirect(url_for('dashboard'))
 
@@ -706,6 +706,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
