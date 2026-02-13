@@ -42,28 +42,35 @@
             <tbody>
                 {% for l in leaves %}
                 <tr>
-                    <td><strong>{{ l.user.full_name }}</strong></td>
+                    <td>
+                        <strong>{{ l.user.full_name }}</strong><br>
+                        <small style="color:gray">{{ l.user.role }}</small>
+                    </td>
                     <td>{{ l.date }}</td>
-                    <td style="font-size: 0.85rem; color: #666;">{{ l.reason }}</td>
+                    <td style="font-size: 0.85rem; color: #666;">
+                        {{ l.reason }}
+                        {% if l.status == 'Rejected' and l.rejection_reason %}
+                            <div style="color: var(--danger); margin-top: 5px; font-style: italic;">
+                                <strong>Reason for Rejection:</strong> {{ l.rejection_reason }}
+                            </div>
+                        {% endif %}
+                    </td>
                     <td>
                         <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
                             {{ l.status }}
                         </span>
                     </td>
                     <td>
-                        {% if session['role'] == 'HR' %}
-                            {% if l.user.role != 'HR' %}
-                                {% if l.status == 'Pending' %}
-                                    <a href="{{ url_for('approve_leave', id=l.id, status='Approved') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
-                                    <a href="{{ url_for('approve_leave', id=l.id, status='Rejected') }}" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
-                                {% else %}
-                                    <span style="color: var(--text-light);">Processed</span>
-                                {% endif %}
-                            {% else %}
-                                <span style="font-style: italic; color: var(--p);">Self Log</span>
-                            {% endif %}
+                        {% if session['role'] == 'HOD - BCA Dept' and l.status == 'Pending HOD' %}
+                             <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
+                             <a href="#" onclick="rejectLeave({{ l.id }})" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                        
+                        {% elif session['role'] == 'Principal' and l.status == 'Pending Principal' %}
+                             <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
+                             <a href="#" onclick="rejectLeave({{ l.id }})" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                        
                         {% else %}
-                            <span style="color: var(--text-light);">{% if l.status == 'Pending' %}Waiting...{% else %}Final{% endif %}</span>
+                             <span style="color: var(--text-light);">{{ l.status }}</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -72,4 +79,13 @@
         </table>
     </div>
 </div>
+
+<script>
+function rejectLeave(id) {
+    let reason = prompt("Please enter the reason for rejection:");
+    if (reason != null && reason != "") {
+        window.location.href = "/approve_leave/" + id + "/reject?reason=" + encodeURIComponent(reason);
+    }
+}
+</script>
 {% endblock %}
