@@ -167,7 +167,7 @@
                 </div>
             </div>
 
-            {% if session['role'] in ['HR', 'Accountant'] %}
+            {% if session['role'] in ['HR', 'Accountant', 'Principal'] %}
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: none; border-bottom: 1px solid #eee;">
                     <h3 style="margin: 0; color: #4318ff;">🔔 Live Feed <span id="unread-badge" style="background: #ee5d50; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; display: none;">0</span></h3>
@@ -175,7 +175,8 @@
                 </div>
                 <div style="display: flex; gap: 5px; padding: 10px; background: #f8f9fa; font-size: 0.7rem;">
                     <button onclick="filterFeed('CLOCK')" class="badge" style="border:none; background:#05cd99; color:white; cursor:pointer;">Attendance</button>
-                    <button onclick="filterFeed('EXPENSE')" class="badge" style="border:none; background:#4318ff; color:white; cursor:pointer;">Expenses</button>
+                    <button onclick="filterFeed('LEAVE')" class="badge" style="border:none; background:#ffb547; color:white; cursor:pointer;">Leaves</button>
+                    <button onclick="filterFeed('TASK')" class="badge" style="border:none; background:#707eff; color:white; cursor:pointer;">Tasks</button>
                     <button onclick="filterFeed('')" class="badge" style="border:none; background:#1b2559; color:white; cursor:pointer;">All</button>
                 </div>
                 <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 10px;">
@@ -238,7 +239,8 @@
             .then(data => {
                 if (data.length > 0) {
                     if (lastKnownId !== 0 && data[0].id > lastKnownId) {
-                        document.getElementById('notif-sound').play();
+                        const sound = document.getElementById('notif-sound');
+                        if(sound) sound.play();
                         unreadCount += (data[0].id - lastKnownId);
                         updateBadge();
                         showToast(data[0].msg);
@@ -266,14 +268,15 @@
         if (!list) return;
         
         list.innerHTML = data
-            .filter(n => n.msg.includes(filter))
+            .filter(n => n.msg.toUpperCase().includes(filter.toUpperCase()))
             .map(n => {
                 let textColor = '#1b2559'; 
                 if (n.msg.includes('CLOCK-IN')) textColor = '#05cd99';
                 if (n.msg.includes('CLOCK-OUT')) textColor = '#ffb547';
+                if (n.msg.includes('LEAVE')) textColor = '#ffb547';
+                if (n.msg.includes('TASK')) textColor = '#707eff';
                 if (n.msg.includes('EXPENSE')) textColor = '#4318ff';
-                if (n.msg.includes('PASSWORD')) textColor = '#ee5d50';
-                if (n.msg.includes('RECORDING')) textColor = '#ee5d50'; // RED for Recording
+                if (n.msg.includes('RECORDING')) textColor = '#ee5d50';
                 
                 let msgText = n.msg;
                 if (n.msg.includes('MEETING:')) {
@@ -293,7 +296,6 @@
         fetch('/api/notifications').then(res => res.json()).then(data => renderFeed(data, type));
     }
 
-    // Reset badge when hovering over the feed
     document.querySelector('.card-body')?.addEventListener('mouseenter', () => {
         unreadCount = 0;
         updateBadge();
@@ -306,7 +308,8 @@
 
     function clearAllNotifs() {
         fetch('/clear_notifications').then(() => {
-            document.getElementById('notification-list').innerHTML = '<p class="text-center text-muted">Feed Cleared.</p>';
+            const list = document.getElementById('notification-list');
+            if(list) list.innerHTML = '<p class="text-center text-muted">Feed Cleared.</p>';
             lastKnownId = 0;
             unreadCount = 0;
             updateBadge();
