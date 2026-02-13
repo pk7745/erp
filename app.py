@@ -69,8 +69,9 @@ class Leave(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.String(20))
     reason = db.Column(db.String(255))
-    status = db.Column(db.String(20), default='Pending')
-
+    status = db.Column(db.String(50), default='Pending')  # Stages: Pending HOD, Pending Principal, Approved, Rejected
+    rejection_reason = db.Column(db.String(255)) # New Field for rejection feedback
+    
 class ExpenseClaim(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -334,20 +335,59 @@ def attendance():
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
     limit, taken = 20, Leave.query.filter_by(user_id=session['user_id'], status='Approved').count()
+    
     if request.method == 'POST':
-        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason']))
+        # Logic for multi-stage routing
+        if user.role == 'Faculty':
+            initial_status = 'Pending HOD'
+        else:
+            # HOD, Accountant, and HR/Admin requests go straight to Principal
+            initial_status = 'Pending Principal'
+            
+        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status))
         db.session.commit()
-        flash('Leave Request Submitted', 'success')
-    leaves = Leave.query.all() if session['role'] == 'HR' else Leave.query.filter_by(user_id=session['user_id']).all()
+        flash(f'Leave Request Submitted (Status: {initial_status})', 'success')
+
+    # Visibility Logic
+    if user.role == 'Principal':
+        # Principal sees everything that passed HOD or came from HOD/Admin/Acc
+        leaves = Leave.query.filter(Leave.status.in_(['Pending Principal', 'Approved', 'Rejected'])).all()
+    elif user.role == 'HOD - BCA Dept':
+        # HOD sees Faculty requests waiting for them + their own
+        leaves = Leave.query.filter((Leave.status == 'Pending HOD') | (Leave.user_id == user.id)).all()
+    elif user.role == 'HR':
+        leaves = Leave.query.all()
+    else:
+        leaves = Leave.query.filter_by(user_id=session['user_id']).all()
+        
     return render_template('leave.html', leaves=leaves, leaves_taken=taken, leaves_left=(limit-taken), leave_limit=limit)
 
-@app.route('/approve_leave/<int:id>/<status>')
-def approve_leave(id, status):
-    if session.get('role') == 'HR':
-        l = Leave.query.get(id); l.status = status; db.session.commit()
-    return redirect(url_for('leave'))
+@app.route('/approve_leave/<int:id>/<action>', methods=['GET', 'POST'])
+def approve_leave(id, action):
+    if 'user_id' not in session: return redirect(url_for('login'))
+    leave_req = Leave.query.get(id)
+    role = session.get('role')
+    rej_reason = request.args.get('reason', 'No reason provided') # Reason passed via query param or form
 
+    if action == 'approve':
+        if role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD':
+            leave_req.status = 'Pending Principal'
+            flash('Approved by HOD. Forwarded to Principal.', 'success')
+        elif role == 'Principal' and leave_req.status == 'Pending Principal':
+            leave_req.status = 'Approved'
+            flash('Leave Finalized and Approved.', 'success')
+            
+    elif action == 'reject':
+        if role in ['HOD - BCA Dept', 'Principal']:
+            leave_req.status = 'Rejected'
+            leave_req.rejection_reason = rej_reason
+            flash(f'Leave Rejected: {rej_reason}', 'danger')
+
+    db.session.commit()
+    return redirect(url_for('leave'))
+    
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -563,4 +603,5 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
