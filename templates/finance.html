@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>💰 Finance Management (Pending Claims)</h3>
+        <span class="badge badge-office">{{ pending|length }} Claims Awaiting Payment</span>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Description</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in pending %}
+            <tr>
+                <td><strong>{{ c.rel_user.full_name }}</strong></td>
+                <td>{{ c.category }}</td>
+                <td style="color: var(--success); font-weight: bold;">INR {{ c.amount }}</td>
+                <td>{{ c.description }}</td>
+                <td>
+                    <a href="{{ url_for('approve_expense', id=c.id, action='acc_approve') }}" class="btn" style="padding: 5px 15px; font-size: 0.8rem;">Process Payment</a>
+                    <a href="{{ url_for('approve_expense', id=c.id, action='reject') }}" style="color: var(--danger); margin-left: 10px; text-decoration: none; font-size: 0.8rem;">Reject</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-light); padding: 40px;">No pending expense claims from HR.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
