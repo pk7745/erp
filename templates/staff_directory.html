@@ -51,6 +51,14 @@
                 <input type="text" name="address" placeholder="City, Country" style="width:100%;">
             </div>
             <div>
+                <label style="font-size: 0.8rem; color: #666;">Religion</label>
+                <input type="text" name="religion" placeholder="e.g., Hindu, Muslim" style="width:100%;">
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: #666;">Caste</label>
+                <input type="text" name="caste" placeholder="e.g., General, OBC" style="width:100%;">
+            </div>
+            <div>
                 <label style="font-size: 0.8rem; color: #666;">Date of Birth</label>
                 <input type="date" name="dob" required style="width:100%; padding: 8px;">
             </div>
@@ -121,7 +129,7 @@
                         {% set req = SalaryUpdate.query.filter_by(user_id=emp.id, status='Pending Accountant Configuration').first() %}
                         {% if req or emp.status == 'Pending Payroll Config' %}
                             <button onclick="openPayrollConfig({{ emp.id }}, '{{ emp.full_name }}', {{ req.new_salary if req else emp.salary }})" 
-                                    class="badge" style="background:#4318ff; color:white; border:none; cursor:pointer; width:100%;">
+                                    class="badge" style="background:#4318ff; color:white; border:none; cursor:pointer; width:100%; padding: 8px 0;">
                                 ⚙️ Configure Payroll
                             </button>
                         {% endif %}
@@ -145,7 +153,44 @@
     </table>
 </div>
 
+<div id="payrollModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
+    <div class="card" style="width:400px; background:white; padding:20px; border-radius:10px;">
+        <h3 id="modalTitle" style="margin-top:0;">Configure Payroll</h3>
+        <form action="{{ url_for('finalize_payroll_config') }}" method="POST">
+            <input type="hidden" name="user_id" id="modal_uid">
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666;">Confirm Basic Salary (INR)</label>
+                <input type="number" name="new_salary" id="modal_salary" style="width:100%; padding:8px;" readonly>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666;">HRA %</label>
+                <input type="number" name="hra_pc" value="40" style="width:100%; padding:8px;">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666;">DA %</label>
+                <input type="number" name="da_pc" value="10" style="width:100%; padding:8px;">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#666;">Fixed TA</label>
+                <input type="number" name="ta_fixed" value="2000" style="width:100%; padding:8px;">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn" style="flex:1;">Save Config</button>
+                <button type="button" class="btn" style="background:#666; flex:1;" onclick="document.getElementById('payrollModal').style.display='none'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+// Logic to handle opening the Accountant's modal
+function openPayrollConfig(uid, name, salary) {
+    document.getElementById('modal_uid').value = uid;
+    document.getElementById('modal_salary').value = salary;
+    document.getElementById('modalTitle').innerText = "Payroll for " + name;
+    document.getElementById('payrollModal').style.display = 'flex';
+}
+
 // Main Calculation Logic (Maintained from your original)
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
