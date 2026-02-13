@@ -640,6 +640,16 @@ def finalize_payroll_config():
     flash("Payroll structure configured and salary updated.", "success")
     return redirect(url_for('staff_directory'))
 
+@app.route('/admin_verify_docs/<int:uid>')
+def admin_verify_docs(uid):
+    if session.get('role') != 'HR': return "Unauthorized", 403
+    user = User.query.get(uid)
+    user.status = 'Pending Payroll Config'
+    db.session.add(Notification(message=f"DOCS VERIFIED: {user.full_name}"))
+    db.session.commit()
+    flash(f"Documents verified for {user.full_name}.", "success")
+    return redirect(url_for('staff_directory')) # <--- CHECK THIS LINE
+
 # ==========================================
 # 4. INITIAL SETUP 
 # ==========================================
@@ -683,6 +693,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
