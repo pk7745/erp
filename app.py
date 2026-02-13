@@ -349,22 +349,27 @@ def leave():
     
     if request.method == 'POST':
         # Logic for multi-stage routing
-        if user.role == 'Faculty':
+        if user.role == 'Principal':
+            initial_status = 'Approved'
+            msg = "Leave Self-Approved by Principal"
+        elif user.role == 'Faculty':
             initial_status = 'Pending HOD'
+            msg = f"Leave Request from {user.full_name} (Pending HOD)"
         else:
-            # HOD, Accountant, and HR/Admin requests go straight to Principal
+            # HOD, Accountant, and Admin go directly to Principal
             initial_status = 'Pending Principal'
+            msg = f"Leave Request from {user.full_name} (Pending Principal)"
             
-        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status))
+        new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status)
+        db.session.add(new_leave)
+        db.session.add(Notification(message=msg))
         db.session.commit()
-        flash(f'Leave Request Submitted (Status: {initial_status})', 'success')
+        flash('Leave request processed.', 'success')
 
     # Visibility Logic
     if user.role == 'Principal':
-        # Principal sees everything that passed HOD or came from HOD/Admin/Acc
         leaves = Leave.query.filter(Leave.status.in_(['Pending Principal', 'Approved', 'Rejected'])).all()
     elif user.role == 'HOD - BCA Dept':
-        # HOD sees Faculty requests waiting for them + their own
         leaves = Leave.query.filter((Leave.status == 'Pending HOD') | (Leave.user_id == user.id)).all()
     elif user.role == 'HR':
         leaves = Leave.query.all()
@@ -373,27 +378,26 @@ def leave():
         
     return render_template('leave.html', leaves=leaves, leaves_taken=taken, leaves_left=(limit-taken), leave_limit=limit)
 
-@app.route('/approve_leave/<int:id>/<action>', methods=['GET', 'POST'])
+@app.route('/approve_leave/<int:id>/<action>')
 def approve_leave(id, action):
     if 'user_id' not in session: return redirect(url_for('login'))
     leave_req = Leave.query.get(id)
     role = session.get('role')
-    rej_reason = request.args.get('reason', 'No reason provided') # Reason passed via query param or form
-
+    
     if action == 'approve':
         if role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD':
             leave_req.status = 'Pending Principal'
-            flash('Approved by HOD. Forwarded to Principal.', 'success')
+            db.session.add(Notification(message=f"HOD Approved: {leave_req.user.full_name}'s leave (Pending Principal)"))
         elif role == 'Principal' and leave_req.status == 'Pending Principal':
             leave_req.status = 'Approved'
-            flash('Leave Finalized and Approved.', 'success')
+            db.session.add(Notification(message=f"Principal Approved: {leave_req.user.full_name}'s leave"))
             
     elif action == 'reject':
-        if role in ['HOD - BCA Dept', 'Principal']:
-            leave_req.status = 'Rejected'
-            leave_req.rejection_reason = rej_reason
-            flash(f'Leave Rejected: {rej_reason}', 'danger')
-
+        reason = request.args.get('reason', 'No reason provided')
+        leave_req.status = 'Rejected'
+        leave_req.rejection_reason = reason 
+        db.session.add(Notification(message=f"Leave REJECTED for {leave_req.user.full_name}: {reason}"))
+        
     db.session.commit()
     return redirect(url_for('leave'))
     
@@ -612,6 +616,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
