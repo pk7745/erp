@@ -206,6 +206,15 @@ def profile():
         return redirect(url_for('profile'))
     return render_template('profile.html', user=user, payroll=payroll_data)
 
+@app.route('/finance')
+def finance_tab():
+    if session.get('role') != 'Accountant':
+        return redirect(url_for('dashboard'))
+    # Filter for claims that HR has already vetted
+    pending = ExpenseClaim.query.filter_by(status='Approved by HR').all()
+    return render_template('finance.html', pending=pending)
+
+
 @app.route('/download_salary_certificate')
 def download_salary_certificate():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -603,5 +612,6 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
