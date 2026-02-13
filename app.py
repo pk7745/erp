@@ -611,7 +611,8 @@ def principal_request_salary(uid):
     
 @app.route('/admin_verify_salary/<int:req_id>')
 def admin_verify_salary(req_id):
-     if session.get('role') != 'HR': return "Unauthorized", 403 # Your 'HR' role acts as Admin
+     if session.get('role') != 'HR':
+          return "Unauthorized", 403 # Your 'HR' role acts as Admin
      req = SalaryUpdate.query.get(req_id)
      req.status = 'Pending Accountant Configuration'
      db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id} moved to Accountant"))
@@ -650,13 +651,15 @@ def finalize_payroll_config():
 
 @app.route('/admin_verify_docs/<int:uid>')
 def admin_verify_docs(uid):
-    if session.get('role') != 'HR': return "Unauthorized", 403
+    if session.get('role') != 'HR':
+        return "Unauthorized", 403
     user = User.query.get(uid)
-    user.status = 'Pending Payroll Config'
-    db.session.add(Notification(message=f"DOCS VERIFIED: {user.full_name}"))
-    db.session.commit()
-    flash(f"Documents verified for {user.full_name}.", "success")
-    return redirect(url_for('staff_directory')) # <--- CHECK THIS LINE
+    if user:
+        user.status = 'Pending Payroll Config'
+        db.session.add(Notification(message=f"DOCS VERIFIED: {user.full_name}"))
+        db.session.commit()
+        flash(f"Documents verified for {user.full_name}.", "success")
+    return redirect(url_for('staff_directory'))
 
 # ==========================================
 # 4. INITIAL SETUP 
@@ -701,6 +704,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
