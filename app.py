@@ -264,9 +264,11 @@ def staff_directory():
     else:
         employees = [curr_user]
         
-    # ADD 'SalaryUpdate=SalaryUpdate' TO THE LINE BELOW
-    return render_template('staff_directory.html', employees=employees, SalaryUpdate=SalaryUpdate)
-
+    # Crucial Fix: Pass SalaryUpdate to the template
+    return render_template('staff_directory.html', 
+                           employees=employees, 
+                           SalaryUpdate=SalaryUpdate)
+    
 @app.route('/create_meeting', methods=['POST'])
 def create_meeting():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -709,6 +711,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
