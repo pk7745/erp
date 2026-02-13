@@ -112,6 +112,20 @@ class Meeting(db.Model):
     created_by = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
+class SalaryUpdate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    new_salary = db.Column(db.Integer)
+    status = db.Column(db.String(50), default='Pending Admin Approval') # Pending Admin, Pending Accountant
+
+class PayrollStructure(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    hra_percent = db.Column(db.Float, default=40.0)
+    da_percent = db.Column(db.Float, default=10.0)
+    ta_fixed = db.Column(db.Integer, default=2000)
+    epf_percent = db.Column(db.Float, default=12.0)
+
 # ==========================================
 # 2. APP ROUTES 
 # ==========================================
@@ -292,7 +306,7 @@ def get_notifications():
 
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
-    if session.get('role') == 'HR':
+  if session.get('role') in ['HR', 'Principal']:
         new_user = User(
             username=request.form['username'],
             password=generate_password_hash(request.form['password']),
@@ -308,7 +322,7 @@ def add_employee():
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('New Faculty Member Registered', 'success')
+        flash('Employee Added. Pending Admin document verification.', 'success')
     return redirect(url_for('staff_directory'))
 
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
@@ -573,6 +587,59 @@ def get_stats():
 def logout():
     session.clear(); return redirect(url_for('login'))
 
+# --- WORKFLOW 1: SALARY UPDATE ---
+
+@app.route('/principal_request_salary/<int:uid>', methods=['POST'])
+def principal_request_salary(uid):
+    if session.get('role') != 'Principal': return "Unauthorized", 403
+    new_val = int(request.form.get('new_salary'))
+    # Create request for Admin to see
+    update_req = SalaryUpdate(user_id=uid, new_salary=new_val, status='Pending Admin Approval')
+    db.session.add(update_req)
+    db.session.add(Notification(message=f"SALARY CHANGE REQ: Principal requested ₹{new_val} for UID:{uid}"))
+    db.session.commit()
+    flash("Salary update sent to Admin for verification.", "success")
+    return redirect(url_for('staff_directory'))
+
+@app.route('/admin_verify_salary/<int:req_id>')
+def admin_verify_salary(req_id):
+    if session.get('role') != 'HR': return "Unauthorized", 403 # Your 'HR' role acts as Admin
+    req = SalaryUpdate.query.get(req_id)
+    req.status = 'Pending Accountant Configuration'
+    db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id} moved to Accountant"))
+    db.session.commit()
+    flash("Admin verified. Accountant must now configure payroll percentages.", "success")
+    return redirect(url_for('staff_directory'))
+
+# --- WORKFLOW 2 & 3: ACCOUNTANT CONFIGURATION ---
+
+@app.route('/finalize_payroll_config', methods=['POST'])
+def finalize_payroll_config():
+    if session.get('role') != 'Accountant': return "Unauthorized", 403
+    
+    uid = request.form.get('user_id')
+    u = User.query.get(uid)
+    
+    # 1. Update the percentages in PayrollStructure
+    struct = PayrollStructure.query.filter_by(user_id=uid).first()
+    if not struct: struct = PayrollStructure(user_id=uid)
+    
+    struct.hra_percent = float(request.form.get('hra_pc'))
+    struct.da_percent = float(request.form.get('da_pc'))
+    struct.epf_percent = float(request.form.get('epf_pc'))
+    struct.ta_fixed = int(request.form.get('ta_fixed'))
+    
+    # 2. Update the actual Salary from the request
+    req = SalaryUpdate.query.filter_by(user_id=uid).first()
+    if req:
+        u.salary = req.new_salary
+        db.session.delete(req)
+    
+    db.session.add(struct)
+    db.session.commit()
+    flash("Payroll structure configured and salary updated.", "success")
+    return redirect(url_for('staff_directory'))
+
 # ==========================================
 # 4. INITIAL SETUP 
 # ==========================================
@@ -616,6 +683,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
