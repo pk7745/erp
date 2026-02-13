@@ -103,14 +103,17 @@
                                 <div style="background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px; min-width: 180px;">
                                     <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">EST. TAKE-HOME (NET)</p>
                                     <h4 id="netDisplay_{{ emp.id }}" style="margin: 2px 0; color: #05cd99;">₹0</h4>
-                                    <small id="breakdown_{{ emp.id }}" style="color: #1b2559; font-size: 0.65rem; display: block;">
-                                        Calculating...
-                                    </small>
+                                    <small id="breakdown_{{ emp.id }}" style="color: #1b2559; font-size: 0.65rem; display: block;">Calculating...</small>
                                 </div>
-                                </div>
+                            </div>
                         </form>
-                    {% elif session['role'] == 'Accountant' or session['user_id'] == emp.id %}
-                        ₹{{ "{:,}".format(emp.salary) }}
+                    {% elif session['role'] in ['Principal', 'Accountant'] or session['user_id'] == emp.id %}
+                        <div id="salaryInput_{{ emp.id }}" data-value="{{ emp.salary }}">
+                            <strong>₹{{ "{:,}".format(emp.salary) }}</strong>
+                        </div>
+                        <div style="background: #f4f7fe; padding: 5px; border-radius: 4px; margin-top: 5px; font-size: 0.75rem;">
+                            <span style="color: #a3aed0;">Est. Net:</span> <span id="netDisplay_{{ emp.id }}" style="color: #05cd99; font-weight: bold;">₹0</span>
+                        </div>
                     {% else %}
                         <span style="letter-spacing: 2px; color: var(--text-light);">XXXXX</span>
                     {% endif %}
@@ -120,9 +123,8 @@
                 
                 <td>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        {% if session['role'] in ['HR', 'Accountant'] or session['user_id'] == emp.id %}
+                        {% if session['role'] in ['HR', 'Accountant', 'Principal'] or session['user_id'] == emp.id %}
                             <a href="{{ url_for('generate_id') }}" class="badge" style="background: #4318ff; color: white; text-decoration: none;">🪪 ID Card</a>
-                            
                             <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Payslip</a>
                         {% else %}
                             <span style="color: var(--text-light); font-size: 0.8rem;">Restricted</span>
@@ -136,12 +138,16 @@
 </div>
 
 <script>
-// UPDATED SCRIPT FOR LIVE CALCULATION
 function calculateLiveNet(empId) {
-    const inputElement = document.getElementById('salaryInput_' + empId);
-    if (!inputElement) return;
+    const element = document.getElementById('salaryInput_' + empId);
+    if (!element) return;
 
-    const basic = parseFloat(inputElement.value) || 0;
+    let basic = 0;
+    if (element.tagName === 'INPUT') {
+        basic = parseFloat(element.value) || 0;
+    } else {
+        basic = parseFloat(element.getAttribute('data-value')) || 0;
+    }
     
     // Earnings
     const hra = Math.floor(basic * 0.40);
@@ -155,28 +161,22 @@ function calculateLiveNet(empId) {
     const totalDeductions = epf + pt;
     const net = gross - totalDeductions;
 
-    // Show the calculator box for the "Add New" form specifically
     if (empId === 'NEW' && basic > 0) {
         document.getElementById('calc_NEW').style.display = 'block';
     }
 
-    // Update the UI
     const netDisp = document.getElementById('netDisplay_' + empId);
     const breakDisp = document.getElementById('breakdown_' + empId);
 
     if (netDisp) netDisp.innerText = '₹' + net.toLocaleString('en-IN');
     
-    // Tax Warning Logic
     let taxWarning = "";
     if (gross > 62500) {
-        taxWarning = `<div style="margin-top:5px; color: #e53e3e; font-weight: bold; font-size: 0.65rem; border: 1px dashed #e53e3e; padding: 2px; border-radius: 4px; text-align: center;">
-                        ⚠️ TDS may apply (Gross > ₹7.5L p.a.)
-                      </div>`;
+        taxWarning = `<div style="margin-top:5px; color: #e53e3e; font-weight: bold; font-size: 0.65rem; border: 1px dashed #e53e3e; padding: 2px; border-radius: 4px; text-align: center;">⚠️ TDS may apply</div>`;
     }
 
     if (breakDisp) {
-        breakDisp.innerHTML = 
-            `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
+        breakDisp.innerHTML = `HRA: ₹${hra.toLocaleString('en-IN')} | DA: ₹${da.toLocaleString('en-IN')} | EPF: ₹${epf.toLocaleString('en-IN')} ${taxWarning}`;
     }
 }
 
@@ -189,10 +189,12 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
     });
 });
 
-// Run once on load for existing staff
+// Run once on load for visible salaries
 document.addEventListener('DOMContentLoaded', function() {
     {% for emp in employees %}
-        calculateLiveNet({{ emp.id }});
+        if (document.getElementById('salaryInput_{{ emp.id }}')) {
+            calculateLiveNet({{ emp.id }});
+        }
     {% endfor %}
 });
 </script>
