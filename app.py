@@ -300,8 +300,8 @@ def add_employee():
             role='Faculty', 
             dob=request.form.get('dob', '1995-01-01'),
             join_date=request.form.get('join_date', '2023-01-01'),
-            caste=request.form.get('caste', 'General'),
-            religion=request.form.get('religion', 'Not Specified')
+            caste=request.form.get('caste'),
+            religion=request.form.get('religion')
         )
         db.session.add(new_user)
         db.session.commit()
@@ -711,6 +711,7 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
 
 
 
