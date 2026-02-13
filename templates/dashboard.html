@@ -37,26 +37,30 @@
             userInfo: { displayName: "{{ session['name'] }}" },
             configOverwrite: { 
                 startWithAudioMuted: true,
-                disableScreensharing: false,
-                enableFeaturesBasedOnTokens: false
+                disableScreensharing: false, // Ensure screen sharing is NOT disabled
+                enableFeaturesBasedOnTokens: false,
+                desktopSharingFrameRate: { min: 5, max: 15 }
             },
             interfaceConfigOverwrite: {
+                // Explicitly defining the toolbar to ensure 'desktop' (monitor icon) is present
                 TOOLBAR_BUTTONS: [
                     'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
                     'fodeviceselection', 'chat', 'recording', 'livestreaming', 'etherpad', 
                     'sharedvideo', 'settings', 'raisehand', 'videoquality', 'filmstrip', 
                     'invite', 'feedback', 'stats', 'shortcuts', 'tileview', 'videobackgroundblur', 
-                    'download', 'help', 'mute-everyone', 'e2ee'
-                ]
+                    'download', 'help', 'mute-everyone', 'e2ee', 'security'
+                ],
+                SETTINGS_SECTIONS: ['devices', 'language', 'moderator', 'profile', 'calendar'],
             }
         };
         const api = new JitsiMeetExternalAPI(domain, options);
 
-        // Explicitly set permissions for the iframe to allow screen sharing
+        // Forces the iframe to accept display-capture for screen sharing
         api.addEventListener('videoConferenceJoined', () => {
             const iframe = api.getIFrame();
             if (iframe) {
-                iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write");
+                // Added display-capture to the allow attribute
+                iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write; fullscreen");
             }
         });
 
@@ -96,7 +100,7 @@
         <h1 style="margin: 0;">Welcome back, {{ user.full_name }}!</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
             <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px;">
-                💬 Support Chat
+                💬 BMS Connect
                 {% if unread_chats and unread_chats > 0 %}
                     <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                         {{ unread_chats }}
@@ -233,6 +237,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Notifications and Chart logic remain unchanged to preserve existing features
     let lastKnownId = 0;
     let unreadCount = 0;
 
