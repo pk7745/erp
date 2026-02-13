@@ -156,15 +156,17 @@ def dashboard():
     off_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     
-    # Logic: Filter notifications based on role
+    # Notification visibility logic
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
     if session['role'] in privileged_roles:
         all_notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
+        
         if session['role'] == 'Accountant':
-            # Accountants see everything EXCEPT clock-in and clock-out
-            notifs = [n for n in all_notifs if "CLOCK-IN" not in n.message and "CLOCK-OUT" not in n.message]
+            # Filter out Attendance, Meetings, and Tasks for Accountants
+            excluded_keywords = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
+            notifs = [n for n in all_notifs if not any(word in n.message for word in excluded_keywords)]
         else:
-            # HR, Principal, and HOD see all notifications
+            # HR, Principal, and HOD see everything
             notifs = all_notifs
     else:
         notifs = []
@@ -172,7 +174,6 @@ def dashboard():
     return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, 
                            wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats,
                            is_birthday=is_birthday, is_anniversary=is_anniversary)
-
 @app.route('/generate_id')
 def generate_id():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -263,11 +264,13 @@ def get_notifications():
     if session.get('role') not in privileged_roles:
         return jsonify([])
     
-    all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+    # Fetch more to ensure we have enough after filtering
+    all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(30).all()
     
-    # Apply the same filtering for the real-time API
     if session.get('role') == 'Accountant':
-        filtered_notifs = [n for n in all_notifs if "CLOCK-IN" not in n.message and "CLOCK-OUT" not in n.message]
+        # Apply the same filter to the real-time notification API
+        excluded_keywords = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
+        filtered_notifs = [n for n in all_notifs if not any(word in n.message for word in excluded_keywords)]
     else:
         filtered_notifs = all_notifs
 
@@ -275,7 +278,7 @@ def get_notifications():
         'id': n.id,
         'msg': n.message,
         'time': n.timestamp.strftime('%I:%M %p')
-    } for n in filtered_notifs])
+    } for n in filtered_notifs[:10]]) # Return the latest 10 filtered results
 
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
@@ -560,3 +563,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+
