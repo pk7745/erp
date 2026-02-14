@@ -158,6 +158,18 @@
             </div>
             {% endif %}
 
+            <div class="card shadow-sm border-0 p-3" style="border-radius: 15px; cursor: pointer;" onclick="location.href='{{ url_for('payslip_history') }}'">
+    <div class="d-flex align-items-center">
+        <div style="background: #e6fffa; padding: 10px; border-radius: 12px; font-size: 1.5rem; margin-right: 15px;">
+            📁
+        </div>
+        <div>
+            <h6 class="mb-0" style="color: #a3aed0;">Payroll</h6>
+            <span style="color: #1b2559; font-weight: 700;">View History</span>
+        </div>
+    </div>
+</div>
+
             <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
                 <h3 style="margin-top: 0; color: #1b2559;">📂 Exports</h3>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -228,4 +240,5 @@ new Chart(ctx, {
 });
 </script>
 {% endblock %}
+
 
