@@ -6,3 +6,6 @@ eventlet
 gunicorn
 pytz
 fpdf
+qrcode
+pillow
+
