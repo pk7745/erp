@@ -703,23 +703,33 @@ def handle_chat(data):
         'text': data['text']
     }, broadcast=True)
 
-# Use your existing Email logic, just add this route
 @app.route('/email_staff_list')
 def email_staff_list():
-    principal_email = "principal@bmsccm.edu.in" # Update to actual
-    staff_data = User.query.all()
-    
-    body = "Staff Directory Export:\n\n"
-    for s in staff_data:
-        body += f"{s.full_name} - {s.role} - {s.email}\n"
-        
-    msg = MailMessage("Official Staff Directory - BMSCCM",
-                  sender=app.config['MAIL_USERNAME'],
-                  recipients=[principal_email])
-    msg.body = body
-    mail.send(msg)
-    flash("Directory emailed to Principal successfully!", "success")
-    return redirect(url_for('staff_directory'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # Fetch all staff
+    all_users = User.query.all()
+    staff_report = "Official Staff Directory:\n\n"
+    for user in all_users:
+        staff_report += f"Name: {user.full_name} | Role: {user.role} | Email: {user.email}\n"
+
+    # Find the Principal's email
+    principal = User.query.filter_by(role='Principal').first()
+    principal_email = principal.email if principal else app.config['MAIL_USERNAME']
+
+    try:
+        # We use MailMessage (the alias) to avoid the TypeError
+        msg = MailMessage(
+            "Official Staff Directory - BMSCCM",
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[principal_email]
+        )
+        msg.body = staff_report
+        mail.send(msg)
+        return "Staff list has been emailed to the Principal successfully!"
+    except Exception as e:
+        return f"Error sending email: {str(e)}"
 
 
 online_users = {} 
@@ -792,6 +802,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
