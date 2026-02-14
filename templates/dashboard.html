@@ -39,7 +39,6 @@
                 disableScreensharing: false, 
                 enableFeaturesBasedOnTokens: false,
                 desktopSharingFrameRate: { min: 5, max: 15 },
-                // Force toolbar buttons to appear in modern Jitsi
                 toolbarButtons: [
                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
                    'fodeviceselection', 'chat', 'recording', 'sharedvideo', 'settings', 
@@ -47,25 +46,14 @@
                 ]
             },
             interfaceConfigOverwrite: {
-                // Ensure 'desktop' is in the list for older Jitsi versions
-                TOOLBAR_BUTTONS: [
-                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                    'fodeviceselection', 'chat', 'recording', 'livestreaming', 'etherpad', 
-                    'sharedvideo', 'settings', 'raisehand', 'videoquality', 'filmstrip', 
-                    'invite', 'feedback', 'stats', 'shortcuts', 'tileview', 'videobackgroundblur', 
-                    'download', 'help', 'mute-everyone', 'e2ee', 'security'
-                ],
+                TOOLBAR_BUTTONS: ['microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen', 'chat', 'recording', 'settings', 'raisehand', 'videoquality', 'tileview'],
             }
         };
         const api = new JitsiMeetExternalAPI(domain, options);
-
         api.addEventListener('videoConferenceJoined', () => {
             const iframe = api.getIFrame();
-            if (iframe) {
-                iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write; fullscreen");
-            }
+            if (iframe) { iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"); }
         });
-
         function startRecording() {
             document.getElementById('recording-guide').style.display = 'block';
             fetch('/notify_recording/{{ request.args.get("join_meet") }}');
@@ -74,35 +62,31 @@
     {% endif %}
 
     {% if is_birthday or is_anniversary %}
-    <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2); animation: slideIn 0.5s ease-out;">
+    <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div style="font-size: 2.5rem;">{% if is_birthday %}🎂{% else %}🎊{% endif %}</div>
             <div>
                 <h2 style="margin: 0; font-size: 1.4rem;">Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!</h2>
-                <p style="margin: 5px 0 0; opacity: 0.9;">The BMS team wishes you a fantastic day and continued success!</p>
             </div>
         </div>
-        <button onclick="document.getElementById('celebration-toast').style.display='none'" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 5px; cursor: pointer;">Close</button>
+        <button onclick="document.getElementById('celebration-toast').style.display='none'" class="btn" style="background: rgba(255,255,255,0.2); color: white;">Close</button>
     </div>
     {% endif %}
 
     <div style="background: #f0f2f5; color: #1b2559; padding: 10px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; overflow: hidden; border: 1px solid #d1d9e6;">
-        <div style="background: #4318ff; color: white; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-right: 15px; white-space: nowrap;">LATEST NEWS</div>
+        <div style="background: #4318ff; color: white; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; margin-right: 15px;">LATEST NEWS</div>
         <marquee behavior="scroll" direction="left" scrollamount="6" style="font-size: 0.9rem; font-weight: 600; color: #1b2559;">
-            🚀 BMSCCM v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            🏆 Amit Sharma awarded "Employee of the Month" for January! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            📢 New Health Insurance policy documents are now available in the Staff Directory. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-            🏢 Quarterly Town Hall meeting on Friday at 4 PM in the Innovation Lab.
+            🚀 BMSCCM v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🏆 Amit Sharma awarded "Employee of the Month"!
         </marquee>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
         <h1 style="margin: 0; color: #1b2559;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h1>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; display: flex; align-items: center; gap: 5px; color: white;">
+            <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; color: white;">
                 💬 BMS Connect
                 {% if unread_chats and unread_chats > 0 %}
-                    <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white; font-weight: bold;">{{ unread_chats }}</span>
+                    <span style="position: absolute; top: -8px; right: -8px; background: #ee5d50; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75rem; border: 2px solid white;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
             <span class="badge badge-office" style="background: #e0e5f2; color: #1b2559; padding: 5px 10px; border-radius: 8px;">{{ user.role }} Account</span>
@@ -126,15 +110,17 @@
 
     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
         <div style="display: flex; flex-direction: column; gap: 20px;">
+            
             <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
-                <h3 style="margin-top: 0;">🤝 Start an Instant Meeting</h3>
-                <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 10px;">
-                    <input type="text" name="room_name" placeholder="Enter Meeting Topic..." required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
-                    <button type="submit" class="btn" style="background: #4318ff; color: white; border: none; padding: 10px 20px; border-radius: 8px;">Launch Video Room</button>
+                <h3 style="margin-top: 0; color: #1b2559;">📝 Submit Daily Activity Report</h3>
+                <form action="{{ url_for('submit_report') }}" method="POST">
+                    <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-family: inherit;"></textarea>
+                    <button type="submit" class="btn" style="background: #4318ff; color: white; border: none; padding: 10px 20px; border-radius: 8px;">Submit Report</button>
                 </form>
             </div>
+
             <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
-                <h3 style="margin-top: 0;">🎯 My Task Board</h3>
+                <h3 style="margin-top: 0; color: #1b2559;">🎯 My Task Board</h3>
                 <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px;">
                     <input type="text" name="title" placeholder="What needs to be done?" required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
                     <button type="submit" class="btn" style="background: #4318ff; color: white; border: none; padding: 10px 20px; border-radius: 8px;">Add Task</button>
@@ -156,14 +142,14 @@
 
         <div style="display: flex; flex-direction: column; gap: 20px;">
             <div class="card" style="background: white; padding: 20px; border-radius: 15px; text-align: center;">
-                <h3 style="margin-top: 0;">📊 Work Mode Distro</h3>
+                <h3 style="margin-top: 0; color: #1b2559;">📊 Work Mode Distro</h3>
                 <div style="height: 180px; position: relative;"><canvas id="modeChart"></canvas></div>
             </div>
 
             {% if session['role'] in ['HR', 'Accountant', 'Principal'] %}
             <div class="card shadow mb-4" style="background: white; border-radius: 15px; overflow: hidden;">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background: none; border-bottom: 1px solid #eee; padding: 15px;">
-                    <h3 style="margin: 0; color: #4318ff;">🔔 Live Feed <span id="unread-badge" style="background: #ee5d50; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; display: none;">0</span></h3>
+                    <h3 style="margin: 0; color: #4318ff;">🔔 Live Feed</h3>
                     <button onclick="clearAllNotifs()" style="background: none; border: none; font-size: 0.7rem; color: #ee5d50; cursor: pointer; text-decoration: underline;">Clear All</button>
                 </div>
                 <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 10px;">
@@ -171,6 +157,14 @@
                 </div>
             </div>
             {% endif %}
+
+            <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
+                <h3 style="margin-top: 0; color: #1b2559;">📂 Exports</h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <a href="{{ url_for('download_report', rtype='attendance') }}" class="btn" style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.8rem;">Attendance PDF</a>
+                    <a href="{{ url_for('download_report', rtype='activity') }}" class="btn" style="background: #1b2559; color: white; text-decoration: none; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.8rem;">Activity PDF</a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -180,29 +174,22 @@
     let lastKnownId = 0;
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
-            if (data.length > 0) { 
-                lastKnownId = data[0].id; 
-                renderFeed(data); 
-            }
+            if (data.length > 0) { lastKnownId = data[0].id; renderFeed(data); }
         });
     }
 
-    // UPDATED: Notification text is now dark (#1b2559)
     function renderFeed(data) {
         const list = document.getElementById('notification-list');
         if (!list) return;
         list.innerHTML = data.map(n => `<li style="padding:10px; border-bottom:1px solid #f8f9fa; font-size:0.85rem; color: #1b2559; font-weight: 600;">${n.msg}</li>`).join('');
     }
 
-    // UPDATED: Function to clear notifications and refresh the UI
     function clearAllNotifs() {
-        if(confirm("Are you sure you want to clear all notifications?")) {
-            fetch('/clear_notifications')
-                .then(response => {
-                    const list = document.getElementById('notification-list');
-                    if(list) list.innerHTML = '<li style="padding:10px; color:gray; text-align:center;">Feed Cleared.</li>';
-                    document.getElementById('unread-badge').style.display = 'none';
-                });
+        if(confirm("Clear all notifications?")) {
+            fetch('/clear_notifications').then(() => {
+                const list = document.getElementById('notification-list');
+                if(list) list.innerHTML = '<li style="padding:10px; color:gray; text-align:center;">Feed Cleared.</li>';
+            });
         }
     }
 
