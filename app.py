@@ -240,14 +240,18 @@ def dashboard():
     if user.join_date and len(str(user.join_date)) >= 10:
         is_anniversary = (str(user.join_date)[5:10] == today_md)
 
-    # --- 2. ATTENDANCE & TASKS (Ensuring Integers) ---
+    # --- 2. ATTENDANCE & TASKS ---
     office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count() or 0
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count() or 0
     
     unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count() or 0
     tasks = Task.query.filter_by(user_id=user.id).all() or []
 
-    # --- 3. NOTIFICATIONS (Hardened against NoneType) ---
+    # --- NEW: FETCH RECENT MEETINGS ---
+    # We fetch the last 5 meetings so staff can see what is happening
+    active_meetings = Meeting.query.order_by(Meeting.id.desc()).limit(5).all() or []
+
+    # --- 3. NOTIFICATIONS ---
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
     notifs = []
     
@@ -256,7 +260,6 @@ def dashboard():
             all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
             if session.get('role') == 'Accountant':
                 excluded = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
-                # Safeguard: Ensure n.message exists before checking keywords
                 notifs = [n for n in all_notifs if n.message and not any(word in n.message for word in excluded)]
             else:
                 notifs = all_notifs
@@ -264,6 +267,7 @@ def dashboard():
             print(f"Notification Error: {e}")
             notifs = []
 
+    # Added 'meetings' to the return template
     return render_template('dashboard.html', 
                            user=user, 
                            notifications=notifs, 
@@ -272,7 +276,8 @@ def dashboard():
                            tasks=tasks, 
                            unread_chats=unread_chats, 
                            is_birthday=is_birthday, 
-                           is_anniversary=is_anniversary)
+                           is_anniversary=is_anniversary,
+                           meetings=active_meetings) # <--- Added this)
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -961,6 +966,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
