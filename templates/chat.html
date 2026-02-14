@@ -11,38 +11,54 @@
     <form id="chat-form" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
         <input type="text" id="msg-input" placeholder="Share updates with the team..." required 
                style="flex: 1; padding: 15px; border-radius: 30px; border: 1px solid #ddd; outline: none;">
-        <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff;">Send</button>
+        <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff; color: white;">Send</button>
     </form>
 </div>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 <script>
-  /* --- Replace the script in chat.html --- */
-var socket = io();
+    /* --- Socket Initialization --- */
+    var socket = io();
 
-// Listen for incoming messages
-socket.on('new_message', function(m) {
-    const box = document.getElementById('chat-box');
-    const isMe = m.user === "{{ session['name'] }}";
-    
-    const messageHtml = `
-        <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
-                    background: ${isMe ? '#4318ff' : 'white'}; 
-                    color: ${isMe ? 'white' : '#1b2559'}; 
-                    padding: 12px 18px; border-radius: 15px; max-width: 70%; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <small style="display: block; font-weight: bold; margin-bottom: 4px; opacity: 0.8;">${m.user}</small>
-            ${m.text}
-        </div>`;
-    
-    box.insertAdjacentHTML('beforeend', messageHtml);
-    box.scrollTop = box.scrollHeight;
-});
+    // Listen for incoming messages from the server
+    socket.on('new_message', function(m) {
+        const box = document.getElementById('chat-box');
+        // We use the session name passed from Flask to identify the current user
+        const isMe = m.user === "{{ session['name'] }}";
+        
+        const messageHtml = `
+            <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
+                        background: ${isMe ? '#4318ff' : 'white'}; 
+                        color: ${isMe ? 'white' : '#1b2559'}; 
+                        padding: 12px 18px; border-radius: 15px; max-width: 70%; 
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                        border: ${isMe ? 'none' : '1px solid #eee'};">
+                <small style="display: block; font-weight: bold; margin-bottom: 4px; opacity: 0.8;">${m.user}</small>
+                ${m.text}
+            </div>`;
+        
+        box.insertAdjacentHTML('beforeend', messageHtml);
+        
+        // Auto-scroll to the bottom whenever a new message arrives
+        box.scrollTop = box.scrollHeight;
+    });
 
-// Send message via Socket
-document.getElementById('chat-form').onsubmit = (e) => {
-    e.preventDefault();
-    const input = document.getElementById('msg-input');
-    if (input.value.trim() !== "") {
-        socket.emit('send_chat_message', {text: input.value});
-        input.value = '';
-    }
-};
+    // Send message via Socket when form is submitted
+    document.getElementById('chat-form').onsubmit = (e) => {
+        e.preventDefault();
+        const input = document.getElementById('msg-input');
+        if (input.value.trim() !== "") {
+            // This event name must match the @socketio.on name in app.py
+            socket.emit('send_chat_message', {text: input.value});
+            input.value = '';
+        }
+    };
+
+    // Ensure the chat box starts at the bottom on page load
+    window.onload = function() {
+        const box = document.getElementById('chat-box');
+        box.scrollTop = box.scrollHeight;
+    };
+</script>
+{% endblock %}
