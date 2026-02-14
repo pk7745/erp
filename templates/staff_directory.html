@@ -130,12 +130,26 @@
                     </div>
                 </td>
 
-                <td>
-                    <div style="display: flex; gap: 5px;">
-                        <a href="{{ url_for('generate_id') }}" class="badge" style="background: #4318ff; color: white; text-decoration: none;">🪪 ID</a>
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none;">📄 Payslip</a>
-                    </div>
-                </td>
+               <td>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="badge" 
+           style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 5px;">
+           🪪 Generate ID
+        </a>
+        
+        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" 
+           style="text-decoration: none; text-align: center; padding: 5px;">
+           📄 Payslip
+        </a>
+
+        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" style="margin-top: 5px;">
+            <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none;" onchange="this.form.submit()">
+            <label for="file_{{ emp.id }}" style="cursor:pointer; font-size: 0.75rem; color: #4318ff; font-weight: bold; text-decoration: underline; display: block; text-align: center;">
+                📸 Update Photo
+            </label>
+        </form>
+    </div>
+</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -233,3 +247,4 @@ function openPayrollConfig(uid, name, salary) {
 }
 </script>
 {% endblock %}
+
