@@ -2,44 +2,36 @@
 {% block content %}
 <div style="display: flex; gap: 20px; height: 85vh; font-family: 'Inter', sans-serif;">
     
-    <div class="card" style="flex: 1; padding: 0; border-radius: 15px; background: white; display: flex; flex-direction: column; overflow: hidden;">
-        <div style="padding: 20px; background: #f4f7fe; border-bottom: 1px solid #eee;">
-            <h4 style="margin: 0; color: #1b2559;">👥 Staff Directory</h4>
+    <div class="card" style="flex: 1; padding: 0; border-radius: 15px; background: white; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eee;">
+        <div style="padding: 15px; background: #f4f7fe;">
+            <h4 style="margin: 0 0 10px 0; color: #1b2559;">👥 Staff Directory</h4>
+            <input type="text" id="staffSearch" placeholder="Search by name..." 
+                   style="width: 100%; padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; outline: none; font-size: 13px;">
         </div>
-        <div style="flex: 1; overflow-y: auto; padding: 10px;">
-            <ul style="list-style: none; padding: 0; margin: 0;">
-                <li style="margin-bottom: 10px;">
-                    <a href="/chat" style="display: block; padding: 12px; border-radius: 10px; background: #4318ff; color: white; text-decoration: none; font-weight: bold; text-align: center;">
-                        📢 Staff Lounge (Public)
-                    </a>
-                </li>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-                <small style="color: #a3aed0; padding-left: 10px; text-transform: uppercase; font-size: 10px; letter-spacing: 1px;">Direct Messages</small>
-                
-                {% for staff in all_staff %}
-                <li style="margin-top: 5px;">
-                    <a href="/chat/{{ staff.id }}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; text-decoration: none; color: #2b3674; transition: 0.3s; {% if receiver and receiver.id == staff.id %}background: #eef2ff; border: 1px solid #4318ff;{% endif %}" class="staff-link">
-                        <div>
-                            <div style="font-weight: 600; font-size: 14px;">{{ staff.full_name }}</div>
-                            <small style="color: #a3aed0; font-size: 11px;">{{ staff.role }}</small>
-                        </div>
-                        <span style="font-size: 16px;">✉️</span>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+        
+        <div style="flex: 1; overflow-y: auto; padding: 10px;" id="staffList">
+            <a href="/chat" style="display: block; padding: 12px; border-radius: 10px; background: #4318ff; color: white; text-decoration: none; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                📢 Staff Lounge
+            </a>
+            
+            {% for staff in all_staff %}
+            <div class="staff-item" style="margin-bottom: 5px;">
+                <a href="/chat/{{ staff.id }}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 8px; text-decoration: none; color: #2b3674; {% if receiver and receiver.id == staff.id %}background: #eef2ff; border: 1px solid #4318ff;{% endif %}" class="staff-link">
+                    <div>
+                        <div class="staff-name" style="font-weight: 600; font-size: 14px;">{{ staff.full_name }}</div>
+                        <small style="color: #a3aed0; font-size: 11px;">{{ staff.role }}</small>
+                    </div>
+                    <span>✉️</span>
+                </a>
+            </div>
+            {% endfor %}
         </div>
     </div>
 
     <div class="card" style="flex: 3; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-        <div style="padding: 20px; border-bottom: 1px solid #eee; background: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 20px; border-bottom: 1px solid #eee; background: white;">
             <h3 style="margin: 0; color: #1b2559;">
-                {% if receiver %}
-                    <span style="color: #4318ff;">Chat with {{ receiver.full_name }}</span>
-                    <small style="display: block; font-size: 12px; color: #a3aed0;">Private Message</small>
-                {% else %}
-                    📢 Staff Lounge (Everyone)
-                {% endif %}
+                {% if receiver %} 👤 {{ receiver.full_name }} <small style="color: #4318ff;">(Private)</small> {% else %} 📢 Staff Lounge {% endif %}
             </h3>
         </div>
         
@@ -47,9 +39,7 @@
             {% if receiver %}
                 {% for m in messages %}
                 <div style="align-self: {% if m.sender_id == session['user_id'] %}flex-end{% else %}flex-start{% endif %}; max-width: 75%;">
-                    <div style="background: {% if m.sender_id == session['user_id'] %}#4318ff{% else %}white{% endif %}; 
-                                color: {% if m.sender_id == session['user_id'] %}white{% else %}#1b2559{% endif %}; 
-                                padding: 12px 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <div style="background: {% if m.sender_id == session['user_id'] %}#4318ff{% else %}white{% endif %}; color: {% if m.sender_id == session['user_id'] %}white{% else %}#1b2559{% endif %}; padding: 12px 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                         {{ m.content }}
                         <small style="display: block; font-size: 10px; margin-top: 5px; text-align: right; opacity: 0.7;">{{ m.timestamp.strftime('%I:%M %p') }}</small>
                     </div>
@@ -58,10 +48,10 @@
             {% endif %}
         </div>
 
-        <form id="chat-form" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
-            <input type="text" id="msg-input" placeholder="Type your message..." required autocomplete="off"
+        <form id="chat-form" method="POST" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
+            <input type="text" name="content" id="msg-input" placeholder="Type message..." required autocomplete="off"
                    style="flex: 1; padding: 15px; border-radius: 30px; border: 1px solid #ddd; outline: none;">
-            <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff; color: white; border: none; cursor: pointer;">Send</button>
+            <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff; color: white; border: none;">Send</button>
         </form>
     </div>
 </div>
@@ -70,20 +60,26 @@
 <script>
     var socket = io();
     const chatBox = document.getElementById('chat-box');
-    const msgInput = document.getElementById('msg-input');
-    const currentUserName = "{{ session['name'] }}";
-    const isPrivate = "{{ 'true' if receiver else 'false' }}" === "true";
+    const searchInput = document.getElementById('staffSearch');
+    const isPrivate = {{ 'true' if receiver else 'false' }};
 
-    // Handle incoming messages
+    // SEARCH LOGIC
+    searchInput.addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('.staff-item').forEach(item => {
+            const name = item.querySelector('.staff-name').innerText.toLowerCase();
+            item.style.display = name.includes(term) ? 'block' : 'none';
+        });
+    });
+
+    // LOUNGE LOGIC (SOCKET)
     socket.on('new_message', function(m) {
-        // Only show Lounge messages if we are IN the Lounge
         if (!isPrivate) {
-            const isMe = m.user === currentUserName;
+            const isMe = m.user === "{{ session['name'] }}";
             const html = `<div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 75%;">
-                <small style="display:block; margin-bottom:4px; font-weight:bold;">${m.user}</small>
+                <small style="display:block; font-weight:bold;">${m.user}</small>
                 <div style="background: ${isMe ? '#4318ff' : 'white'}; color: ${isMe ? 'white' : '#1b2559'}; padding: 12px 18px; border-radius: 15px;">
-                    ${m.text}
-                    <small style="display: block; font-size: 10px; margin-top: 5px; text-align: right; opacity: 0.7;">${m.time}</small>
+                    ${m.text} <small style="display:block; font-size:10px; opacity:0.7;">${m.time}</small>
                 </div>
             </div>`;
             chatBox.insertAdjacentHTML('beforeend', html);
@@ -91,24 +87,16 @@
         }
     });
 
-    document.getElementById('chat-form').onsubmit = (e) => {
-        e.preventDefault();
-        if (msgInput.value.trim()) {
-            if (isPrivate) {
-                // For Private Messages, we can use a standard form submit or a specific socket event
-                // For now, let's keep it simple: redirect or emit private
-                window.location.href = window.location.href; // Simple refresh to show new message after POST
-            } else {
-                socket.emit('send_chat_message', {text: msgInput.value});
-                msgInput.value = '';
-            }
+    // FORM LOGIC
+    document.getElementById('chat-form').onsubmit = function(e) {
+        if (!isPrivate) {
+            e.preventDefault();
+            const input = document.getElementById('msg-input');
+            socket.emit('send_chat_message', {text: input.value});
+            input.value = '';
         }
     };
 
     window.onload = () => { chatBox.scrollTop = chatBox.scrollHeight; };
 </script>
-
-<style>
-    .staff-link:hover { background: #f4f7fe; transform: translateX(5px); }
-</style>
 {% endblock %}
