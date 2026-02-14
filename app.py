@@ -558,15 +558,15 @@ def admin_verify_docs(uid):
 
 
 # ==========================================
-# 4. INITIAL SETUP & SEEDING (FIXED FOR GUNICORN)
+# 4. INITIAL SETUP & SEEDING (UPDATED)
 # ==========================================
 
 def seed_database():
-    # We use a nested import or direct check to avoid circular issues
     db.create_all()
     
-    # Seed Admin
-    if not User.query.filter_by(username='admin').first():
+    # 1. Seed/Update Admin
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
         db.session.add(User(
             username='admin', 
             password=generate_password_hash('admin123'), 
@@ -574,11 +574,18 @@ def seed_database():
             full_name='System Admin', 
             email='hr@bmsccm.edu', 
             dob='1985-10-25', 
-            join_date='2018-05-10'
+            join_date='2018-05-10',
+            caste='General',      # Added
+            religion='Hindu'      # Added
         ))
+    else:
+        # Update existing admin if fields are missing
+        admin.caste = 'General'
+        admin.religion = 'Hindu'
     
-    # Seed Accountant
-    if not User.query.filter_by(username='acc1').first():
+    # 2. Seed/Update Accountant
+    acc = User.query.filter_by(username='acc1').first()
+    if not acc:
         db.session.add(User(
             username='acc1', 
             password=generate_password_hash('pay123'), 
@@ -586,10 +593,16 @@ def seed_database():
             full_name='Rajesh Finance', 
             email='accounts@bmsccm.edu', 
             dob='1990-03-12', 
-            join_date='2020-11-20'
+            join_date='2020-11-20',
+            caste='General',      # Added
+            religion='Hindu'      # Added
         ))
+    else:
+        # Update existing accountant if fields are missing
+        acc.caste = 'General'
+        acc.religion = 'Hindu'
         
-    # Faculty List
+    # Faculty List (Remaining users)
     faculties = [
         ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
         ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
@@ -619,3 +632,4 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
