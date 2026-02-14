@@ -16,33 +16,33 @@
 </div>
 
 <script>
-    function fetchMessages() {
-        fetch('/api/chat/messages').then(res => res.json()).then(msgs => {
-            const box = document.getElementById('chat-box');
-            box.innerHTML = msgs.map(m => `
-                <div style="align-self: ${m.user === '{{ session['name'] }}' ? 'flex-end' : 'flex-start'}; 
-                            background: ${m.user === '{{ session['name'] }}' ? '#4318ff' : 'white'}; 
-                            color: ${m.user === '{{ session['name'] }}' ? 'white' : '#1b2559'}; 
-                            padding: 12px 18px; border-radius: 15px; max-width: 70%; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                    <small style="display: block; font-weight: bold; margin-bottom: 4px; opacity: 0.8;">${m.user}</small>
-                    ${m.text}
-                </div>
-            `).join('');
-            box.scrollTop = box.scrollHeight;
-        });
-    }
-    
-    document.getElementById('chat-form').onsubmit = (e) => {
-        e.preventDefault();
-        const input = document.getElementById('msg-input');
-        fetch('/api/chat/send', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({text: input.value})
-        }).then(() => { input.value = ''; fetchMessages(); });
-    };
+  /* --- Replace the script in chat.html --- */
+var socket = io();
 
-    setInterval(fetchMessages, 3000);
-    fetchMessages();
-</script>
-{% endblock %}
+// Listen for incoming messages
+socket.on('new_message', function(m) {
+    const box = document.getElementById('chat-box');
+    const isMe = m.user === "{{ session['name'] }}";
+    
+    const messageHtml = `
+        <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
+                    background: ${isMe ? '#4318ff' : 'white'}; 
+                    color: ${isMe ? 'white' : '#1b2559'}; 
+                    padding: 12px 18px; border-radius: 15px; max-width: 70%; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <small style="display: block; font-weight: bold; margin-bottom: 4px; opacity: 0.8;">${m.user}</small>
+            ${m.text}
+        </div>`;
+    
+    box.insertAdjacentHTML('beforeend', messageHtml);
+    box.scrollTop = box.scrollHeight;
+});
+
+// Send message via Socket
+document.getElementById('chat-form').onsubmit = (e) => {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    if (input.value.trim() !== "") {
+        socket.emit('send_chat_message', {text: input.value});
+        input.value = '';
+    }
+};
