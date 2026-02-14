@@ -9,11 +9,12 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
-from flask_socketio import SocketIO
-from flask_mail import Mail
+from flask_socketio import SocketIO, emit
+from flask_mail import Mail, Message
+import eventlet
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 mail = Mail(app)
 app.secret_key = "bms_college_ultimate_v200"
 
@@ -698,6 +699,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
