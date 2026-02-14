@@ -1,26 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px;">
+    <div class="card" style="background: white;">
+        <h3 style="margin-top: 0; color: #1b2559;">📈 Rating Trends</h3>
+        <canvas id="perfChart" style="max-height: 250px;"></canvas>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="card" style="background: linear-gradient(135deg, #4318ff, #707eff); color: white; text-align: center;">
+            <h4 style="margin:0;">Current Average</h4>
+            <h2 style="font-size: 2.5rem; margin: 10px 0;">8.4</h2>
+        </div>
+        <div class="card" style="background: #fff; border-left: 5px solid #05cd99;">
+            <h4 style="margin:0; color: #a3aed0;">Appraisal Status</h4>
+            <p style="font-weight: bold; color: #1b2559;">Eligible</p>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <h2>Performance Analytics</h2>
     {% if session['role'] == 'HR' %}
     <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 30px;">
-        <select name="u_id">
+        <select name="u_id" style="padding:10px; border-radius:8px;">
             {% for u in users %}<option value="{{ u.id }}">{{ u.full_name }}</option>{% endfor %}
         </select>
-        <input type="text" name="month" placeholder="Month (e.g. Jan 2026)">
-        <input type="number" name="rating" placeholder="Rating (1-10)">
-        <textarea name="feedback" placeholder="Feedback..." style="grid-column: span 3;"></textarea>
+        <input type="text" name="month" placeholder="Month (e.g. Jan 2026)" style="padding:10px; border-radius:8px;">
+        <input type="number" name="rating" placeholder="Rating (1-10)" style="padding:10px; border-radius:8px;">
+        <textarea name="feedback" placeholder="Feedback..." style="grid-column: span 3; padding:10px; border-radius:8px;"></textarea>
         <button type="submit" class="btn" style="grid-column: span 3;">Submit KPI</button>
     </form>
     {% endif %}
 
     <table>
         <thead>
-            <tr>
-                <th>Month</th>
-                <th>Rating</th>
-                <th>Feedback</th>
-            </tr>
+            <tr><th>Month</th><th>Rating</th><th>Feedback</th></tr>
         </thead>
         <tbody>
             {% for r in ratings %}
@@ -33,4 +46,20 @@
         </tbody>
     </table>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    new Chart(document.getElementById('perfChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [{% for r in ratings %}'{{ r.month }}',{% endfor %}].reverse(),
+            datasets: [{
+                label: 'Rating',
+                data: [{% for r in ratings %}{{ r.rating }},{% endfor %}].reverse(),
+                borderColor: '#4318ff',
+                tension: 0.4
+            }]
+        }
+    });
+</script>
 {% endblock %}
