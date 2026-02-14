@@ -7,6 +7,10 @@
         <div style="display: flex; gap: 10px; align-items: center;">
             <input type="text" id="directorySearch" placeholder="Search name, email, or role..." 
                    style="padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #ddd;">
+
+            <a href="{{ url_for('email_staff_list') }}" class="btn" style="background: #1b2559; color: white; text-decoration: none;">
+        📧 Email List to Principal
+    </a>
             
             {% if session['role'] in ['HR', 'Principal'] %}
                 <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
@@ -233,3 +237,4 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
 });
 </script>
 {% endblock %}
+
