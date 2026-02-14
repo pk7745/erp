@@ -71,7 +71,7 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    content = db.Text
+    content = db.Column(db.Text)
     is_read = db.Column(db.Boolean, default=False) 
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
@@ -654,6 +654,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
