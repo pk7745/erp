@@ -190,26 +190,55 @@ def login():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+    
     user = User.query.get(session['user_id'])
-    today_md = get_ist_time().strftime("%m-%d")
-    is_birthday = user.dob[5:] == today_md if user.dob else False
-    is_anniversary = user.join_date[5:] == today_md if user.join_date else False
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+
+    today_ist = get_ist_time()
+    today_md = today_ist.strftime("%m-%d")
+
+    # SAFE DATE CHECKING (Prevents 500 error if date is missing or wrong format)
+    is_birthday = False
+    if user.dob and len(user.dob) >= 10:
+        is_birthday = (user.dob[5:10] == today_md)
+
+    is_anniversary = False
+    if user.join_date and len(user.join_date) >= 10:
+        is_anniversary = (user.join_date[5:10] == today_md)
+
+    # DATABASE QUERIES
     unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count()
     tasks = Task.query.filter_by(user_id=user.id).all()
     office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
+
+    # NOTIFICATION LOGIC
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
-    if session['role'] in privileged_roles:
-        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
-        if session['role'] == 'Accountant':
+    notifs = []
+    
+    if session.get('role') in privileged_roles:
+        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+        
+        if session.get('role') == 'Accountant':
             excluded = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
-            notifs = [n for n in all_notifs if not any(word in n.message for word in excluded)]
+            # Added "n.message or ''" to prevent errors if a message is empty
+            notifs = [n for n in all_notifs if not any(word in (n.message or '') for word in excluded)]
         else:
             notifs = all_notifs
-    else:
-        notifs = []
-    return render_template('dashboard.html', user=user, notifications=notifs, office_days=office_days, wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats, is_birthday=is_birthday, is_anniversary=is_anniversary)
+
+    return render_template('dashboard.html', 
+                           user=user, 
+                           notifications=notifs, 
+                           office_days=office_days, 
+                           wfh_days=wfh_days, 
+                           tasks=tasks, 
+                           unread_chats=unread_chats, 
+                           is_birthday=is_birthday, 
+                           is_anniversary=is_anniversary)
 
 @app.route('/generate_id')
 def generate_id():
@@ -618,3 +647,4 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
