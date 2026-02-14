@@ -895,6 +895,21 @@ def generate_payslip_historical(uid, month):
     # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
     return generate_payslip(uid) # Temporary redirect to main logic for now
 
+@app.route('/delete_meeting/<room_name>')
+def delete_meeting(room_name):
+    if 'user_id' not in session: 
+        return jsonify({"status": "error"}), 403
+    
+    # Find the meeting by room name
+    meeting = Meeting.query.filter_by(room_name=room_name).first()
+    
+    # Optional: Only allow the creator or a Principal/HR to delete it
+    if meeting:
+        db.session.delete(meeting)
+        db.session.commit()
+        return jsonify({"status": "success"})
+    
+    return jsonify({"status": "not_found"}), 404
 
 online_users = {} 
 
@@ -966,6 +981,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
