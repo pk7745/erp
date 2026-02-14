@@ -660,34 +660,33 @@ def email_staff_list():
     flash("Directory emailed to Principal successfully!", "success")
     return redirect(url_for('staff_directory'))
 
-# Add this near your other global variables
+
 online_users = {} 
 
 @socketio.on('connect')
 def handle_connect():
     if 'user_id' in session:
-        user_id = session['user_id']
-        user_name = session.get('name', 'Staff')
-        online_users[user_id] = user_name
-        # Broadcast the updated list to everyone
+        online_users[session['user_id']] = session.get('name', 'Staff')
         emit('update_online_status', list(online_users.values()), broadcast=True)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if 'user_id' in session:
-        user_id = session['user_id']
-        if user_id in online_users:
-            del online_users[user_id]
+        online_users.pop(session['user_id'], None)
         emit('update_online_status', list(online_users.values()), broadcast=True)
+
+@socketio.on('typing')
+def handle_typing(data):
+    # Sends "User is typing..." to everyone except the person typing
+    emit('display_typing', {'user': session.get('name'), 'is_typing': data['is_typing']}, broadcast=True, include_self=False)
 
 @socketio.on('send_chat_message')
 def handle_chat(data):
     now = get_ist_time()
-    timestamp = now.strftime("%I:%M %p")
     sender_id = session.get('user_id')
     sender_name = session.get('name', 'Anonymous')
 
-    # Save to Database
+    # Save to Database for persistence
     new_msg = Message(sender_id=sender_id, content=data['text'], is_group=True, timestamp=now)
     db.session.add(new_msg)
     db.session.commit()
@@ -696,7 +695,7 @@ def handle_chat(data):
         'user': sender_name,
         'user_id': sender_id,
         'text': data['text'],
-        'time': timestamp
+        'time': now.strftime("%I:%M %p")
     }, broadcast=True)
 
 # ==========================================
@@ -732,6 +731,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
