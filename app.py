@@ -556,36 +556,66 @@ def admin_verify_docs(uid):
     if user: user.status = 'Pending Payroll Config'; db.session.commit()
     return redirect(url_for('staff_directory'))
 
+
 # ==========================================
-# 4. INITIAL SETUP & SEEDING
+# 4. INITIAL SETUP & SEEDING (FIXED FOR GUNICORN)
 # ==========================================
 
 def seed_database():
-    with app.app_context():
-        db.create_all()
-        # Seed Admin/Accountant
-        if not User.query.filter_by(username='admin').first():
-            db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@bmsccm.edu', dob='1985-10-25', join_date='2018-05-10'))
-        if not User.query.filter_by(username='acc1').first():
-            db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='accounts@bmsccm.edu', dob='1990-03-12', join_date='2020-11-20'))
+    # We use a nested import or direct check to avoid circular issues
+    db.create_all()
+    
+    # Seed Admin
+    if not User.query.filter_by(username='admin').first():
+        db.session.add(User(
+            username='admin', 
+            password=generate_password_hash('admin123'), 
+            role='HR', 
+            full_name='System Admin', 
+            email='hr@bmsccm.edu', 
+            dob='1985-10-25', 
+            join_date='2018-05-10'
+        ))
+    
+    # Seed Accountant
+    if not User.query.filter_by(username='acc1').first():
+        db.session.add(User(
+            username='acc1', 
+            password=generate_password_hash('pay123'), 
+            role='Accountant', 
+            full_name='Rajesh Finance', 
+            email='accounts@bmsccm.edu', 
+            dob='1990-03-12', 
+            join_date='2020-11-20'
+        ))
         
-        # Seed Faculties
-        faculties = [
-            ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
-            ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
-            ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
-            ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
-            ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
-            ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
-            ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
-            ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
-        ]
-        for u, f, r, e, c, rel, d, j in faculties:
-            if not User.query.filter_by(username=u).first():
-                db.session.add(User(username=u, password=generate_password_hash('bms123'), role=r, full_name=f, salary=50000, email=e, dob=d, join_date=j, caste=c, religion=rel))
-        db.session.commit()
+    # Faculty List
+    faculties = [
+        ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
+        ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
+        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
+        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
+        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
+        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
+        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
+        ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
+    ]
+    
+    for u, f, r, e, c, rel, d, j in faculties:
+        if not User.query.filter_by(username=u).first():
+            db.session.add(User(
+                username=u, 
+                password=generate_password_hash('bms123'),
+                role=r, full_name=f, salary=50000, email=e, 
+                dob=d, join_date=j, caste=c, religion=rel
+            ))
+    db.session.commit()
+
+# THIS IS THE KEY CHANGE: 
+# It runs when Gunicorn imports the file.
+with app.app_context():
+    seed_database()
 
 if __name__ == '__main__':
-    seed_database()
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
