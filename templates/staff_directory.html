@@ -169,13 +169,13 @@ function calculateLiveNet(empId) {
     
     let basic = parseFloat(input.value) || 0;
     
-    // EARNINGS
+    // EARNINGS (Matching Python Route)
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
     const ta = 2000;
     const gross = basic + hra + da + ta;
     
-    // ADJUSTABLE TDS SLAB LOGIC
+    // ADJUSTABLE TDS SLAB LOGIC (Matching Python Route)
     let tdsRate = 0;
     if (gross > 100000) {
         tdsRate = 0.15; // 15%
@@ -205,7 +205,7 @@ function calculateLiveNet(empId) {
             <span>DA: ₹${da.toLocaleString('en-IN')}</span>
             <span>TA: ₹${ta.toLocaleString('en-IN')}</span>
             <span style="font-weight:bold; color:#1b2559">Gross: ₹${gross.toLocaleString('en-IN')}</span>
-            <span style="color:#e53e3e">TDS (${tdsRate * 100}%): ₹${tds.toLocaleString('en-IN')}</span>
+            <span style="color:#e53e3e">TDS (${Math.round(tdsRate * 100)}%): ₹${tds.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">EPF: ₹${epf.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">P.Tax: ₹${pt}</span>
         `;
