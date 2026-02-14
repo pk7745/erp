@@ -5,20 +5,27 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0;">Attendance History</h3>
             {% if session['role'] == 'HR' %}
-               <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn">Download CSV</a>
+                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn" style="text-decoration: none;">
                     📥 Export Attendance CSV
                 </a>
             {% endif %}
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Attendance Tracking</h2>
-            <form method="POST" style="display: flex; gap: 10px;">
-                <select name="work_mode" style="width: 150px; margin: 0; padding: 10px;">
+            <div style="display: flex; flex-direction: column;">
+                <h2 style="margin:0;">Attendance Tracking</h2>
+                <small id="location-indicator" style="color: #ee5d50; font-weight: bold; margin-top: 5px;">📍 Location verification required for Office mode</small>
+            </div>
+            <form id="attendanceForm" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+                <input type="hidden" name="lat" id="lat">
+                <input type="hidden" name="lon" id="lon">
+                
+                <select name="work_mode" id="work_mode" style="width: 150px; margin: 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
                     <option value="Office">🏢 Office</option>
                     <option value="WFH">🏠 WFH</option>
                 </select>
-                <button class="btn">Clock In / Out</button>
+                <button type="button" onclick="getLocation()" class="btn" style="background: #05cd99;">Verify Location</button>
+                <button type="submit" id="submitBtn" class="btn" style="opacity: 0.6; cursor: not-allowed;" disabled>Clock In / Out</button>
             </form>
         </div>
 
@@ -38,8 +45,8 @@
                     <td>{{ row.date }}</td>
                     <td><strong>{{ row.user.full_name }}</strong></td>
                     <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
-                    <td style="color: var(--success); font-weight: bold;">{{ row.check_in }}</td>
-                    <td style="color: var(--p); font-weight: bold;">{{ row.check_out or '--:--' }}</td>
+                    <td style="color: #05cd99; font-weight: bold;">{{ row.check_in }}</td>
+                    <td style="color: #4318ff; font-weight: bold;">{{ row.check_out or '--:--' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -54,6 +61,26 @@
 
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 <script>
+  function getLocation() {
+    const indicator = document.getElementById('location-indicator');
+    const btn = document.getElementById('submitBtn');
+    if (navigator.geolocation) {
+        indicator.innerText = "🛰️ Verifying GPS...";
+        navigator.geolocation.getCurrentPosition((pos) => {
+            document.getElementById('lat').value = pos.coords.latitude;
+            document.getElementById('lon').value = pos.coords.longitude;
+            indicator.innerText = "✅ Location Locked: " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4);
+            indicator.style.color = "#05cd99";
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.style.cursor = "pointer";
+        }, (err) => {
+            indicator.innerText = "❌ Error: Please enable Location Access";
+            indicator.style.color = "#ee5d50";
+        });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -72,4 +99,3 @@
   });
 </script>
 {% endblock %}
-
