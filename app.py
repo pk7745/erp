@@ -594,19 +594,109 @@ def export_csv(rtype):
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
-    basic = u.salary
-    hra, da, ta = int(basic * 0.40), int(basic * 0.10), 2000
-    gross = basic + hra + da + ta
-    epf, pt = int((basic + da) * 0.12), 200
-    net = gross - (epf + pt)
-    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 18)
-    pdf.cell(200, 15, txt="BMS COLLEGE OF COMMERCE & MANAGEMENT", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"PAYSLIP FOR: {u.full_name.upper()}", ln=True, align='C')
-    pdf.ln(10); pdf.set_font("Arial", '', 10)
-    pdf.cell(60, 10, "Basic Salary", 1); pdf.cell(35, 10, f"INR {basic}", 1, 1, 'R')
-    pdf.cell(60, 10, "Net Take-Home", 1); pdf.cell(35, 10, f"INR {net}", 1, 1, 'R')
-    return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"payslip_{u.username}.pdf")
+    if not u:
+        return "User not found", 404
 
+    # 1. Salary Calculations
+    basic = u.salary
+    hra = int(basic * 0.40)
+    da = int(basic * 0.10)
+    ta = 2000
+    gross = basic + hra + da + ta
+    epf = int((basic + da) * 0.12)
+    pt = 200
+    net = gross - (epf + pt)
+
+    # 2. PDF Setup
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Header - College Branding
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(190, 10, txt="BMS COLLEGE OF COMMERCE & MANAGEMENT", ln=True, align='C')
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(190, 5, txt="Affiliated to Bengaluru City University", ln=True, align='C')
+    pdf.ln(5)
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(190, 10, txt=f"PAYSLIP FOR THE MONTH OF FEBRUARY 2026", border=1, ln=True, align='C', fill=True)
+    pdf.ln(5)
+
+    # Employee Info Row
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(40, 8, "Employee Name:", 0); pdf.set_font("Arial", '', 10); pdf.cell(60, 8, u.full_name, 0)
+    pdf.set_font("Arial", 'B', 10); pdf.cell(40, 8, "Designation:", 0); pdf.set_font("Arial", '', 10); pdf.cell(50, 8, u.role, 1, True)
+    pdf.ln(5)
+
+    # 3. Detailed Salary Table
+    pdf.set_font("Arial", 'B', 10)
+    pdf.set_fill_color(230, 235, 255)
+    pdf.cell(65, 10, "Earnings", 1, 0, 'C', True)
+    pdf.cell(30, 10, "Amount", 1, 0, 'C', True)
+    pdf.cell(65, 10, "Deductions", 1, 0, 'C', True)
+    pdf.cell(30, 10, "Amount", 1, 1, 'C', True)
+
+    pdf.set_font("Arial", '', 10)
+    # Row 1
+    pdf.cell(65, 8, "Basic Salary", 1); pdf.cell(30, 8, f"{basic}", 1, 0, 'R')
+    pdf.cell(65, 8, "Employee PF (12%)", 1); pdf.cell(30, 8, f"{epf}", 1, 1, 'R')
+    # Row 2
+    pdf.cell(65, 8, "H.R.A (40%)", 1); pdf.cell(30, 8, f"{hra}", 1, 0, 'R')
+    pdf.cell(65, 8, "Professional Tax", 1); pdf.cell(30, 8, f"{pt}", 1, 1, 'R')
+    # Row 3
+    pdf.cell(65, 8, "D.A (10%)", 1); pdf.cell(30, 8, f"{da}", 1, 0, 'R')
+    pdf.cell(65, 8, "Income Tax / TDS", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
+    # Row 4
+    pdf.cell(65, 8, "Transport Allowance", 1); pdf.cell(30, 8, f"{ta}", 1, 0, 'R')
+    pdf.cell(65, 8, "Other Deductions", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
+
+    # Totals Row
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(65, 10, "Gross Earnings", 1, 0, 'L', True)
+    pdf.cell(30, 10, f"INR {gross}", 1, 0, 'R', True)
+    pdf.cell(65, 10, "Total Deductions", 1, 0, 'L', True)
+    pdf.cell(30, 10, f"INR {epf + pt}", 1, 1, 'R', True)
+
+    # Net Pay Box
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(190, 12, f"NET PAYABLE: INR {net} /-", border=1, ln=True, align='C')
+
+    # 4. Seal and Signature
+    # Ensure these files (seal.png, sign.png) are in your static/images folder
+    pdf.ln(10)
+    y_pos = pdf.get_y()
+    
+    # Place Seal on the left
+    try:
+        pdf.image('static/images/seal.png', 30, y_pos, 25) 
+    except:
+        pdf.text(30, y_pos + 5, "[College Seal]")
+
+    # Place Signature on the right
+    try:
+        pdf.image('static/images/signature.png', 140, y_pos, 30)
+    except:
+        pdf.text(140, y_pos + 5, "[Principal's Signature]")
+    
+    pdf.ln(25)
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(95, 5, "College Seal", 0, 0, 'C')
+    pdf.cell(95, 5, "Principal Signature", 0, 1, 'C')
+
+    # 5. Digital Rights Footer
+    pdf.ln(15)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(190, 5, "This is a computer-generated payslip and does not require a physical ink signature.", ln=True, align='C')
+    pdf.cell(190, 5, f"Verification Code: BMS-{uid}-2026 | Digital Rights Reserved @ BMSCCM IT Cell", ln=True, align='C')
+
+    # Output
+    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}.pdf'
+    return response
+    
 @app.route('/send_payslip_email/<int:uid>')
 def send_payslip_email(uid):
     u = User.query.get(uid)
@@ -802,6 +892,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
