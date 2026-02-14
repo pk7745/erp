@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import io
 import csv
@@ -11,7 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message
-import eventlet
+
 
 app = Flask(__name__)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -29,7 +32,7 @@ app.secret_key = "bms_college_ultimate_v200"
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v5.db'
+db_name = 'bms_college_v6.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -47,22 +50,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 from sqlalchemy import text
-
-def migrate_db():
-    with app.app_context():
-        try:
-            # Check if 'lat' exists in Attendance, if not, add columns
-            db.session.execute(text("ALTER TABLE attendance ADD COLUMN lat FLOAT"))
-            db.session.execute(text("ALTER TABLE attendance ADD COLUMN lon FLOAT"))
-            db.session.commit()
-            print("Database migration successful: added lat/lon columns.")
-        except Exception as e:
-            # If columns already exist, this will fail silently which is fine
-            db.session.rollback()
-            print(f"Migration skipped or already done: {e}")
-
-# Call migration
-migrate_db()
 
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
@@ -706,6 +693,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
