@@ -5,3 +5,7 @@ pytz==2023.3.post1
 fpdf==1.7.2
 werkzeug>=3.0.0
 email-validator
+flask-socketio
+flask-mail
+eventlet
+
