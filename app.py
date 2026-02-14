@@ -416,21 +416,32 @@ def approve_expense(id, action):
 def chat(receiver_id=None):
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_id = session['user_id']
+    
     if request.method == 'POST':
         rid = receiver_id or request.form.get('receiver_id')
         msg_text = request.form.get('content')
         if rid and msg_text:
-            db.session.add(Message(sender_id=curr_id, receiver_id=int(rid), content=str(msg_text)))
+            # FIX: Remove str() and use .strip() to ensure clean text
+            new_msg = Message(sender_id=curr_id, receiver_id=int(rid), content=msg_text.strip())
+            db.session.add(new_msg)
             db.session.commit()
             return redirect(url_for('chat', receiver_id=rid))
+            
     contacts = User.query.filter(User.id != curr_id).all()
     messages = []
     if receiver_id:
+        # Mark as read
         Message.query.filter_by(sender_id=receiver_id, receiver_id=curr_id, is_read=False).update({Message.is_read: True})
         db.session.commit()
-        messages = Message.query.filter(((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))).order_by(Message.timestamp.asc()).all()
+        
+        # Fetch messages
+        messages = Message.query.filter(
+            ((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | 
+            ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))
+        ).order_by(Message.timestamp.asc()).all()
+        
     return render_template('chat.html', contacts=contacts, messages=messages, receiver_id=receiver_id)
-
+    
 @app.route('/performance', methods=['GET', 'POST'])
 def performance():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -643,5 +654,6 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
