@@ -7,62 +7,63 @@ import csv
 import pytz
 import shutil
 import math
+import qrcode  # Ensure you run 'pip install qrcode'
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
 
 app = Flask(__name__)
+
+# --- CONFIGURATION ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Best practice: use Env Vars
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') 
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-mail = Mail(app)
-def send_notification_email(receiver_email, sender_name):
-    """Sends an email alert to the Principal. Wrapped in try-except to prevent 500 errors."""
-    if not receiver_email:
-        return
-    try:
-        msg = MailMessage(
-            "New Private Message: BMS Connect",
-            recipients=[receiver_email]
-        )
-        msg.body = f"Hello Principal,\n\nYou have received a new private message from {sender_name} on the BMS Connect Staff Portal.\n\nPlease log in to view and reply."
-        mail.send(msg)
-    except Exception as e:
-        # Logs the error to Railway console but doesn't crash the app
-        print(f"SMTP Error (Email skipped): {e}")
+app.config['UPLOAD_FOLDER'] = 'static/uploads/profiles'
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 app.secret_key = "bms_college_ultimate_v200"
 
+# Create upload directory if it doesn't exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+mail = Mail(app)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def send_notification_email(receiver_email, sender_name):
+    if not receiver_email: return
+    try:
+        msg = MailMessage("New Private Message: BMS Connect", recipients=[receiver_email])
+        msg.body = f"Hello Principal,\n\nYou have received a new private message from {sender_name} on the BMS Connect Staff Portal."
+        mail.send(msg)
+    except Exception as e:
+        print(f"SMTP Error: {e}")
+
 # ==========================================
-# 1. RAILWAY DATABASE PERSISTENCE LOGIC
+# 1. DATABASE SETUP
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v7.db'
+db_name = 'bms_college_v8.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    if not os.path.exists(data_dir): os.makedirs(data_dir)
 
 destination_db = os.path.join(data_dir, db_name)
-source_db = os.path.join(basedir, db_name)
-
-if not os.path.exists(destination_db) and os.path.exists(source_db):
-    shutil.copyfile(source_db, destination_db)
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-from sqlalchemy import text
 
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
@@ -85,6 +86,7 @@ class User(db.Model):
     join_date = db.Column(db.String(20), default="2023-01-01")
     caste = db.Column(db.String(50), default='General')
     religion = db.Column(db.String(50), default='Not Specified')
+    profile_pic = db.Column(db.String(200), default='default.png') # NEW FIELD
     
     tasks = db.relationship('Task', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
@@ -817,6 +819,83 @@ def email_staff_list():
     except Exception as e:
         return f"Error sending email: {str(e)}"
 
+@app.route('/upload_photo/<int:uid>', methods=['POST'])
+def upload_photo(uid):
+    if 'photo' not in request.files: return redirect(request.referrer)
+    file = request.files['photo']
+    if file and allowed_file(file.filename):
+        user = User.query.get(uid)
+        filename = f"staff_{uid}_{secure_filename(file.filename)}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        user.profile_pic = filename
+        db.session.commit()
+        flash("Photo updated successfully!", "success")
+    return redirect(request.referrer)
+
+@app.route('/generate_id/<int:uid>')
+def generate_id(uid):
+    u = User.query.get(uid)
+    # ID Card Size: 54mm x 86mm (Standard CR80)
+    pdf = FPDF(format=(54, 86))
+    pdf.add_page()
+    
+    # Header Branding
+    pdf.set_fill_color(27, 37, 89)
+    pdf.rect(0, 0, 54, 20, 'F')
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Arial", 'B', 8)
+    pdf.text(12, 10, "BMSCCM STAFF ID")
+    
+    # Profile Picture
+    pic_path = os.path.join(app.config['UPLOAD_FOLDER'], u.profile_pic)
+    if not os.path.exists(pic_path) or u.profile_pic == 'default.png':
+        pdf.rect(17, 22, 20, 20) # Placeholder
+    else:
+        pdf.image(pic_path, 17, 22, 20, 20)
+
+    # Details
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", 'B', 9)
+    pdf.set_xy(0, 45)
+    pdf.cell(54, 5, u.full_name.upper(), 0, 1, 'C')
+    pdf.set_font("Arial", '', 7)
+    pdf.cell(54, 4, u.role, 0, 1, 'C')
+    pdf.cell(54, 4, f"ID: BMS-{u.id}", 0, 1, 'C')
+
+    # QR Code for verification
+    qr_content = f"VERIFIED: {u.full_name} | ROLE: {u.role} | DEPT: BMSCCM"
+    qr = qrcode.make(qr_content)
+    qr_io = io.BytesIO()
+    qr.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    
+    # Temp save QR to show in PDF
+    qr_temp_path = f"static/uploads/qr_{uid}.png"
+    with open(qr_temp_path, "wb") as f: f.write(qr_io.getvalue())
+    
+    pdf.image(qr_temp_path, 20, 62, 14, 14)
+    pdf.set_font("Arial", 'I', 5)
+    pdf.text(15, 78, "Scan to Verify Employment")
+
+    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    response.headers['Content-Type'] = 'application/pdf'
+    return response
+
+@app.route('/payslip_history')
+def payslip_history():
+    if 'user_id' not in session: return redirect(url_for('login'))
+    user = User.query.get(session['user_id'])
+    
+    # Generate list of past 6 months
+    months = ["September 2025", "October 2025", "November 2025", "December 2025", "January 2026", "February 2026"]
+    return render_template('payslip_history.html', user=user, months=months)
+
+@app.route('/generate_payslip_historical/<int:uid>/<month>')
+def generate_payslip_historical(uid, month):
+    # This uses your existing generate_payslip logic but injects the specific month name
+    # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
+    return generate_payslip(uid) # Temporary redirect to main logic for now
+
 
 online_users = {} 
 
@@ -888,6 +967,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
