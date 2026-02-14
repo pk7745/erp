@@ -112,6 +112,31 @@
         <div style="display: flex; flex-direction: column; gap: 20px;">
             
             <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
+                <h3 style="margin-top: 0; color: #1b2559;">🎥 Meeting Hub</h3>
+                <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" name="room_name" placeholder="Start new meeting (e.g. BCA Dept Huddle)" required style="flex: 1; border-radius: 8px; border: 1px solid #ddd; padding: 10px;">
+                    <button type="submit" class="btn" style="background: #4318ff; color: white; border: none; padding: 10px 20px; border-radius: 8px;">Create & Join</button>
+                </form>
+                
+                <h4 style="font-size: 0.85rem; color: #a3aed0; text-transform: uppercase; margin-bottom: 10px;">Ongoing/Recent Meetings</h4>
+                <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+                    {% if meetings %}
+                        {% for meet in meetings %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #f4f7fe; border-radius: 10px;">
+                            <div>
+                                <span style="font-weight: 600; color: #1b2559;">{{ meet.room_name }}</span>
+                                <small style="display: block; color: #707eae;">By: {{ meet.created_by }}</small>
+                            </div>
+                            <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn" style="background: #05cd99; color: white; font-size: 0.8rem; padding: 5px 15px; text-decoration: none; border-radius: 6px;">Join</a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center; color: #a3aed0; font-size: 0.9rem; padding: 10px;">No active meetings found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
                 <h3 style="margin-top: 0; color: #1b2559;">📝 Submit Daily Activity Report</h3>
                 <form action="{{ url_for('submit_report') }}" method="POST">
                     <textarea name="content" placeholder="What did you work on today?" required style="width: 100%; height: 80px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-family: inherit;"></textarea>
@@ -159,16 +184,16 @@
             {% endif %}
 
             <div class="card shadow-sm border-0 p-3" style="border-radius: 15px; cursor: pointer;" onclick="location.href='{{ url_for('payslip_history') }}'">
-    <div class="d-flex align-items-center">
-        <div style="background: #e6fffa; padding: 10px; border-radius: 12px; font-size: 1.5rem; margin-right: 15px;">
-            📁
-        </div>
-        <div>
-            <h6 class="mb-0" style="color: #a3aed0;">Payroll</h6>
-            <span style="color: #1b2559; font-weight: 700;">View History</span>
-        </div>
-    </div>
-</div>
+                <div class="d-flex align-items-center">
+                    <div style="background: #e6fffa; padding: 10px; border-radius: 12px; font-size: 1.5rem; margin-right: 15px;">
+                        📁
+                    </div>
+                    <div>
+                        <h6 class="mb-0" style="color: #a3aed0;">Payroll</h6>
+                        <span style="color: #1b2559; font-weight: 700;">View History</span>
+                    </div>
+                </div>
+            </div>
 
             <div class="card" style="background: white; padding: 20px; border-radius: 15px;">
                 <h3 style="margin-top: 0; color: #1b2559;">📂 Exports</h3>
@@ -206,39 +231,37 @@
     }
 
     setInterval(fetchLiveNotifications, 5000);
-/* --- Replace the Chart section in dashboard.html --- */
-const ctx = document.getElementById('modeChart').getContext('2d');
-new Chart(ctx, {
-    type: 'radar',
-    data: {
-        labels: ['Office Days', 'WFH Days', 'Tasks Done', 'Reports', 'Activity'],
-        datasets: [{
-            label: 'Workload Balance',
-            data: [
-                {{ office_days }}, 
-                {{ wfh_days }}, 
-                {{ tasks|selectattr('is_done', 'equalto', true)|list|count }},
-                5, // Placeholder for report count
-                8  // Placeholder for activity intensity
-            ],
-            backgroundColor: 'rgba(65, 24, 255, 0.2)',
-            borderColor: '#4318ff',
-            borderWidth: 2,
-            pointBackgroundColor: '#4318ff'
-        }]
-    },
-    options: {
-        scales: {
-            r: {
-                angleLines: { display: true },
-                suggestedMin: 0,
-                ticks: { display: false }
-            }
+
+    const ctx = document.getElementById('modeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Office Days', 'WFH Days', 'Tasks Done', 'Reports', 'Activity'],
+            datasets: [{
+                label: 'Workload Balance',
+                data: [
+                    {{ office_days }}, 
+                    {{ wfh_days }}, 
+                    {{ tasks|selectattr('is_done', 'equalto', true)|list|count }},
+                    5, 
+                    8  
+                ],
+                backgroundColor: 'rgba(65, 24, 255, 0.2)',
+                borderColor: '#4318ff',
+                borderWidth: 2,
+                pointBackgroundColor: '#4318ff'
+            }]
         },
-        plugins: { legend: { display: false } }
-    }
-});
+        options: {
+            scales: {
+                r: {
+                    angleLines: { display: true },
+                    suggestedMin: 0,
+                    ticks: { display: false }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 </script>
 {% endblock %}
-
-
