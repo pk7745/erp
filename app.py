@@ -8,7 +8,7 @@ import pytz
 import shutil
 import math
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
@@ -594,24 +594,29 @@ def export_csv(rtype):
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
-    if not u: return "User not found", 404
-    
+    if not u:
+        return "Employee not found", 404
+        
     basic = u.salary
-    hra, da, ta = int(basic * 0.40), int(basic * 0.10), 2000
+    hra = int(basic * 0.40)
+    da = int(basic * 0.10)
+    ta = 2000
     gross = basic + hra + da + ta
     
     # ADJUSTABLE TDS SLAB LOGIC
     if gross > 100000:
-        tds_rate = 0.15  # 15% for high earners
+        tds_rate = 0.15  # 15%
     elif gross > 50000:
-        tds_rate = 0.10  # 10% standard
+        tds_rate = 0.10  # 10%
     else:
-        tds_rate = 0.05  # 5% for lower slab
+        tds_rate = 0.05  # 5%
         
     tds = int(gross * tds_rate)
     epf = int((basic + da) * 0.12)
     pt = 200
-    net = gross - (epf + tds + pt)
+    total_deductions = epf + pt + tds
+    net = gross - total_deductions
+
     # 2. PDF Setup
     pdf = FPDF()
     pdf.add_page()
@@ -630,7 +635,7 @@ def generate_payslip(uid):
     # Employee Info Row
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(40, 8, "Employee Name:", 0); pdf.set_font("Arial", '', 10); pdf.cell(60, 8, u.full_name, 0)
-    pdf.set_font("Arial", 'B', 10); pdf.cell(40, 8, "Designation:", 0); pdf.set_font("Arial", '', 10); pdf.cell(50, 8, u.role, 1, True)
+    pdf.set_font("Arial", 'B', 10); pdf.cell(40, 8, "Designation:", 0); pdf.set_font("Arial", '', 10); pdf.cell(50, 8, u.role, 0, 1)
     pdf.ln(5)
 
     # 3. Detailed Salary Table
@@ -650,7 +655,7 @@ def generate_payslip(uid):
     pdf.cell(65, 8, "Professional Tax", 1); pdf.cell(30, 8, f"{pt}", 1, 1, 'R')
     # Row 3
     pdf.cell(65, 8, "D.A (10%)", 1); pdf.cell(30, 8, f"{da}", 1, 0, 'R')
-    pdf.cell(65, 8, "Income Tax / TDS", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
+    pdf.cell(65, 8, f"Income Tax / TDS ({int(tds_rate*100)}%)", 1); pdf.cell(30, 8, f"{tds}", 1, 1, 'R')
     # Row 4
     pdf.cell(65, 8, "Transport Allowance", 1); pdf.cell(30, 8, f"{ta}", 1, 0, 'R')
     pdf.cell(65, 8, "Other Deductions", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
@@ -658,34 +663,20 @@ def generate_payslip(uid):
     # Totals Row
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(65, 10, "Gross Earnings", 1, 0, 'L', True)
-    pdf.cell(30, 10, f"INR {gross}", 1, 0, 'R', True)
+    pdf.cell(30, 10, f"{gross}", 1, 0, 'R', True)
     pdf.cell(65, 10, "Total Deductions", 1, 0, 'L', True)
-    pdf.cell(30, 10, f"INR {epf + pt}", 1, 1, 'R', True)
+    pdf.cell(30, 10, f"{total_deductions}", 1, 1, 'R', True)
 
     # Net Pay Box
     pdf.ln(5)
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(190, 12, f"NET PAYABLE: INR {net} /-", border=1, ln=True, align='C')
 
-    # 4. Seal and Signature
-    # Ensure these files (seal.png, sign.png) are in your static/images folder
-    pdf.ln(10)
-    y_pos = pdf.get_y()
-    
-    # Place Seal on the left
-    try:
-        pdf.image('static/images/seal.png', 30, y_pos, 25) 
-    except:
-        pdf.text(30, y_pos + 5, "[College Seal]")
-
-    # Place Signature on the right
-    try:
-        pdf.image('static/images/signature.png', 140, y_pos, 30)
-    except:
-        pdf.text(140, y_pos + 5, "[Principal's Signature]")
-    
+    # 4. Seal and Signature (Blank placeholders as requested)
     pdf.ln(25)
     pdf.set_font("Arial", 'B', 10)
+    pdf.cell(95, 5, "_______________________", 0, 0, 'C')
+    pdf.cell(95, 5, "_______________________", 0, 1, 'C')
     pdf.cell(95, 5, "College Seal", 0, 0, 'C')
     pdf.cell(95, 5, "Principal Signature", 0, 1, 'C')
 
@@ -696,7 +687,7 @@ def generate_payslip(uid):
     pdf.cell(190, 5, "This is a computer-generated payslip and does not require a physical ink signature.", ln=True, align='C')
     pdf.cell(190, 5, f"Verification Code: BMS-{uid}-2026 | Digital Rights Reserved @ BMSCCM IT Cell", ln=True, align='C')
 
-    # Output
+    # Output Fix (Use latin-1 encoding for FPDF string output)
     response = make_response(pdf.output(dest='S').encode('latin-1'))
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}.pdf'
@@ -897,6 +888,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
