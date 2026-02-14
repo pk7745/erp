@@ -9,7 +9,7 @@
         <div class="card-header d-flex justify-content-between align-items-center" style="background: #f4f7fe; padding: 15px;">
             <div>
                 <h3 style="margin:0; display: inline-block;">🎥 Room: {{ request.args.get('join_meet') }}</h3>
-                <span style="margin-left:15px; font-size: 0.8rem; color: #4318ff;"><strong>Status:</strong> Use the icons at the bottom of the video for Chat/Hand</span>
+                <span id="meet-timer" style="margin-left:15px; background: #4318ff; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">00:00:00</span>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button onclick="startRecording()" class="btn" style="background: #05cd99; font-size: 0.8rem;">🔴 Record</button>
@@ -22,6 +22,17 @@
     
     <script src="https://meet.jit.si/external_api.js"></script>
     <script>
+        // Timer Logic
+        let seconds = 0;
+        const timerElement = document.getElementById('meet-timer');
+        setInterval(() => {
+            seconds++;
+            let hrs = Math.floor(seconds / 3600);
+            let mins = Math.floor((seconds - (hrs * 3600)) / 60);
+            let secs = seconds % 60;
+            timerElement.innerText = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }, 1000);
+
         const domain = "meet.jit.si";
         const options = {
             roomName: "{{ request.args.get('join_meet') }}",
@@ -32,19 +43,20 @@
             configOverwrite: { 
                 startWithAudioMuted: true,
                 startWithVideoMuted: false,
-                prejoinPageEnabled: false,      // THIS BYPASSES THE SCREEN IN YOUR PIC
+                prejoinPageEnabled: false,
                 disableChat: false,
                 disableRaiseHand: false,
-                // Force toolbar to stay visible
+                // STABILITY UPDATES: Prevent timeouts and third-party interruptions
+                disableThirdPartyRequests: true,
+                enableNoisyMicDetection: false,
+                enableClosePage: false,
+                defaultLanguage: 'en',
                 toolbarButtons: [
                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
                    'fodeviceselection', 'chat', 'recording', 'sharedvideo', 'settings', 
                    'raisehand', 'videoquality', 'filmstrip', 'tileview', 'download', 'help', 'participants-pane'
                 ],
-                // Ensure the chat and raise hand aren't hidden in the "three dots" menu
-                toolbarConfig: {
-                    alwaysVisible: true
-                }
+                toolbarConfig: { alwaysVisible: true }
             },
             interfaceConfigOverwrite: {
                 TOOLBAR_BUTTONS: [
@@ -52,9 +64,10 @@
                     'chat', 'recording', 'settings', 'raisehand', 'videoquality', 
                     'tileview', 'participants-pane'
                 ],
-                // Hides Jitsi branding to make it look professional
                 SHOW_JITSI_WATERMARK: false,
                 SHOW_WATERMARK_FOR_GUESTS: false,
+                MOBILE_APP_PROMO: false,
+                GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
             }
         };
 
@@ -224,6 +237,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // PRESERVED LOGIC: Notifications
     let lastKnownId = 0;
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
@@ -245,6 +259,7 @@
     }
     setInterval(fetchLiveNotifications, 5000);
 
+    // PRESERVED LOGIC: Radar Chart
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
