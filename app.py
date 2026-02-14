@@ -464,31 +464,49 @@ def approve_expense(id, action):
 @app.route('/chat', methods=['GET', 'POST'])
 @app.route('/chat/<int:receiver_id>', methods=['GET', 'POST'])
 def chat(receiver_id=None):
-    if 'user_id' not in session: 
-        return redirect(url_for('login'))
-    
+    if 'user_id' not in session: return redirect(url_for('login'))
     curr_id = session['user_id']
     
-    # 1. Fetch all other employees for the "Contact List"
-    # This ensures you can always see the Principal, HOD, etc.
-    all_staff = User.query.filter(User.id != curr_id).order_by(User.role).all()
-    
-    # 2. Handle Private Messaging Logic
-    messages = []
-    receiver = None
+    # 1. MARK MESSAGES AS READ
     if receiver_id:
-        receiver = User.query.get(receiver_id)
-        # Fetch private conversation between me and this specific person
+        # If I am viewing messages from 'receiver_id', mark them as read
+        unread_messages = Message.query.filter_by(
+            sender_id=receiver_id, 
+            receiver_id=curr_id, 
+            is_read=False
+        ).all()
+        for msg in unread_messages:
+            msg.is_read = True
+        db.session.commit()
+
+    # 2. HANDLE NEW MESSAGE SENDING
+    if request.method == 'POST' and receiver_id:
+        content = request.form.get('content')
+        if content:
+            new_msg = Message(
+                sender_id=curr_id, 
+                receiver_id=receiver_id, 
+                content=content, 
+                is_group=False,
+                timestamp=get_ist_time(),
+                is_read=False # Default to unread
+            )
+            db.session.add(new_msg)
+            db.session.commit()
+            return redirect(url_for('chat', receiver_id=receiver_id))
+
+    all_staff = User.query.filter(User.id != curr_id).order_by(User.role).all()
+    receiver = User.query.get(receiver_id) if receiver_id else None
+    
+    # Fetch messages for display
+    messages = []
+    if receiver_id:
         messages = Message.query.filter(
             ((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | 
             ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))
         ).order_by(Message.timestamp.asc()).all()
 
-    return render_template('chat.html', 
-                           all_staff=all_staff, 
-                           messages=messages, 
-                           receiver=receiver)
-
+    return render_template('chat.html', all_staff=all_staff, messages=messages, receiver=receiver)
 @app.route('/api/chat/messages')
 def get_lounge_messages():
     msgs = Message.query.filter_by(is_group=True).order_by(Message.timestamp.desc()).limit(50).all()
@@ -738,6 +756,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
