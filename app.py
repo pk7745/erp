@@ -713,7 +713,7 @@ def email_staff_list():
     for s in staff_data:
         body += f"{s.full_name} - {s.role} - {s.email}\n"
         
-    msg = Message("Official Staff Directory - BMSCCM",
+    msg = MailMessage("Official Staff Directory - BMSCCM",
                   sender=app.config['MAIL_USERNAME'],
                   recipients=[principal_email])
     msg.body = body
@@ -792,6 +792,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
