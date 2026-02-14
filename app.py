@@ -495,7 +495,18 @@ def chat(receiver_id=None):
             db.session.commit()
             return redirect(url_for('chat', receiver_id=receiver_id))
 
+    # --- START OF NOTIFICATION LOGIC ---
     all_staff = User.query.filter(User.id != curr_id).order_by(User.role).all()
+    
+    # Calculate unread messages for each staff member to display in the sidebar
+    for staff in all_staff:
+        staff.unread_count = Message.query.filter_by(
+            sender_id=staff.id, 
+            receiver_id=curr_id, 
+            is_read=False
+        ).count()
+    # --- END OF NOTIFICATION LOGIC ---
+
     receiver = User.query.get(receiver_id) if receiver_id else None
     
     # Fetch messages for display
@@ -507,6 +518,7 @@ def chat(receiver_id=None):
         ).order_by(Message.timestamp.asc()).all()
 
     return render_template('chat.html', all_staff=all_staff, messages=messages, receiver=receiver)
+    
 @app.route('/api/chat/messages')
 def get_lounge_messages():
     msgs = Message.query.filter_by(is_group=True).order_by(Message.timestamp.desc()).limit(50).all()
@@ -756,6 +768,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
