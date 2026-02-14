@@ -14,6 +14,12 @@ from flask_mail import Mail, Message
 import eventlet
 
 app = Flask(__name__)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME') # Best practice: use Env Vars
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD') 
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 mail = Mail(app)
 app.secret_key = "bms_college_ultimate_v200"
@@ -694,11 +700,13 @@ def seed_database():
     db.session.commit()
 
 with app.app_context():
+    db.create_all()
     seed_database()
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
