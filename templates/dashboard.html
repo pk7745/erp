@@ -9,22 +9,18 @@
         <div class="card-header d-flex justify-content-between align-items-center" style="background: #f4f7fe; padding: 15px;">
             <div>
                 <h3 style="margin:0; display: inline-block;">🎥 Room: {{ request.args.get('join_meet') }}</h3>
-                <span style="margin-left:15px; cursor:help; font-size: 0.8rem; color: #4318ff;" title="Use the toolbar at the bottom for Chat and Raise Hand.">🛠 Zoom Features Active</span>
+                <span style="margin-left:15px; font-size: 0.8rem; color: #4318ff;"><strong>Zoom Mode:</strong> Chat & Raise Hand Enabled</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="startRecording()" class="btn" style="background: #05cd99; font-size: 0.8rem;">🔴 Record Session</button>
-                <button onclick="endMeeting()" class="btn" style="background:#ee5d50; font-size: 0.8rem; color: white; border: none; cursor: pointer;">🚪 End Meeting</button>
+                <button onclick="startRecording()" class="btn" style="background: #05cd99; font-size: 0.8rem;">🔴 Record</button>
+                
+                <a href="{{ url_for('dashboard') }}" class="btn" style="background: #a3aed0; font-size: 0.8rem; text-decoration: none; color: white;">Leave</a>
+                <button onclick="endMeeting()" class="btn" style="background: #ee5d50; font-size: 0.8rem; border: none; color: white; cursor: pointer;">End Meeting</button>
             </div>
         </div>
         <div id="jitsi-container" style="height: 600px; width: 100%;"></div>
     </div>
     
-    <div id="recording-guide" style="display:none; position: fixed; top:50%; left:50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 10001; max-width: 400px; text-align: center;">
-        <h3 style="color: #4318ff;">Meeting Recording</h3>
-        <p>To record, click the <strong>three dots (...)</strong> in the video window and select <strong>'Start Recording'</strong>.</p>
-        <button onclick="document.getElementById('recording-guide').style.display='none'" class="btn">Got it!</button>
-    </div>
-
     <script src="https://meet.jit.si/external_api.js"></script>
     <script>
         const domain = "meet.jit.si";
@@ -36,9 +32,11 @@
             userInfo: { displayName: "{{ session['name'] }}" },
             configOverwrite: { 
                 startWithAudioMuted: true,
-                disableScreensharing: false, 
-                enableFeaturesBasedOnTokens: false,
-                desktopSharingFrameRate: { min: 5, max: 15 },
+                startWithVideoMuted: false,
+                disableChat: false,               // MUST BE FALSE FOR ZOOM CHAT
+                disableRaiseHand: false,         // MUST BE FALSE FOR RAISE HAND
+                enableWelcomePage: false,
+                prejoinPageEnabled: false,
                 toolbarButtons: [
                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
                    'fodeviceselection', 'chat', 'recording', 'sharedvideo', 'settings', 
@@ -46,34 +44,38 @@
                 ]
             },
             interfaceConfigOverwrite: {
-                // Raise hand and Chat are enabled via these toolbar buttons
-                TOOLBAR_BUTTONS: ['microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen', 'chat', 'recording', 'settings', 'raisehand', 'videoquality', 'tileview', 'participants-pane'],
+                // This ensures the buttons actually appear on the bottom bar
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen', 
+                    'chat', 'recording', 'settings', 'raisehand', 'videoquality', 
+                    'tileview', 'participants-pane'
+                ],
+                GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
+                DISPLAY_WELCOME_PAGE_CONTENT: false,
             }
         };
+
         const api = new JitsiMeetExternalAPI(domain, options);
         
         api.addEventListener('videoConferenceJoined', () => {
             const iframe = api.getIFrame();
-            if (iframe) { iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"); }
+            if (iframe) { 
+                iframe.setAttribute("allow", "camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"); 
+            }
         });
 
-        // FUNCTION TO END MEETING AND CLEAR FROM LIST
         function endMeeting() {
-            if (confirm("End meeting for everyone and remove from list?")) {
+            if (confirm("End meeting for everyone and remove from dashboard?")) {
                 const roomName = "{{ request.args.get('join_meet') }}";
-                // 1. Tell Python to delete it from the database
-                fetch(`/delete_meeting/${roomName}`)
-                .then(response => {
-                    // 2. Close the Jitsi session
+                fetch(`/delete_meeting/${roomName}`).then(() => {
                     api.dispose();
-                    // 3. Redirect back to dashboard (the list will now be empty/updated)
                     window.location.href = "{{ url_for('dashboard') }}";
                 });
             }
         }
 
         function startRecording() {
-            document.getElementById('recording-guide').style.display = 'block';
+            alert("To record: Click the 'Three Dots' icon in the video bar and select 'Start Recording'.");
             fetch('/notify_recording/{{ request.args.get("join_meet") }}');
         }
     </script>
@@ -83,9 +85,7 @@
     <div id="celebration-toast" style="background: linear-gradient(135deg, #ff0080, #7928ca); color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">
         <div style="display: flex; align-items: center; gap: 15px;">
             <div style="font-size: 2.5rem;">{% if is_birthday %}🎂{% else %}🎊{% endif %}</div>
-            <div>
-                <h2 style="margin: 0; font-size: 1.4rem;">Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!</h2>
-            </div>
+            <div><h2 style="margin: 0; font-size: 1.4rem;">Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!</h2></div>
         </div>
         <button onclick="document.getElementById('celebration-toast').style.display='none'" class="btn" style="background: rgba(255,255,255,0.2); color: white;">Close</button>
     </div>
@@ -224,19 +224,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // PRESERVED LIVE NOTIF LOGIC
     let lastKnownId = 0;
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             if (data.length > 0) { lastKnownId = data[0].id; renderFeed(data); }
         });
     }
-
     function renderFeed(data) {
         const list = document.getElementById('notification-list');
         if (!list) return;
         list.innerHTML = data.map(n => `<li style="padding:10px; border-bottom:1px solid #f8f9fa; font-size:0.85rem; color: #1b2559; font-weight: 600;">${n.msg}</li>`).join('');
     }
-
     function clearAllNotifs() {
         if(confirm("Clear all notifications?")) {
             fetch('/clear_notifications').then(() => {
@@ -245,9 +244,9 @@
             });
         }
     }
-
     setInterval(fetchLiveNotifications, 5000);
 
+    // PRESERVED CHART LOGIC
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
@@ -255,13 +254,7 @@
             labels: ['Office Days', 'WFH Days', 'Tasks Done', 'Reports', 'Activity'],
             datasets: [{
                 label: 'Workload Balance',
-                data: [
-                    {{ office_days }}, 
-                    {{ wfh_days }}, 
-                    {{ tasks|selectattr('is_done', 'equalto', true)|list|count }},
-                    5, 
-                    8  
-                ],
+                data: [{{ office_days }}, {{ wfh_days }}, {{ tasks|selectattr('is_done', 'equalto', true)|list|count }}, 5, 8],
                 backgroundColor: 'rgba(65, 24, 255, 0.2)',
                 borderColor: '#4318ff',
                 borderWidth: 2,
@@ -269,13 +262,7 @@
             }]
         },
         options: {
-            scales: {
-                r: {
-                    angleLines: { display: true },
-                    suggestedMin: 0,
-                    ticks: { display: false }
-                }
-            },
+            scales: { r: { angleLines: { display: true }, suggestedMin: 0, ticks: { display: false } } },
             plugins: { legend: { display: false } }
         }
     });
