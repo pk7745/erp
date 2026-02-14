@@ -35,6 +35,23 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+from sqlalchemy import text
+
+def migrate_db():
+    with app.app_context():
+        try:
+            # Check if 'lat' exists in Attendance, if not, add columns
+            db.session.execute(text("ALTER TABLE attendance ADD COLUMN lat FLOAT"))
+            db.session.execute(text("ALTER TABLE attendance ADD COLUMN lon FLOAT"))
+            db.session.commit()
+            print("Database migration successful: added lat/lon columns.")
+        except Exception as e:
+            # If columns already exist, this will fail silently which is fine
+            db.session.rollback()
+            print(f"Migration skipped or already done: {e}")
+
+# Call migration
+migrate_db()
 
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
@@ -651,5 +668,6 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
