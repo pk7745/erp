@@ -660,6 +660,45 @@ def email_staff_list():
     flash("Directory emailed to Principal successfully!", "success")
     return redirect(url_for('staff_directory'))
 
+# Add this near your other global variables
+online_users = {} 
+
+@socketio.on('connect')
+def handle_connect():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        user_name = session.get('name', 'Staff')
+        online_users[user_id] = user_name
+        # Broadcast the updated list to everyone
+        emit('update_online_status', list(online_users.values()), broadcast=True)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if 'user_id' in session:
+        user_id = session['user_id']
+        if user_id in online_users:
+            del online_users[user_id]
+        emit('update_online_status', list(online_users.values()), broadcast=True)
+
+@socketio.on('send_chat_message')
+def handle_chat(data):
+    now = get_ist_time()
+    timestamp = now.strftime("%I:%M %p")
+    sender_id = session.get('user_id')
+    sender_name = session.get('name', 'Anonymous')
+
+    # Save to Database
+    new_msg = Message(sender_id=sender_id, content=data['text'], is_group=True, timestamp=now)
+    db.session.add(new_msg)
+    db.session.commit()
+
+    emit('new_message', {
+        'user': sender_name,
+        'user_id': sender_id,
+        'text': data['text'],
+        'time': timestamp
+    }, broadcast=True)
+
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -693,6 +732,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
