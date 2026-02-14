@@ -274,12 +274,6 @@ def dashboard():
                            is_birthday=is_birthday, 
                            is_anniversary=is_anniversary)
 
-@app.route('/generate_id')
-def generate_id():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    return render_template('id_card.html', user=user, now=get_ist_time().strftime("%Y"))
-
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -967,6 +961,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
