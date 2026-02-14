@@ -55,12 +55,15 @@
             75% { transform: translateX(8px); }
         }
 
+        /* UPDATED FOR POINT 3 */
         .brand-name {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 800;
             color: var(--navy);
             margin-bottom: 10px;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+            text-transform: uppercase;
         }
 
         input {
@@ -100,7 +103,6 @@
             filter: brightness(1.1);
         }
 
-        /* RESTORED FEATURE: FORGOT PASSWORD */
         .forgot-link {
             display: block;
             margin-top: 20px;
@@ -128,8 +130,8 @@
 <body>
 
     <div class="login-card">
-        <div class="brand-name">NEXUS<span style="color: var(--primary);">ERP</span></div>
-        <p style="color: var(--text-gray); margin-bottom: 30px;">Sign in to your enterprise workspace.</p>
+        <div class="brand-name">BMS COLLEGE OF <br> <span style="color: var(--primary);">COMMERCE AND MANAGEMENT</span></div>
+        <p style="color: var(--text-gray); margin-bottom: 30px;">Faculty & Staff Enterprise Login</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -142,7 +144,7 @@
         {% endwith %}
 
         <form method="POST">
-            <input type="text" name="username" placeholder="Username / Nexus ID" required>
+            <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit" class="btn-login">Sign In</button>
         </form>
@@ -150,11 +152,9 @@
         <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot Password?</a>
 
         <div class="footer-text">
-            WELCOME!BMSCCM
+            © 2026 BMSCCM
         </div>
     </div>
 
 </body>
 </html>
-
-
