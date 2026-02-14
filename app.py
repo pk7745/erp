@@ -464,23 +464,30 @@ def approve_expense(id, action):
 @app.route('/chat', methods=['GET', 'POST'])
 @app.route('/chat/<int:receiver_id>', methods=['GET', 'POST'])
 def chat(receiver_id=None):
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+    
     curr_id = session['user_id']
-    if request.method == 'POST':
-        rid = receiver_id or request.form.get('receiver_id')
-        msg_text = request.form.get('content')
-        if rid and msg_text:
-            new_msg = Message(sender_id=curr_id, receiver_id=int(rid), content=msg_text.strip())
-            db.session.add(new_msg)
-            db.session.commit()
-            return redirect(url_for('chat', receiver_id=rid))
-    contacts = User.query.filter(User.id != curr_id).all()
+    
+    # 1. Fetch all other employees for the "Contact List"
+    # This ensures you can always see the Principal, HOD, etc.
+    all_staff = User.query.filter(User.id != curr_id).order_by(User.role).all()
+    
+    # 2. Handle Private Messaging Logic
     messages = []
+    receiver = None
     if receiver_id:
-        Message.query.filter_by(sender_id=receiver_id, receiver_id=curr_id, is_read=False).update({Message.is_read: True})
-        db.session.commit()
-        messages = Message.query.filter(((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))).order_by(Message.timestamp.asc()).all()
-    return render_template('chat.html', contacts=contacts, messages=messages, receiver_id=receiver_id)
+        receiver = User.query.get(receiver_id)
+        # Fetch private conversation between me and this specific person
+        messages = Message.query.filter(
+            ((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | 
+            ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))
+        ).order_by(Message.timestamp.asc()).all()
+
+    return render_template('chat.html', 
+                           all_staff=all_staff, 
+                           messages=messages, 
+                           receiver=receiver)
 
 @app.route('/api/chat/messages')
 def get_lounge_messages():
@@ -731,6 +738,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
