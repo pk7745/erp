@@ -179,13 +179,17 @@ def login():
 def dashboard():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    
+    # Check for Birthday/Anniversary
     today_md = get_ist_time().strftime("%m-%d")
     is_birthday = user.dob[5:] == today_md if user.dob else False
     is_anniversary = user.join_date[5:] == today_md if user.join_date else False
 
     unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count()
     tasks = Task.query.filter_by(user_id=user.id).all()
-    off_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
+    
+    # Calculate days for the Chart
+    office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
@@ -199,9 +203,16 @@ def dashboard():
     else:
         notifs = []
     
-    return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, 
-                           wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats,
-                           is_birthday=is_birthday, is_anniversary=is_anniversary)
+    # Note: Variable names here must match the HTML template
+    return render_template('dashboard.html', 
+                           user=user, 
+                           notifications=notifs, 
+                           office_days=office_days, 
+                           wfh_days=wfh_days, 
+                           tasks=tasks, 
+                           unread_chats=unread_chats,
+                           is_birthday=is_birthday, 
+                           is_anniversary=is_anniversary)
 
 @app.route('/generate_id')
 def generate_id():
@@ -632,4 +643,5 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
