@@ -5,8 +5,17 @@
         <div style="position: absolute; top: 0; left: 0; right: 0; height: 100px; background: linear-gradient(90deg, var(--p), #6060f0); opacity: 0.1;"></div>
         
         <div style="text-align: center; position: relative; z-index: 1;">
-            <div style="width: 100px; height: 100px; background: var(--p); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 15px auto; border: 4px solid var(--card-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                {{ user.full_name[0] }}
+            <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 15px auto;">
+                <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic or 'default.png')) }}" 
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ user.full_name }}&background=4318ff&color=fff'"
+                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 4px solid var(--card-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                
+                <form action="{{ url_for('upload_photo', uid=user.id) }}" method="POST" enctype="multipart/form-data" id="photoForm">
+                    <input type="file" name="photo" id="photoInput" style="display:none;" onchange="document.getElementById('photoForm').submit()">
+                    <label for="photoInput" style="position: absolute; bottom: 0; right: 0; background: #4318ff; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; font-size: 0.8rem;">
+                        📷
+                    </label>
+                </form>
             </div>
             
             <h1 style="margin: 0; font-family: 'DM Sans', sans-serif;">{{ user.full_name }}</h1>
@@ -18,87 +27,22 @@
                 <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Full Name</label>
                 <input type="text" name="full_name" value="{{ user.full_name }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;" required>
             </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Designation / Role</label>
-                <span style="font-weight: 700; font-size: 1.1rem; color: var(--p); display: block; padding: 5px 0;">{{ user.role }}</span>
-                <small style="color: var(--text-light); font-size: 0.7rem;">(Role cannot be changed by user)</small>
-            </div>
-            
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Official Email</label>
-                <input type="email" name="email" value="{{ user.email }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;" required>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Work Location</label>
-                <input type="text" name="address" value="{{ user.address or 'Nexus HQ' }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;">
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">📅 Date of Birth</label>
-                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0; color: #1b2559;">
-                    {{ user.dob }}
-                </span>
-                <small style="color: var(--text-light); font-size: 0.7rem;">(Locked Milestone)</small>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🗓️ Joining Date</label>
-                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0; color: #1b2559;">
-                    {{ user.join_date }}
-                </span>
-                <small style="color: var(--text-light); font-size: 0.7rem;">(Work Anniversary)</small>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Username</label>
-                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0;">@{{ user.username }}</span>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">New Password (Optional)</label>
-                <input type="password" name="password" placeholder="Leave blank to keep current" style="width:100%; border:none; border-bottom:1px solid #ddd; font-size: 1.1rem; padding: 5px 0;">
-            </div>
-
             <div style="grid-column: span 2; text-align: center; margin-top: 10px;">
                 <button type="submit" class="btn" style="width: 100%; padding: 12px;">Save Profile Changes</button>
             </div>
         </form>
 
-        <div class="card" style="margin-top: 30px; border-top: 4px solid #05cd99; padding: 20px; background: #fff;">
-            <h3 style="margin-top: 0;">💰 My Salary Structure (Monthly)</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div style="background: #f4f7fe; padding: 15px; border-radius: 10px;">
-                    <p style="color: #4318ff; font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 10px;">EARNINGS</p>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>Basic:</span> <span>₹{{ user.salary }}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>HRA (40%):</span> <span>₹{{ payroll.hra }}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>DA (10%):</span> <span>₹{{ payroll.da }}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>TA:</span> <span>₹{{ payroll.ta }}</span></div>
-                    <hr style="border: 0.5px solid #ddd; margin: 10px 0;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>GROSS:</span> <span>₹{{ payroll.gross }}</span></div>
-                </div>
-                <div style="background: #fff5f5; padding: 15px; border-radius: 10px;">
-                    <p style="color: #ee5d50; font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 10px;">DEDUCTIONS</p>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>EPF (12%):</span> <span>₹{{ payroll.epf }}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;"><span>Prof. Tax:</span> <span>₹{{ payroll.pt }}</span></div>
-                    <div style="height: 40px;"></div>
-                    <hr style="border: 0.5px solid #ddd; margin: 10px 0;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; color: #ee5d50;"><span>TOTAL:</span> <span>₹{{ payroll.epf + payroll.pt }}</span></div>
-                </div>
-            </div>
-            <div style="background: #05cd99; color: white; padding: 15px; border-radius: 10px; margin-top: 15px; text-align: center;">
-                <h2 style="margin: 0;">Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
-                <small>Estimated monthly credit amount</small>
-            </div>
-        </div>
-
         <div class="card" style="margin-top: 20px; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">📈 Salary Growth Trajectory</h3>
-                <a href="{{ url_for('download_salary_certificate') }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #4318ff; text-decoration: none;">
-                    📥 Download Salary Certificate
-                </a>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0;">📊 Documents & IDs</h3>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #1b2559; color: white; text-decoration: none; border-radius: 8px;">
+                        🪪 Digital ID Card
+                    </a>
+                    <a href="{{ url_for('download_salary_certificate') }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #4318ff; text-decoration: none; border-radius: 8px;">
+                        📥 Salary Certificate
+                    </a>
+                </div>
             </div>
             <div style="height: 300px; width: 100%;">
                 <canvas id="salaryChart"></canvas>
@@ -111,48 +55,4 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('salaryChart').getContext('2d');
-    const currentSalary = {{ user.salary }};
-    const labels = ['2023', '2024', 'Current (2025)'];
-    const dataPoints = [
-        Math.floor(currentSalary * 0.8),
-        Math.floor(currentSalary * 0.9),
-        currentSalary
-    ];
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Monthly Basic Salary (INR)',
-                data: dataPoints,
-                borderColor: '#4318ff',
-                backgroundColor: 'rgba(67, 24, 255, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointBackgroundColor: '#4318ff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    grid: { color: '#f0f0f0' },
-                    ticks: { callback: (value) => '₹' + value.toLocaleString() }
-                },
-                x: { grid: { display: false } }
-            }
-        }
-    });
-});
-</script>
 {% endblock %}
