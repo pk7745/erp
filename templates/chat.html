@@ -1,64 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="height: 80vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 15px;">
-    <div style="padding: 20px; border-bottom: 1px solid #eee; background: #4318ff; color: white;">
-        <h3 style="margin: 0;">💬 BMS Connect - Staff Lounge</h3>
-    </div>
+<div style="display: flex; gap: 20px; height: 85vh; font-family: 'Inter', sans-serif;">
     
-    <div id="chat-box" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f8f9fa;">
+    <div class="card" style="flex: 3; display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 15px;">
+        <div style="padding: 20px; border-bottom: 1px solid #eee; background: #4318ff; color: white;">
+            <h3 style="margin: 0;">💬 BMS Connect - Staff Lounge</h3>
         </div>
+        
+        <div id="chat-box" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f4f7fe;">
+            </div>
 
-    <form id="chat-form" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
-        <input type="text" id="msg-input" placeholder="Share updates with the team..." required 
-               style="flex: 1; padding: 15px; border-radius: 30px; border: 1px solid #ddd; outline: none;">
-        <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff; color: white;">Send</button>
-    </form>
+        <div id="typing-area" style="padding: 0 20px; height: 20px; font-size: 0.8rem; color: #a3aed0; font-style: italic;"></div>
+
+        <form id="chat-form" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
+            <input type="text" id="msg-input" placeholder="Share updates with the team..." required autocomplete="off"
+                   style="flex: 1; padding: 15px; border-radius: 30px; border: 1px solid #ddd; outline: none;">
+            <button type="submit" class="btn" style="border-radius: 30px; padding: 0 30px; background: #4318ff; color: white; border: none; cursor: pointer;">Send</button>
+        </form>
+    </div>
+
+    <div class="card" style="flex: 1; padding: 20px; border-radius: 15px; background: white; display: flex; flex-direction: column;">
+        <h4 style="color: #1b2559; border-bottom: 2px solid #f4f7fe; padding-bottom: 10px; margin-top: 0;">🟢 Online Now</h4>
+        <ul id="online-list" style="list-style: none; padding: 0; margin-top: 15px; overflow-y: auto; flex: 1;"></ul>
+    </div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
 <script>
-    /* --- Socket Initialization --- */
     var socket = io();
+    const chatBox = document.getElementById('chat-box');
+    const msgInput = document.getElementById('msg-input');
+    const typingArea = document.getElementById('typing-area');
+    const currentUserName = "{{ session['name'] }}";
 
-    // Listen for incoming messages from the server
-    socket.on('new_message', function(m) {
-        const box = document.getElementById('chat-box');
-        // We use the session name passed from Flask to identify the current user
-        const isMe = m.user === "{{ session['name'] }}";
-        
-        const messageHtml = `
-            <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; 
-                        background: ${isMe ? '#4318ff' : 'white'}; 
-                        color: ${isMe ? 'white' : '#1b2559'}; 
-                        padding: 12px 18px; border-radius: 15px; max-width: 70%; 
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-                        border: ${isMe ? 'none' : '1px solid #eee'};">
-                <small style="display: block; font-weight: bold; margin-bottom: 4px; opacity: 0.8;">${m.user}</small>
-                ${m.text}
-            </div>`;
-        
-        box.insertAdjacentHTML('beforeend', messageHtml);
-        
-        // Auto-scroll to the bottom whenever a new message arrives
-        box.scrollTop = box.scrollHeight;
+    // 1. Typing Logic
+    let typingTimer;
+    msgInput.addEventListener('keypress', () => {
+        socket.emit('typing', {is_typing: true});
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => socket.emit('typing', {is_typing: false}), 2000);
     });
 
-    // Send message via Socket when form is submitted
+    socket.on('display_typing', (data) => {
+        typingArea.innerHTML = data.is_typing ? `${data.user} is typing...` : '';
+    });
+
+    // 2. Online Status
+    socket.on('update_online_status', (users) => {
+        const list = document.getElementById('online-list');
+        list.innerHTML = users.map(u => `<li style="padding: 8px 0; color: #2b3674; font-weight: 500;">• ${u} ${u === currentUserName ? '<small>(You)</small>' : ''}</li>`).join('');
+    });
+
+    // 3. New Message (with Timestamp & DM Link)
+    socket.on('new_message', (m) => {
+        const isMe = m.user === currentUserName;
+        const html = `
+            <div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 75%;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-direction: ${isMe ? 'row-reverse' : 'row'}; margin-bottom: 4px;">
+                    <small style="font-weight: bold; color: #1b2559;">${m.user}</small>
+                    ${!isMe ? `<a href="/chat/${m.user_id}" title="Message Personally" style="text-decoration: none; font-size: 14px;">✉️</a>` : ''}
+                </div>
+                <div style="background: ${isMe ? '#4318ff' : 'white'}; color: ${isMe ? 'white' : '#1b2559'}; 
+                            padding: 12px 18px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                    ${m.text}
+                    <small style="display: block; font-size: 10px; margin-top: 5px; text-align: right; opacity: 0.7;">${m.time}</small>
+                </div>
+            </div>`;
+        chatBox.insertAdjacentHTML('beforeend', html);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
     document.getElementById('chat-form').onsubmit = (e) => {
         e.preventDefault();
-        const input = document.getElementById('msg-input');
-        if (input.value.trim() !== "") {
-            // This event name must match the @socketio.on name in app.py
-            socket.emit('send_chat_message', {text: input.value});
-            input.value = '';
+        if (msgInput.value.trim()) {
+            socket.emit('send_chat_message', {text: msgInput.value});
+            msgInput.value = '';
+            socket.emit('typing', {is_typing: false});
         }
-    };
-
-    // Ensure the chat box starts at the bottom on page load
-    window.onload = function() {
-        const box = document.getElementById('chat-box');
-        box.scrollTop = box.scrollHeight;
     };
 </script>
 {% endblock %}
