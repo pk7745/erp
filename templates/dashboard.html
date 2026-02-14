@@ -194,18 +194,38 @@
     }
 
     setInterval(fetchLiveNotifications, 5000);
-
-    const ctx = document.getElementById('modeChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Office', 'WFH'],
-            datasets: [{
-                data: [{{ office_days }}, {{ wfh_days }}],
-                backgroundColor: ['#4318ff', '#05cd99'],
-                borderWidth: 0
-            }]
-        }
-    });
+/* --- Replace the Chart section in dashboard.html --- */
+const ctx = document.getElementById('modeChart').getContext('2d');
+new Chart(ctx, {
+    type: 'radar',
+    data: {
+        labels: ['Office Days', 'WFH Days', 'Tasks Done', 'Reports', 'Activity'],
+        datasets: [{
+            label: 'Workload Balance',
+            data: [
+                {{ office_days }}, 
+                {{ wfh_days }}, 
+                {{ tasks|selectattr('is_done', 'equalto', true)|list|count }},
+                5, // Placeholder for report count
+                8  // Placeholder for activity intensity
+            ],
+            backgroundColor: 'rgba(65, 24, 255, 0.2)',
+            borderColor: '#4318ff',
+            borderWidth: 2,
+            pointBackgroundColor: '#4318ff'
+        }]
+    },
+    options: {
+        scales: {
+            r: {
+                angleLines: { display: true },
+                suggestedMin: 0,
+                ticks: { display: false }
+            }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
 </script>
 {% endblock %}
+
