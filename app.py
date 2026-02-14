@@ -594,19 +594,24 @@ def export_csv(rtype):
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
-    if not u:
-        return "User not found", 404
-
-    # 1. Salary Calculations
+    if not u: return "User not found", 404
+    
     basic = u.salary
-    hra = int(basic * 0.40)
-    da = int(basic * 0.10)
-    ta = 2000
+    hra, da, ta = int(basic * 0.40), int(basic * 0.10), 2000
     gross = basic + hra + da + ta
+    
+    # ADJUSTABLE TDS SLAB LOGIC
+    if gross > 100000:
+        tds_rate = 0.15  # 15% for high earners
+    elif gross > 50000:
+        tds_rate = 0.10  # 10% standard
+    else:
+        tds_rate = 0.05  # 5% for lower slab
+        
+    tds = int(gross * tds_rate)
     epf = int((basic + da) * 0.12)
     pt = 200
-    net = gross - (epf + pt)
-
+    net = gross - (epf + tds + pt)
     # 2. PDF Setup
     pdf = FPDF()
     pdf.add_page()
@@ -892,6 +897,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
