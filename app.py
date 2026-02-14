@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import pytz
+import shutil
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
@@ -9,12 +10,30 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
 
 app = Flask(__name__)
-# Updated Secret Key
 app.secret_key = "bms_college_ultimate_v200"
 
-# Database Configuration
+# ==========================================
+# 1. RAILWAY DATABASE PERSISTENCE LOGIC
+# ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'bms_college.db')
+# Railway persistence path
+data_dir = "/app/data" 
+db_name = 'bms_college.db'
+
+# Fallback for local testing if /app/data doesn't exist
+if not os.path.exists(data_dir):
+    data_dir = os.path.join(basedir, 'data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+destination_db = os.path.join(data_dir, db_name)
+source_db = os.path.join(basedir, db_name)
+
+# Migration: If DB exists in root but not in volume, move it
+if not os.path.exists(destination_db) and os.path.exists(source_db):
+    shutil.copyfile(source_db, destination_db)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -23,7 +42,7 @@ def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
 
 # ==========================================
-# 1. DATABASE MODELS
+# 2. DATABASE MODELS
 # ==========================================
 
 class User(db.Model):
@@ -38,7 +57,6 @@ class User(db.Model):
     address = db.Column(db.String(200))
     dob = db.Column(db.String(20), default="1995-01-01") 
     join_date = db.Column(db.String(20), default="2023-01-01")
-    
     caste = db.Column(db.String(50), default='General')
     religion = db.Column(db.String(50), default='Not Specified')
     
@@ -70,8 +88,8 @@ class Leave(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     date = db.Column(db.String(20))
     reason = db.Column(db.String(255))
-    status = db.Column(db.String(50), default='Pending')  # Stages: Pending HOD, Pending Principal, Approved, Rejected
-    rejection_reason = db.Column(db.String(255)) # New Field for rejection feedback
+    status = db.Column(db.String(50), default='Pending') 
+    rejection_reason = db.Column(db.String(255))
     
 class ExpenseClaim(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -117,7 +135,7 @@ class SalaryUpdate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     new_salary = db.Column(db.Integer)
-    status = db.Column(db.String(50), default='Pending Admin Approval')# Pending Admin, Pending Accountant
+    status = db.Column(db.String(50), default='Pending Admin Approval')
     user = db.relationship('User', backref=db.backref('salary_updates', lazy=True))
 
 class PayrollStructure(db.Model):
@@ -129,19 +147,17 @@ class PayrollStructure(db.Model):
     epf_percent = db.Column(db.Float, default=12.0)
 
 # ==========================================
-# 2. APP ROUTES 
+# 3. APP ROUTES 
 # ==========================================
 
 @app.route('/')
 def home():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    if 'user_id' in session: return redirect(url_for('dashboard'))
     return render_template('home.html')
 
 @app.route('/about')
 def about():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     return render_template('about.html', user=user)
 
@@ -156,8 +172,7 @@ def login():
             session['role'] = user.role 
             session['name'] = user.full_name
             return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid Username or Password. Please try again.', 'danger')
+        flash('Invalid Username or Password.', 'danger')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -173,17 +188,13 @@ def dashboard():
     off_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
     
-    # Notification visibility logic
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
     if session['role'] in privileged_roles:
         all_notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
-        
         if session['role'] == 'Accountant':
-            # Filter out Attendance, Meetings, and Tasks for Accountants
-            excluded_keywords = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
-            notifs = [n for n in all_notifs if not any(word in n.message for word in excluded_keywords)]
+            excluded = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
+            notifs = [n for n in all_notifs if not any(word in n.message for word in excluded)]
         else:
-            # HR, Principal, and HOD see everything
             notifs = all_notifs
     else:
         notifs = []
@@ -191,6 +202,7 @@ def dashboard():
     return render_template('dashboard.html', user=user, notifications=notifs, office_days=off_days, 
                            wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats,
                            is_birthday=is_birthday, is_anniversary=is_anniversary)
+
 @app.route('/generate_id')
 def generate_id():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -214,22 +226,17 @@ def profile():
         user.address = request.form.get('address')
         if request.form.get('caste'): user.caste = request.form.get('caste')
         if request.form.get('religion'): user.religion = request.form.get('religion')
-        
         new_pass = request.form.get('password')
-        if new_pass:
-            user.password = generate_password_hash(new_pass)
+        if new_pass: user.password = generate_password_hash(new_pass)
         db.session.commit()
         return redirect(url_for('profile'))
     return render_template('profile.html', user=user, payroll=payroll_data)
 
 @app.route('/finance')
 def finance_tab():
-    if session.get('role') != 'Accountant':
-        return redirect(url_for('dashboard'))
-    # Filter for claims that HR has already vetted
+    if session.get('role') != 'Accountant': return redirect(url_for('dashboard'))
     pending = ExpenseClaim.query.filter_by(status='Approved by HR').all()
     return render_template('finance.html', pending=pending)
-
 
 @app.route('/download_salary_certificate')
 def download_salary_certificate():
@@ -258,23 +265,14 @@ def download_salary_certificate():
 def staff_directory():
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_user = User.query.get(session['user_id'])
-    
-    if curr_user.role in ['HR', 'Accountant', 'Principal']:
-        employees = User.query.all()
-    else:
-        employees = [curr_user]
-        
-    # Crucial Fix: Pass SalaryUpdate to the template
-    return render_template('staff_directory.html', 
-                           employees=employees, 
-                           SalaryUpdate=SalaryUpdate)
-    
+    employees = User.query.all() if curr_user.role in ['HR', 'Accountant', 'Principal'] else [curr_user]
+    return render_template('staff_directory.html', employees=employees, SalaryUpdate=SalaryUpdate)
+
 @app.route('/create_meeting', methods=['POST'])
 def create_meeting():
     if 'user_id' not in session: return redirect(url_for('login'))
     room = request.form.get('room_name').replace(" ", "-")
-    new_meet = Meeting(room_name=room, created_by=session['name'])
-    db.session.add(new_meet)
+    db.session.add(Meeting(room_name=room, created_by=session['name']))
     db.session.add(Notification(message=f"MEETING: {session['name']} started a meeting: {room}"))
     db.session.commit()
     return redirect(url_for('dashboard', join_meet=room))
@@ -282,14 +280,13 @@ def create_meeting():
 @app.route('/notify_recording/<room_name>')
 def notify_recording(room_name):
     if 'user_id' not in session: return jsonify({"status": "error"})
-    db.session.add(Notification(message=f"RECORDING: {session['name']} has started recording meeting: {room_name}"))
+    db.session.add(Notification(message=f"RECORDING: {session['name']} started recording: {room_name}"))
     db.session.commit()
     return jsonify({"status": "success"})
 
-
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
-  if session.get('role') in ['HR', 'Principal']:
+    if session.get('role') in ['HR', 'Principal']:
         new_user = User(
             username=request.form['username'],
             password=generate_password_hash(request.form['password']),
@@ -305,27 +302,19 @@ def add_employee():
         )
         db.session.add(new_user)
         db.session.commit()
-        flash('Employee Added. Pending Admin document verification.', 'success')
-  return redirect(url_for('staff_directory'))
-    
+        flash('Employee Added Successfully.', 'success')
+    return redirect(url_for('staff_directory'))
+
 @app.route('/api/notifications')
 def get_notifications():
     role = session.get('role')
-    # Principal and HR see all logs
     if role in ['Principal', 'HR']:
         all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(10).all()
     elif role == 'Accountant':
-        # Accountant sees only finance related
         all_notifs = Notification.query.filter(Notification.message.contains('SALARY')).limit(10).all()
-    else:
-        return jsonify([])
+    else: return jsonify([])
+    return jsonify([{'id': n.id, 'msg': n.message, 'time': n.timestamp.strftime('%I:%M %p')} for n in all_notifs])
 
-    return jsonify([{
-        'id': n.id,
-        'msg': n.message,
-        'time': n.timestamp.strftime('%I:%M %p')
-    } for n in all_notifs])
-    
 @app.route('/edit_salary/<int:uid>', methods=['POST'])
 def edit_salary(uid):
     if session.get('role') == 'HR':
@@ -334,7 +323,6 @@ def edit_salary(uid):
         emp.salary = int(request.form['new_salary'])
         db.session.add(Notification(message=f"SALARY CHANGE: {emp.full_name} updated from ₹{old_sal} to ₹{emp.salary}"))
         db.session.commit()
-        flash('Salary Adjusted', 'success')
     return redirect(url_for('staff_directory'))
 
 @app.route('/attendance', methods=['GET', 'POST'])
@@ -342,15 +330,12 @@ def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
     today = get_ist_time().strftime("%Y-%m-%d")
     user = User.query.get(session['user_id'])
-    
     if request.method == 'POST':
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         t_now = get_ist_time().strftime("%I:%M %p")
-        
         if not att:
             mode = request.form['work_mode']
             db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=t_now, work_mode=mode))
-            # Trigger real-time notification
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} ({user.role}) CLOCKED-IN at {t_now}"))
         else:
             att.check_out = t_now
@@ -364,62 +349,35 @@ def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     limit, taken = 20, Leave.query.filter_by(user_id=session['user_id'], status='Approved').count()
-    
     if request.method == 'POST':
-        # Logic for multi-stage routing
-        if user.role == 'Principal':
-            initial_status = 'Approved'
-            msg = "Leave Self-Approved by Principal"
-        elif user.role == 'Faculty':
-            initial_status = 'Pending HOD'
-            msg = f"Leave Request from {user.full_name} (Pending HOD)"
-        else:
-            # HOD, Accountant, and Admin go directly to Principal
-            initial_status = 'Pending Principal'
-            msg = f"Leave Request from {user.full_name} (Pending Principal)"
-            
-        new_leave = Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status)
-        db.session.add(new_leave)
-        db.session.add(Notification(message=msg))
-        db.session.add(Notification(message=f"LEAVE REQUEST: {user.full_name} ({user.role}) requested leave for {request.form['date']}"))
+        if user.role == 'Principal': initial_status, msg = 'Approved', "Leave Self-Approved by Principal"
+        elif user.role == 'Faculty': initial_status, msg = 'Pending HOD', f"Leave Request from {user.full_name} (Pending HOD)"
+        else: initial_status, msg = 'Pending Principal', f"Leave Request from {user.full_name} (Pending Principal)"
+        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status))
+        db.session.add(Notification(message=f"LEAVE REQUEST: {user.full_name} for {request.form['date']}"))
         db.session.commit()
-        flash('Leave request processed.', 'success')
-
-    # Visibility Logic
-    if user.role == 'Principal':
-        leaves = Leave.query.filter(Leave.status.in_(['Pending Principal', 'Approved', 'Rejected'])).all()
-    elif user.role == 'HOD - BCA Dept':
-        leaves = Leave.query.filter((Leave.status == 'Pending HOD') | (Leave.user_id == user.id)).all()
-    elif user.role == 'HR':
-        leaves = Leave.query.all()
-    else:
-        leaves = Leave.query.filter_by(user_id=session['user_id']).all()
-        
+    if user.role == 'Principal': leaves = Leave.query.filter(Leave.status.in_(['Pending Principal', 'Approved', 'Rejected'])).all()
+    elif user.role == 'HOD - BCA Dept': leaves = Leave.query.filter((Leave.status == 'Pending HOD') | (Leave.user_id == user.id)).all()
+    elif user.role == 'HR': leaves = Leave.query.all()
+    else: leaves = Leave.query.filter_by(user_id=session['user_id']).all()
     return render_template('leave.html', leaves=leaves, leaves_taken=taken, leaves_left=(limit-taken), leave_limit=limit)
 
 @app.route('/approve_leave/<int:id>/<action>')
 def approve_leave(id, action):
-    if 'user_id' not in session: return redirect(url_for('login'))
     leave_req = Leave.query.get(id)
     role = session.get('role')
-    
     if action == 'approve':
         if role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD':
             leave_req.status = 'Pending Principal'
-            db.session.add(Notification(message=f"HOD Approved: {leave_req.user.full_name}'s leave (Pending Principal)"))
+            db.session.add(Notification(message=f"HOD Approved: {leave_req.user.full_name}"))
         elif role == 'Principal' and leave_req.status == 'Pending Principal':
             leave_req.status = 'Approved'
-            db.session.add(Notification(message=f"Principal Approved: {leave_req.user.full_name}'s leave"))
-            
+            db.session.add(Notification(message=f"Principal Approved: {leave_req.user.full_name}"))
     elif action == 'reject':
-        reason = request.args.get('reason', 'No reason provided')
-        leave_req.status = 'Rejected'
-        leave_req.rejection_reason = reason 
-        db.session.add(Notification(message=f"Leave REJECTED for {leave_req.user.full_name}: {reason}"))
-        
+        leave_req.status, leave_req.rejection_reason = 'Rejected', request.args.get('reason', 'No reason provided')
     db.session.commit()
     return redirect(url_for('leave'))
-    
+
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -427,7 +385,7 @@ def expenses():
     if request.method == 'POST':
         amt = float(request.form['amount'])
         db.session.add(ExpenseClaim(user_id=session['user_id'], category=request.form['category'], amount=amt, description=request.form['desc']))
-        db.session.add(Notification(message=f"EXPENSE: {user.full_name} submitted a claim for INR {amt}"))
+        db.session.add(Notification(message=f"EXPENSE: {user.full_name} claimed INR {amt}"))
         db.session.commit()
     claims = ExpenseClaim.query.all() if session['role'] in ['HR', 'Accountant'] else ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
     return render_template('expenses.html', claims=claims)
@@ -447,34 +405,19 @@ def approve_expense(id, action):
 def chat(receiver_id=None):
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_id = session['user_id']
-    sender = User.query.get(curr_id)
-    
     if request.method == 'POST':
-        # Ensure we take the ID from the URL or the form
         rid = receiver_id or request.form.get('receiver_id')
         msg_text = request.form.get('content')
-        
         if rid and msg_text:
-            # Explicitly assigning the string msg_text to the content field
-            new_msg = Message(sender_id=curr_id, receiver_id=int(rid), content=str(msg_text))
-            db.session.add(new_msg)
-            db.session.add(Notification(message=f"MESSAGE: New internal message from {sender.full_name}"))
+            db.session.add(Message(sender_id=curr_id, receiver_id=int(rid), content=str(msg_text)))
             db.session.commit()
             return redirect(url_for('chat', receiver_id=rid))
-    
     contacts = User.query.filter(User.id != curr_id).all()
     messages = []
     if receiver_id:
-        # Mark as read
         Message.query.filter_by(sender_id=receiver_id, receiver_id=curr_id, is_read=False).update({Message.is_read: True})
         db.session.commit()
-        
-        # Fetching the actual data objects
-        messages = Message.query.filter(
-            ((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | 
-            ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))
-        ).order_by(Message.timestamp.asc()).all()
-        
+        messages = Message.query.filter(((Message.sender_id == curr_id) & (Message.receiver_id == receiver_id)) | ((Message.sender_id == receiver_id) & (Message.receiver_id == curr_id))).order_by(Message.timestamp.asc()).all()
     return render_template('chat.html', contacts=contacts, messages=messages, receiver_id=receiver_id)
 
 @app.route('/performance', methods=['GET', 'POST'])
@@ -498,10 +441,6 @@ def forgot_password():
         else: flash('Invalid user', 'error')
     return render_template('forgot_password.html')
 
-# ==========================================
-# 3. UTILITY & EXPORT
-# ==========================================
-
 @app.route('/export_csv/<rtype>')
 def export_csv(rtype):
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -509,18 +448,13 @@ def export_csv(rtype):
     writer = csv.writer(output)
     if rtype == 'attendance':
         writer.writerow(['Faculty Name', 'Date', 'Work Mode', 'Check-In', 'Check-Out'])
-        records = Attendance.query.all()
-        for rec in records:
-            user_obj = getattr(rec, 'rel_user', getattr(rec, 'user', None))
-            name = user_obj.full_name if user_obj else "Unknown/Deleted"
-            mode = getattr(rec, 'status', getattr(rec, 'work_mode', 'N/A'))
-            writer.writerow([name, rec.date, mode, rec.check_in, rec.check_out])
+        for rec in Attendance.query.all():
+            name = rec.user.full_name if rec.user else "Unknown"
+            writer.writerow([name, rec.date, rec.work_mode, rec.check_in, rec.check_out])
     elif rtype == 'expenses':
         writer.writerow(['Faculty Name', 'Category', 'Amount', 'Status', 'Date'])
-        claims = ExpenseClaim.query.all()
-        for c in claims:
-            user_obj = getattr(c, 'rel_user', getattr(c, 'user', None))
-            name = user_obj.full_name if user_obj else "Unknown/Deleted"
+        for c in ExpenseClaim.query.all():
+            name = c.rel_user.full_name if c.rel_user else "Unknown"
             writer.writerow([name, c.category, c.amount, c.status, c.payment_date])
     output.seek(0)
     return Response(output, mimetype="text/csv", headers={"Content-Disposition": f"attachment;filename={rtype}_report.csv"})
@@ -528,44 +462,24 @@ def export_csv(rtype):
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
-    if not u: return "User not found", 404
     basic = u.salary
     hra, da, ta = int(basic * 0.40), int(basic * 0.10), 2000
     gross = basic + hra + da + ta
     epf, pt = int((basic + da) * 0.12), 200
     net = gross - (epf + pt)
-    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 18); pdf.set_text_color(0, 51, 102) 
+    pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", 'B', 18)
     pdf.cell(200, 15, txt="BMS COLLEGE OF COMMERCE & MANAGEMENT", ln=True, align='C')
-    pdf.set_font("Arial", 'B', 12); pdf.set_text_color(0, 0, 0)
     pdf.cell(200, 10, txt=f"PAYSLIP FOR: {u.full_name.upper()}", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Month: {get_ist_time().strftime('%B %Y')}", ln=True, align='C')
-    pdf.ln(10); pdf.set_fill_color(244, 247, 254); pdf.set_font("Arial", 'B', 11)
-    pdf.cell(95, 10, "EARNINGS", 1, 0, 'C', True); pdf.cell(95, 10, "DEDUCTIONS", 1, 1, 'C', True)
-    pdf.set_font("Arial", '', 10)
-    pdf.cell(60, 10, "Basic Salary", 1); pdf.cell(35, 10, f"INR {basic}", 1, 0, 'R')
-    pdf.cell(60, 10, "Provident Fund (EPF)", 1); pdf.cell(35, 10, f"INR {epf}", 1, 1, 'R')
-    pdf.cell(60, 10, "House Rent (HRA)", 1); pdf.cell(35, 10, f"INR {hra}", 1, 0, 'R')
-    pdf.cell(60, 10, "Professional Tax", 1); pdf.cell(35, 10, f"INR {pt}", 1, 1, 'R')
-    pdf.cell(60, 10, "Dearness (DA)", 1); pdf.cell(35, 10, f"INR {da}", 1, 0, 'R'); pdf.cell(95, 10, "", 1, 1) 
-    pdf.cell(60, 10, "Travel (TA)", 1); pdf.cell(35, 10, f"INR {ta}", 1, 0, 'R'); pdf.cell(95, 10, "", 1, 1) 
-    pdf.ln(5); pdf.set_font("Arial", 'B', 11); pdf.cell(60, 10, "GROSS EARNINGS", 1); pdf.cell(35, 10, f"INR {gross}", 1, 0, 'R', True)
-    pdf.cell(60, 10, "TOTAL DEDUCTIONS", 1); pdf.cell(35, 10, f"INR {epf+pt}", 1, 1, 'R', True)
-    pdf.ln(10); pdf.set_fill_color(0, 51, 102); pdf.set_text_color(255, 255, 255); pdf.set_font("Arial", 'B', 14)
-    pdf.cell(190, 15, txt=f"NET TAKE-HOME PAY: INR {net}", border=0, ln=True, align='C', fill=True)
-    pdf.ln(15); current_y = pdf.get_y(); pdf.set_draw_color(0, 51, 102); pdf.set_line_width(0.8); pdf.ellipse(25, current_y + 5, 30, 30, 'D') 
-    pdf.set_font("Arial", 'B', 6); pdf.set_text_color(0, 51, 102); pdf.text(28, current_y + 19, "BMS COLLEGE"); pdf.text(32, current_y + 22, "OFFICIAL SEAL")
-    pdf.set_xy(130, current_y + 10); pdf.set_font("Courier", 'BI', 12); pdf.set_text_color(0, 0, 128); pdf.cell(50, 10, "FINANCE_BMSCCM", ln=True, align='C')
-    pdf.line(135, pdf.get_y(), 175, pdf.get_y()); pdf.set_xy(130, pdf.get_y()); pdf.set_font("Arial", 'B', 10); pdf.set_text_color(0, 0, 0); pdf.cell(50, 7, "Accounts Manager", ln=True, align='C')
-    pdf.set_y(-20); pdf.set_text_color(163, 174, 208); pdf.set_font("Arial", 'I', 8); pdf.cell(190, 5, txt="This payslip is digitally verified and issued by the BMS College Finance Module.", ln=True, align='C')
-    return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"payslip_{u.username}_{get_ist_time().strftime('%m_%Y')}.pdf")
+    pdf.ln(10); pdf.set_font("Arial", '', 10)
+    pdf.cell(60, 10, "Basic Salary", 1); pdf.cell(35, 10, f"INR {basic}", 1, 1, 'R')
+    pdf.cell(60, 10, "Net Take-Home", 1); pdf.cell(35, 10, f"INR {net}", 1, 1, 'R')
+    return send_file(io.BytesIO(pdf.output(dest='S').encode('latin-1')), as_attachment=True, download_name=f"payslip_{u.username}.pdf")
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
-    user = User.query.get(session['user_id'])
     db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
-    db.session.add(Notification(message=f"REPORT: {user.full_name} submitted a new activity report"))
+    db.session.add(Notification(message=f"REPORT: {session['name']} submitted an activity report"))
     db.session.commit()
-    flash('Report Sent', 'success')
     return redirect(url_for('dashboard'))
 
 @app.route('/add_task', methods=['POST'])
@@ -574,14 +488,10 @@ def add_task():
     db.session.commit()
     return redirect(url_for('dashboard'))
 
-# --- TASK COMPLETION ---
 @app.route('/toggle_task/<int:id>')
 def toggle_task(id):
     t = Task.query.get(id)
-    if t: 
-        t.is_done = not t.is_done
-        if t.is_done:
-            db.session.add(Notification(message=f"TASK COMPLETED: {t.user.full_name} finished '{t.title}'"))
+    if t: t.is_done = not t.is_done
     db.session.commit()
     return redirect(url_for('dashboard'))
 
@@ -606,141 +516,76 @@ def get_stats():
 def logout():
     session.clear(); return redirect(url_for('login'))
 
-# --- WORKFLOW 1: SALARY UPDATE ---
-
 @app.route('/principal_request_salary/<int:uid>', methods=['POST'])
 def principal_request_salary(uid):
-    if session.get('role') != 'Principal': 
-        return "Unauthorized", 403
-        
+    if session.get('role') != 'Principal': return "Unauthorized", 403
     new_val = int(request.form.get('new_salary'))
     existing = SalaryUpdate.query.filter_by(user_id=uid).first()
-    
-    if existing:
-        existing.new_salary = new_val
-        existing.status = 'Pending Admin Approval'
-    else:
-        new_req = SalaryUpdate(user_id=uid, new_salary=new_val)
-        db.session.add(new_req)
-    
+    if existing: existing.new_salary, existing.status = new_val, 'Pending Admin Approval'
+    else: db.session.add(SalaryUpdate(user_id=uid, new_salary=new_val))
     db.session.commit()
     return redirect(url_for('staff_directory'))
-    
+
 @app.route('/admin_verify_salary/<int:req_id>')
 def admin_verify_salary(req_id):
-    if session.get('role') != 'HR':
-        return "Unauthorized", 403
+    if session.get('role') != 'HR': return "Unauthorized", 403
     req = SalaryUpdate.query.get(req_id)
     req.status = 'Pending Accountant Configuration'
-    db.session.add(Notification(message=f"ADMIN APPROVED: Salary change for {req.user_id}"))
     db.session.commit()
-    flash("Admin verified. Accountant must now configure payroll.", "success")
     return redirect(url_for('staff_directory'))
 
 @app.route('/finalize_payroll_config', methods=['POST'])
 def finalize_payroll_config():
-    if session.get('role') != 'Accountant': 
-        return "Unauthorized", 403
-    
+    if session.get('role') != 'Accountant': return "Unauthorized", 403
     uid = request.form.get('user_id')
     u = User.query.get(uid)
-    if not u:
-        flash("User not found", "danger")
-        return redirect(url_for('staff_directory'))
-    
-    # 1. Update the percentages in PayrollStructure
-    struct = PayrollStructure.query.filter_by(user_id=uid).first()
-    if not struct: 
-        struct = PayrollStructure(user_id=uid)
-    
+    struct = PayrollStructure.query.filter_by(user_id=uid).first() or PayrollStructure(user_id=uid)
     struct.hra_percent = float(request.form.get('hra_pc', 40.0))
     struct.da_percent = float(request.form.get('da_pc', 10.0))
     struct.epf_percent = float(request.form.get('epf_pc', 12.0))
     struct.ta_fixed = int(request.form.get('ta_fixed', 2000))
-    
-    # 2. Update the actual Salary from the request if it exists
     req = SalaryUpdate.query.filter_by(user_id=uid).first()
-    if req:
-        u.salary = req.new_salary
-        db.session.delete(req)
-    
-    db.session.add(struct)
-    db.session.commit()
-    flash("Payroll structure configured and salary updated.", "success")
+    if req: u.salary = req.new_salary; db.session.delete(req)
+    db.session.add(struct); db.session.commit()
     return redirect(url_for('staff_directory'))
 
 @app.route('/admin_verify_docs/<int:uid>')
 def admin_verify_docs(uid):
-    if session.get('role') != 'HR':
-        return "Unauthorized", 403
+    if session.get('role') != 'HR': return "Unauthorized", 403
     user = User.query.get(uid)
-    if user:
-        user.status = 'Pending Payroll Config'
-        db.session.add(Notification(message=f"DOCS VERIFIED: {user.full_name}"))
-        db.session.commit()
-        flash(f"Documents verified for {user.full_name}.", "success")
+    if user: user.status = 'Pending Payroll Config'; db.session.commit()
     return redirect(url_for('staff_directory'))
 
 # ==========================================
-# 4. INITIAL SETUP 
+# 4. INITIAL SETUP & SEEDING
 # ==========================================
-from app import app, db
-with app.app_context():
-    db.create_all()
-    if not User.query.filter_by(username='admin').first():
-        db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@bmsccm.edu', dob='1985-10-25', join_date='2018-05-10'))
+
+def seed_database():
+    with app.app_context():
+        db.create_all()
+        # Seed Admin/Accountant
+        if not User.query.filter_by(username='admin').first():
+            db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@bmsccm.edu', dob='1985-10-25', join_date='2018-05-10'))
+        if not User.query.filter_by(username='acc1').first():
+            db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='accounts@bmsccm.edu', dob='1990-03-12', join_date='2020-11-20'))
         
-    if not User.query.filter_by(username='acc1').first():
-        db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='accounts@bmsccm.edu', dob='1990-03-12', join_date='2020-11-20'))
-        
-    # Updated Faculty List with Different DOB and Join Dates
-    faculties = [
-        ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
-        ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
-        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
-        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
-        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
-        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
-        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
-        ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
-    ]
-    
-    for u, f, r, e, c, rel, d, j in faculties:
-        if not User.query.filter_by(username=u).first():
-            db.session.add(User(
-                username=u, 
-                password=generate_password_hash('bms123'),
-                role=r,
-                full_name=f, 
-                salary=50000, 
-                email=e, 
-                dob=d, 
-                join_date=j,
-                caste=c, 
-                religion=rel
-            ))
-            
-    db.session.commit()
+        # Seed Faculties
+        faculties = [
+            ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
+            ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
+            ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
+            ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
+            ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
+            ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
+            ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
+            ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
+        ]
+        for u, f, r, e, c, rel, d, j in faculties:
+            if not User.query.filter_by(username=u).first():
+                db.session.add(User(username=u, password=generate_password_hash('bms123'), role=r, full_name=f, salary=50000, email=e, dob=d, join_date=j, caste=c, religion=rel))
+        db.session.commit()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    seed_database()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
