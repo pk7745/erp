@@ -198,37 +198,41 @@ def dashboard():
         session.clear()
         return redirect(url_for('login'))
 
+    # --- 1. SAFE DATE LOGIC ---
     today_ist = get_ist_time()
     today_md = today_ist.strftime("%m-%d")
-
-    # SAFE DATE CHECKING (Prevents 500 error if date is missing or wrong format)
+    
     is_birthday = False
-    if user.dob and len(user.dob) >= 10:
-        is_birthday = (user.dob[5:10] == today_md)
+    if user.dob and len(str(user.dob)) >= 10:
+        is_birthday = (str(user.dob)[5:10] == today_md)
 
     is_anniversary = False
-    if user.join_date and len(user.join_date) >= 10:
-        is_anniversary = (user.join_date[5:10] == today_md)
+    if user.join_date and len(str(user.join_date)) >= 10:
+        is_anniversary = (str(user.join_date)[5:10] == today_md)
 
-    # DATABASE QUERIES
-    unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count()
-    tasks = Task.query.filter_by(user_id=user.id).all()
-    office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count()
-    wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count()
+    # --- 2. ATTENDANCE & TASKS (Ensuring Integers) ---
+    office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count() or 0
+    wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count() or 0
+    
+    unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count() or 0
+    tasks = Task.query.filter_by(user_id=user.id).all() or []
 
-    # NOTIFICATION LOGIC
+    # --- 3. NOTIFICATIONS (Hardened against NoneType) ---
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
     notifs = []
     
     if session.get('role') in privileged_roles:
-        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
-        
-        if session.get('role') == 'Accountant':
-            excluded = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
-            # Added "n.message or ''" to prevent errors if a message is empty
-            notifs = [n for n in all_notifs if not any(word in (n.message or '') for word in excluded)]
-        else:
-            notifs = all_notifs
+        try:
+            all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
+            if session.get('role') == 'Accountant':
+                excluded = ["CLOCK-IN", "CLOCK-OUT", "MEETING", "RECORDING", "TASK", "REPORT"]
+                # Safeguard: Ensure n.message exists before checking keywords
+                notifs = [n for n in all_notifs if n.message and not any(word in n.message for word in excluded)]
+            else:
+                notifs = all_notifs
+        except Exception as e:
+            print(f"Notification Error: {e}")
+            notifs = []
 
     return render_template('dashboard.html', 
                            user=user, 
@@ -647,4 +651,5 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
