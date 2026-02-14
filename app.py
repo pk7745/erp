@@ -18,7 +18,7 @@ app.secret_key = "bms_college_ultimate_v200"
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Railway persistence path
 data_dir = "/app/data" 
-db_name = 'bms_college.db'
+db_name = 'bms_college_v2.db'
 
 # Fallback for local testing if /app/data doesn't exist
 if not os.path.exists(data_dir):
@@ -654,6 +654,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
