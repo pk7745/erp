@@ -36,17 +36,35 @@
         </div>
         
         <div id="chat-box" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f8f9fa;">
-            {% if receiver %}
-                {% for m in messages %}
-                <div style="align-self: {% if m.sender_id == session['user_id'] %}flex-end{% else %}flex-start{% endif %}; max-width: 75%;">
-                    <div style="background: {% if m.sender_id == session['user_id'] %}#4318ff{% else %}white{% endif %}; color: {% if m.sender_id == session['user_id'] %}white{% else %}#1b2559{% endif %}; padding: 12px 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-                        {{ m.content }}
-                        <small style="display: block; font-size: 10px; margin-top: 5px; text-align: right; opacity: 0.7;">{{ m.timestamp.strftime('%I:%M %p') }}</small>
-                    </div>
+    {% if receiver %}
+        {% for m in messages %}
+        <div style="align-self: {% if m.sender_id == session['user_id'] %}flex-end{% else %}flex-start{% endif %}; max-width: 75%;">
+            <div style="background: {% if m.sender_id == session['user_id'] %}#4318ff{% else %}white{% endif %}; 
+                        color: {% if m.sender_id == session['user_id'] %}white{% else %}#1b2559{% endif %}; 
+                        padding: 12px 18px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; border: {% if m.sender_id != session['user_id'] %}1px solid #eee{% else %}none{% endif %};">
+                
+                {{ m.content }}
+
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 5px;">
+                    <small style="font-size: 10px; opacity: 0.7;">{{ m.timestamp.strftime('%I:%M %p') }}</small>
+                    
+                    {% if m.sender_id == session['user_id'] %}
+                        {% if m.is_read %}
+                            <span style="color: #4ade80; font-size: 12px; font-weight: bold; letter-spacing: -2px;" title="Read">✓✓</span>
+                        {% else %}
+                            <span style="color: #cbd5e0; font-size: 12px;" title="Sent">✓</span>
+                        {% endif %}
+                    {% endif %}
                 </div>
-                {% endfor %}
-            {% endif %}
+            </div>
         </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; color: #a3aed0; margin-top: 20px;">
+            <p>Welcome to the Staff Lounge. Messages sent here are visible to all staff members.</p>
+        </div>
+    {% endif %}
+</div>
 
         <form id="chat-form" method="POST" style="padding: 20px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee;">
             <input type="text" name="content" id="msg-input" placeholder="Type message..." required autocomplete="off"
