@@ -13,8 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from fpdf import FPDF
 from flask_socketio import SocketIO, emit
-from flask_mail import Mail, Message
-
+from flask_mail import Mail, Message as MailMessage
 
 app = Flask(__name__)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -25,6 +24,20 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 mail = Mail(app)
+def send_notification_email(receiver_email, sender_name):
+    """Sends an email alert to the Principal. Wrapped in try-except to prevent 500 errors."""
+    if not receiver_email:
+        return
+    try:
+        msg = MailMessage(
+            "New Private Message: BMS Connect",
+            recipients=[receiver_email]
+        )
+        msg.body = f"Hello Principal,\n\nYou have received a new private message from {sender_name} on the BMS Connect Staff Portal.\n\nPlease log in to view and reply."
+        mail.send(msg)
+    except Exception as e:
+        # Logs the error to Railway console but doesn't crash the app
+        print(f"SMTP Error (Email skipped): {e}")
 app.secret_key = "bms_college_ultimate_v200"
 
 # ==========================================
@@ -32,7 +45,7 @@ app.secret_key = "bms_college_ultimate_v200"
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v6.db'
+db_name = 'bms_college_v7.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -483,6 +496,9 @@ def chat(receiver_id=None):
     if request.method == 'POST' and receiver_id:
         content = request.form.get('content')
         if content:
+            # Fetch target user to check if they are the Principal
+            target_user = User.query.get(receiver_id)
+            
             new_msg = Message(
                 sender_id=curr_id, 
                 receiver_id=receiver_id, 
@@ -493,6 +509,14 @@ def chat(receiver_id=None):
             )
             db.session.add(new_msg)
             db.session.commit()
+
+            # --- NEW: EMAIL NOTIFICATION LOGIC ---
+            # Strictly triggers ONLY if the receiver is the Principal
+            if target_user and target_user.role.lower() == 'principal':
+                sender_name = session.get('name', 'A Staff Member')
+                send_notification_email(target_user.email, sender_name)
+            # --------------------------------------
+
             return redirect(url_for('chat', receiver_id=receiver_id))
 
     # --- START OF NOTIFICATION LOGIC ---
@@ -768,6 +792,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
