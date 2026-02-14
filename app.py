@@ -18,7 +18,7 @@ app.secret_key = "bms_college_ultimate_v200"
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v3.db'
+db_name = 'bms_college_v4.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -636,6 +636,32 @@ def admin_verify_docs(uid):
     if user: user.status = 'Pending Payroll Config'; db.session.commit()
     return redirect(url_for('staff_directory'))
 
+@socketio.on('send_chat_message')
+def handle_chat(data):
+    # This matches the 'send_chat_message' emit from JS
+    emit('new_message', {
+        'user': session.get('name', 'Anonymous'),
+        'text': data['text']
+    }, broadcast=True)
+
+# Use your existing Email logic, just add this route
+@app.route('/email_staff_list')
+def email_staff_list():
+    principal_email = "principal@bmsccm.edu.in" # Update to actual
+    staff_data = User.query.all()
+    
+    body = "Staff Directory Export:\n\n"
+    for s in staff_data:
+        body += f"{s.full_name} - {s.role} - {s.email}\n"
+        
+    msg = Message("Official Staff Directory - BMSCCM",
+                  sender=app.config['MAIL_USERNAME'],
+                  recipients=[principal_email])
+    msg.body = body
+    mail.send(msg)
+    flash("Directory emailed to Principal successfully!", "success")
+    return redirect(url_for('staff_directory'))
+
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -668,6 +694,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
