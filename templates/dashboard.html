@@ -9,11 +9,10 @@
         <div class="card-header d-flex justify-content-between align-items-center" style="background: #f4f7fe; padding: 15px;">
             <div>
                 <h3 style="margin:0; display: inline-block;">🎥 Room: {{ request.args.get('join_meet') }}</h3>
-                <span style="margin-left:15px; font-size: 0.8rem; color: #4318ff;"><strong>Zoom Mode:</strong> Chat & Raise Hand Enabled</span>
+                <span style="margin-left:15px; font-size: 0.8rem; color: #4318ff;"><strong>Status:</strong> Use the icons at the bottom of the video for Chat/Hand</span>
             </div>
             <div style="display: flex; gap: 10px;">
                 <button onclick="startRecording()" class="btn" style="background: #05cd99; font-size: 0.8rem;">🔴 Record</button>
-                
                 <a href="{{ url_for('dashboard') }}" class="btn" style="background: #a3aed0; font-size: 0.8rem; text-decoration: none; color: white;">Leave</a>
                 <button onclick="endMeeting()" class="btn" style="background: #ee5d50; font-size: 0.8rem; border: none; color: white; cursor: pointer;">End Meeting</button>
             </div>
@@ -33,25 +32,29 @@
             configOverwrite: { 
                 startWithAudioMuted: true,
                 startWithVideoMuted: false,
-                disableChat: false,               // MUST BE FALSE FOR ZOOM CHAT
-                disableRaiseHand: false,         // MUST BE FALSE FOR RAISE HAND
-                enableWelcomePage: false,
-                prejoinPageEnabled: false,
+                prejoinPageEnabled: false,      // THIS BYPASSES THE SCREEN IN YOUR PIC
+                disableChat: false,
+                disableRaiseHand: false,
+                // Force toolbar to stay visible
                 toolbarButtons: [
                    'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
                    'fodeviceselection', 'chat', 'recording', 'sharedvideo', 'settings', 
                    'raisehand', 'videoquality', 'filmstrip', 'tileview', 'download', 'help', 'participants-pane'
-                ]
+                ],
+                // Ensure the chat and raise hand aren't hidden in the "three dots" menu
+                toolbarConfig: {
+                    alwaysVisible: true
+                }
             },
             interfaceConfigOverwrite: {
-                // This ensures the buttons actually appear on the bottom bar
                 TOOLBAR_BUTTONS: [
                     'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen', 
                     'chat', 'recording', 'settings', 'raisehand', 'videoquality', 
                     'tileview', 'participants-pane'
                 ],
-                GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
-                DISPLAY_WELCOME_PAGE_CONTENT: false,
+                // Hides Jitsi branding to make it look professional
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
             }
         };
 
@@ -204,10 +207,7 @@
             <div class="card shadow-sm border-0 p-3" style="border-radius: 15px; cursor: pointer;" onclick="location.href='{{ url_for('payslip_history') }}'">
                 <div class="d-flex align-items-center">
                     <div style="background: #e6fffa; padding: 10px; border-radius: 12px; font-size: 1.5rem; margin-right: 15px;">📁</div>
-                    <div>
-                        <h6 class="mb-0" style="color: #a3aed0;">Payroll</h6>
-                        <span style="color: #1b2559; font-weight: 700;">View History</span>
-                    </div>
+                    <div><h6 class="mb-0" style="color: #a3aed0;">Payroll</h6><span style="color: #1b2559; font-weight: 700;">View History</span></div>
                 </div>
             </div>
 
@@ -224,7 +224,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // PRESERVED LIVE NOTIF LOGIC
     let lastKnownId = 0;
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
@@ -246,7 +245,6 @@
     }
     setInterval(fetchLiveNotifications, 5000);
 
-    // PRESERVED CHART LOGIC
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
