@@ -71,7 +71,11 @@
             <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
             <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
             <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
-            <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+            {% if session['role'] in ['Principal', 'HR'] %}
+    <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); border-left: 4px solid #4318ff;">📅 Leave Calendar</a>
+{% else %}
+    <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+{% endif %}
             <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
             <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
@@ -145,4 +149,5 @@
     </script>
 </body>
 </html>
+
 
