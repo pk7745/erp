@@ -385,7 +385,7 @@ def add_employee():
             dob=request.form.get('dob', '1995-01-01'),
             join_date=request.form.get('join_date', '2023-01-01'),
             caste=request.form.get('caste'),
-            religion=request.form.get('religion')
+            religion=request.form.get('religion'),
             dept: request.form.get('dept'),       # New Field
             dept_id: request.form.get('dept_id'),
         )
@@ -1049,6 +1049,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
