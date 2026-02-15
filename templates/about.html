@@ -3,260 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About | BMSCCM Staff Portal</title>
+    <title>About BMSCCM | Excellence in Education</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bms-primary: #4318ff;
-            --bms-navy: #1b2559;
-            --bms-bg: #f4f7fe;
-            --bms-gray: #a3aed0;
+            --bms-blue: #1b2559;
+            --bms-accent: #4318ff;
             --bms-success: #05cd99;
-            --glass: rgba(255, 255, 255, 0.95);
+            --bms-gray: #a3aed0;
+            --glass-white: rgba(255, 255, 255, 0.9);
         }
 
         body {
             margin: 0;
-            background: var(--bms-bg);
+            padding: 0;
             font-family: 'Plus Jakarta Sans', sans-serif;
-            display: flex;
-            scroll-behavior: smooth;
+            background-color: #f4f7fe;
+            color: var(--bms-blue);
+            overflow-x: hidden;
         }
 
-        /* Sidebar Navigation Spacer */
-        .sidebar-spacer { width: 280px; flex-shrink: 0; }
-
-        .about-container {
-            flex-grow: 1;
-            padding: 40px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Sticky Navigation */
-        .sub-nav {
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            position: sticky;
-            top: 20px;
-            z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            margin-bottom: 40px;
-            border: 1px solid white;
-        }
-
-        .sub-nav a {
-            text-decoration: none;
-            color: var(--bms-navy);
-            font-weight: 700;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
-        }
-
-        .sub-nav a:hover { color: var(--bms-primary); }
-
-        /* Hero Section */
-        .hero-card {
-            background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-primary) 100%);
-            border-radius: 30px;
-            padding: 60px 40px;
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-            box-shadow: 0 20px 40px rgba(67, 24, 255, 0.2);
-        }
-
-        .hero-card a {
-            text-decoration: none;
-            color: white;
-            transition: opacity 0.2s;
-        }
-        .hero-card a:hover { opacity: 0.8; }
-
-        .college-logo-circle {
-            width: 80px;
-            height: 80px;
+        /* Nav Header */
+        .official-nav {
             background: white;
-            border-radius: 50%;
-            margin: 0 auto 20px;
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 2000;
+        }
+
+        .nav-logo-text {
+            text-decoration: none;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            color: var(--bms-primary);
-            font-size: 1.5rem;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            gap: 12px;
+            cursor: pointer;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        .logo-box {
+            background: var(--bms-accent);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
+
+        .nav-logo-text h1 {
+            font-size: 1rem;
+            margin: 0;
+            color: var(--bms-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hero Section - Full Width */
+        .hero-section {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(rgba(27, 37, 89, 0.8), rgba(67, 24, 255, 0.7)), 
+                        url('https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1920') center/cover;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 0 20px;
+        }
+
+        .hero-section h2 { font-size: 3.5rem; margin-bottom: 10px; font-weight: 800; }
+        .hero-section p { font-size: 1.2rem; max-width: 800px; opacity: 0.9; }
+
+        /* Content Container */
+        .main-content {
+            max-width: 1400px;
+            margin: -60px auto 0;
+            padding: 0 20px 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
-            margin-bottom: 60px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            margin-bottom: 50px;
         }
 
-        .stat-card {
+        .stat-item { text-align: center; border-right: 1px solid #eee; }
+        .stat-item:last-child { border-right: none; }
+        .stat-num { font-size: 2.5rem; font-weight: 800; color: var(--bms-accent); display: block; }
+        .stat-label { font-size: 0.85rem; color: var(--bms-gray); font-weight: 700; text-transform: uppercase; }
+
+        /* Grid Sections */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .card {
             background: white;
-            padding: 30px 20px;
+            padding: 40px;
             border-radius: 24px;
-            text-align: center;
-            border: 1px solid rgba(67, 24, 255, 0.05);
             transition: 0.3s;
         }
 
-        .stat-card:hover { transform: translateY(-10px); border-color: var(--bms-primary); }
-        .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--bms-primary); display: block; }
-        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--bms-gray); text-transform: uppercase; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.05); }
+        .card h3 { font-size: 1.8rem; color: var(--bms-blue); margin-top: 0; }
+        .card p { line-height: 1.8; color: #4e5d78; }
 
-        /* Gallery */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
+        /* Award Highlight */
+        .awards-section {
+            background: var(--bms-blue);
+            color: white;
+            border-radius: 30px;
+            padding: 60px;
+            text-align: center;
+            margin-bottom: 50px;
         }
 
-        .gallery-card {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.02);
+        .award-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 50px;
+            margin: 10px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
-        .gallery-card img { width: 100%; height: 220px; object-fit: cover; }
-        .gallery-info { padding: 15px; text-align: center; font-weight: 700; color: var(--bms-navy); }
+        /* Action Footer */
+        .footer-cta {
+            text-align: center;
+            padding: 40px;
+        }
 
-        /* Timeline */
-        .timeline { position: relative; padding: 40px 0; }
-        .timeline-line { position: absolute; left: 20px; width: 4px; background: #e0e5f2; top: 0; bottom: 0; }
-        .timeline-item { position: relative; padding-left: 60px; margin-bottom: 40px; }
-        .timeline-dot { position: absolute; left: 10px; width: 24px; height: 24px; background: var(--bms-primary); border: 4px solid white; border-radius: 50%; z-index: 2; }
-
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            color: var(--bms-primary);
+        .btn-visit {
+            background: var(--bms-accent);
+            color: white;
             text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 12px;
             font-weight: 700;
-            margin-bottom: 20px;
+            transition: 0.3s;
+            display: inline-block;
         }
+
+        .btn-visit:hover { background: #3311cc; transform: scale(1.05); }
+
     </style>
 </head>
 <body>
 
-    <div class="sidebar-spacer"></div>
+    <nav class="official-nav">
+        <a href="https://www.bmsccm.ac.in/" target="_blank" class="nav-logo-text">
+            <div class="logo-box">BMS</div>
+            <h1>College of Commerce & Management</h1>
+        </a>
+        <a href="{{ url_for('dashboard') }}" style="color: var(--bms-accent); font-weight: 700; text-decoration: none;">← Dashboard</a>
+    </nav>
 
-    <div class="about-container">
-        <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+    <section class="hero-section">
+        <h2>Excellence, Ethics, Entrepreneurship</h2>
+        <p>Providing quality education under the aegis of BMS Educational Trust, located in the heart of Bengaluru's heritage hub, Basavanagudi.</p>
+    </section>
 
-        <nav class="sub-nav">
-            <a href="#stats">Overview</a>
-            <a href="#mission">Philosophy</a>
-            <a href="#leadership">Administration</a>
-            <a href="#journey">History</a>
-            <a href="#campus">Campus</a>
-        </nav>
-
-       <header class="hero-card">
-    <div class="college-logo-circle">BMS</div>
-    <a href="https://www.bmsccm.ac.in/" target="_blank" style="text-decoration: none; display: block;">
-        <h1 style="margin: 0; font-size: 2.5rem; letter-spacing: -1px; color: white; cursor: pointer;">
-            BMS College of Commerce and Management
-        </h1>
-    </a>
-    <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px;">Dedicated to Excellence in Education and Staff Collaboration</p>
-</header>
-        <div id="stats" class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-number">1950+</span>
-                <span class="stat-label">Students Enrolled</span>
+    <div class="main-content">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-num">100%</span>
+                <span class="stat-label">Placement Record</span>
             </div>
-            <div class="stat-card">
-                <span class="stat-number">85+</span>
-                <span class="stat-label">Expert Faculty</span>
+            <div class="stat-item">
+                <span class="stat-num">75+</span>
+                <span class="stat-label">Years of Legacy</span>
             </div>
-            <div class="stat-card">
-                <span class="stat-number">100%</span>
-                <span class="stat-label">Digital Campus</span>
+            <div class="stat-item">
+                <span class="stat-num">A+</span>
+                <span class="stat-label">Faculty Excellence</span>
             </div>
-            <div class="stat-card">
-                <span class="stat-number">A+</span>
-                <span class="stat-label">Accreditation</span>
+            <div class="stat-item">
+                <span class="stat-num">12+</span>
+                <span class="stat-label">Student Clubs</span>
             </div>
         </div>
 
-        <div id="mission" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 60px;">
-            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--bms-primary);">
-                <h2 style="margin-top: 0; color: var(--bms-navy);">Our Mission</h2>
-                <p style="color: var(--bms-gray); line-height: 1.8;">To provide quality education in commerce and management, fostering an environment of innovation, ethics, and professional growth for both students and staff.</p>
+        <div class="grid-layout">
+            <div class="card">
+                <h3>Our Vision</h3>
+                <p>To be an institution of excellence in commerce and management by providing high quality education to inspire and transform young lives in the global community.</p>
             </div>
-            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--bms-success);">
-                <h2 style="margin-top: 0; color: var(--bms-navy);">Our Vision</h2>
-                <p style="color: var(--bms-gray); line-height: 1.8;">To be a premier institution that creates globally competent leaders through a blend of traditional values and modern technology.</p>
-            </div>
-        </div>
-
-        <h2 id="leadership" style="font-weight: 800; color: var(--bms-navy); margin-bottom: 30px;">College Administration</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 60px;">
-            <div style="background: white; display: flex; align-items: center; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.02);">
-                <div style="width: 80px; height: 80px; background: #eef0f7; border-radius: 20px; margin-right: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">👨‍🏫</div>
-                <div>
-                    <h4 style="margin: 0; color: var(--bms-navy);">Principal's Office</h4>
-                    <p style="color: var(--bms-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Academic Leadership</p>
-                    <small style="color: var(--bms-gray);">BMSCCM Main Campus</small>
-                </div>
-            </div>
-            <div style="background: white; display: flex; align-items: center; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.02);">
-                <div style="width: 80px; height: 80px; background: #eef0f7; border-radius: 20px; margin-right: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🏢</div>
-                <div>
-                    <h4 style="margin: 0; color: var(--bms-navy);">Board of Trustees</h4>
-                    <p style="color: var(--bms-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Management & Governance</p>
-                    <small style="color: var(--bms-gray);">BMS Educational Trust</small>
-                </div>
+            <div class="card">
+                <h3>Our Mission</h3>
+                <p>To pioneer in education by contributing to human knowledge which enables students to have a strong sense of responsibility towards society. We empower students with techniques to shape them for a competitive tomorrow.</p>
             </div>
         </div>
 
-        <div id="journey" class="timeline">
-            <h2 style="color: var(--bms-navy); margin-bottom: 40px;">Institutional Journey</h2>
-            <div class="timeline-line"></div>
-            <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <h4 style="margin: 0; color: var(--bms-primary);">The Foundation</h4>
-                <p style="color: var(--bms-gray); font-size: 0.9rem;">Established under the prestigious BMS Educational Trust to provide specialized commerce education.</p>
-            </div>
-            <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <h4 style="margin: 0; color: var(--bms-primary);">Present: Digital Transformation</h4>
-                <p style="color: var(--bms-gray); font-size: 0.9rem;">Implementation of advanced ERP systems and digital staff portals for seamless collaboration.</p>
+        <div class="awards-section">
+            <h2 style="margin-top:0;">Awards & Recognitions</h2>
+            <p style="opacity: 0.8; margin-bottom: 30px;">Setting the standard for Commerce & Management education in India.</p>
+            <div>
+                <span class="award-badge">🏆 ET Business Award 2024</span>
+                <span class="award-badge">⭐ 50 Best Private B-Schools</span>
+                <span class="award-badge">🏅 Pride of Karnataka 2023</span>
+                <span class="award-badge">🎓 Dewang Mehta National Award</span>
             </div>
         </div>
 
-        <h2 id="campus" style="margin-top: 60px; font-weight: 800; color: var(--bms-navy);">Campus Facilities</h2>
-        <div class="gallery">
-            <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1541339907198-e08759dfc3ef?q=80&w=400" alt="Campus">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-primary);">Main Building</div>
+        <div class="grid-layout" style="grid-template-columns: 2fr 1fr;">
+            <div class="card">
+                <h3>Campus & Infrastructure</h3>
+                <p>Located in the lush green environs of V.V. Puram, BMSCCM features air-conditioned classrooms, a state-of-the-art Seminar Hall, and a digital library with access to Inflibnet and Kindle resources. Our facilities are designed to blend 60 years of heritage with modern corporate environments.</p>
             </div>
-            <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=400" alt="Library">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-navy);">Digital Library</div>
-            </div>
-            <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=400" alt="Staff Room">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-success);">Conference Hall</div>
+            <div class="card" style="background: var(--bms-accent); color: white;">
+                <h3 style="color: white;">Contact Us</h3>
+                <p style="color: rgba(255,255,255,0.8);">No-97, Kavi Lakshmisha Road,<br>V.V. Puram, Bangalore - 560 004</p>
+                <p style="color: white; font-weight: 700;">📞 080-26610174</p>
             </div>
         </div>
 
-        <footer style="margin-top: 80px; text-align: center; color: var(--bms-gray); font-size: 0.8rem; padding-bottom: 40px;">
-            © 2026 BMS College of Commerce and Management. Official Staff Information Portal.
-        </footer>
+        <div class="footer-cta">
+            <a href="https://www.bmsccm.ac.in/" target="_blank" class="btn-visit">Explore Official Website</a>
+            <p style="color: var(--bms-gray); font-size: 0.8rem; margin-top: 30px;">© 2026 BMS College of Commerce & Management. All Rights Reserved.</p>
+        </div>
     </div>
+
 </body>
 </html>
