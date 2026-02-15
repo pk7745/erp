@@ -204,6 +204,22 @@ def about():
     user = User.query.get(session['user_id'])
     return render_template('about.html', user=user)
 
+@app.route('/about/admissions')
+def admissions():
+    return render_template('admissions.html')
+
+@app.route('/about/courses')
+def courses():
+    return render_template('courses.html')
+
+@app.route('/about/placements')
+def placements():
+    return render_template('placements.html')
+
+@app.route('/about/campus-life')
+def campus_life():
+    return render_template('campus_life.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -981,6 +997,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
