@@ -76,6 +76,12 @@
 {% else %}
     <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
 {% endif %}
+            {% if session.get('role') in ['HR', 'Principal'] %}
+    <a href="{{ url_for('digital_vault') }}" class="sidebar-link" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: #a3aed0; text-decoration: none; font-weight: 500; transition: 0.3s;">
+        <span style="font-size: 1.2rem;">📁</span>
+        <span class="link-text">Digital Vault</span>
+    </a>
+{% endif %}
             <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
             <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
@@ -149,5 +155,6 @@
     </script>
 </body>
 </html>
+
 
 
