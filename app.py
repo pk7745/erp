@@ -267,7 +267,18 @@ def my_profile():
     # Fetch the logged-in user's full data
     user = User.query.get(session['user_id'])
     return render_template('my_profile.html', user=user)
-
+    
+@app.route('/audit_logs')
+def view_audit_logs():
+    # SECURITY: Only allow Principal to see the 'Black Box'
+    if session.get('role') != 'Principal':
+        flash("Access Denied: You do not have permission to view system logs.", "error")
+        return redirect(url_for('dashboard'))
+    
+    # Fetch all logs, newest first
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
+    return render_template('audit_logs.html', logs=logs)
+    
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: 
@@ -1121,6 +1132,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
