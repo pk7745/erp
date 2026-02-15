@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="background: white; border-radius: 20px; padding: 30px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    <h2 style="color: #1b2559; font-family: 'DM Sans', sans-serif;">📁 AI Document Vault</h2>
+    <p style="color: #a3aed0;">Upload staff ID cards to auto-generate profiles using OCR.</p>
+
+    <div id="drop-zone" style="border: 2px dashed #4318ff; border-radius: 15px; padding: 50px; text-align: center; margin-top: 20px; background: #f4f7fe; transition: 0.3s;">
+        <input type="file" id="docUpload" hidden accept="image/*">
+        <label for="docUpload" style="cursor: pointer;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">📸</div>
+            <p style="color: #4318ff; font-weight: bold; margin: 0;">Click to Upload Staff ID</p>
+            <span style="color: #a3aed0; font-size: 0.8rem;">(Supports PAN, Aadhar, or College ID)</span>
+        </label>
+    </div>
+
+    <div id="loader" style="display: none; text-align: center; margin-top: 30px;">
+        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #4318ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <p style="color: #4318ff; font-weight: 600; margin-top: 15px;">🤖 AI is reading document... please wait...</p>
+    </div>
+
+    <div id="result-area" style="display: none; margin-top: 30px; padding: 20px; background: #f0fff4; border-radius: 12px; border: 1px solid #c6f6d5;">
+        <h3 style="color: #2f855a; margin-top: 0;">✅ Profile Created Successfully!</h3>
+        <p style="color: #48bb78;">The AI extracted the following details and added them to the Staff Directory:</p>
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <strong>Detected Name:</strong> <span id="display-name" style="color: #1b2559;"></span><br>
+            <strong>Default Role:</strong> Faculty
+        </div>
+        <a href="{{ url_for('staff_directory') }}" class="btn" style="display: inline-block; margin-top: 15px; background: #4318ff; text-decoration: none; padding: 10px 20px; border-radius: 8px; color: white;">View Directory</a>
+    </div>
+</div>
+
+<style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #drop-zone:hover { background: #edf2ff; border-color: #3b10da; }
+</style>
+
+<script>
+document.getElementById('docUpload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Show loader, hide others
+    document.getElementById('drop-zone').style.display = 'none';
+    document.getElementById('loader').style.display = 'block';
+
+    const formData = new FormData();
+    formData.append('doc_image', file);
+
+    fetch('/scan_and_import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loader').style.display = 'none';
+        if(data.success) {
+            document.getElementById('result-area').style.display = 'block';
+            document.getElementById('display-name').innerText = data.extracted_name;
+        } else {
+            alert("Scanning failed. Please try a clearer image.");
+            document.getElementById('drop-zone').style.display = 'block';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error connecting to AI Engine.");
+    });
+});
+</script>
+{% endblock %}
