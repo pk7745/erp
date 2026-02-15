@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <div>
+            <h2 style="color: #1b2559; margin: 0; font-family: 'DM Sans', sans-serif;">🛡️ System Audit Logs</h2>
+            <p style="color: #a3aed0; margin: 5px 0 0;">Historical record of all administrative actions</p>
+        </div>
+        <button onclick="window.print()" class="btn" style="background: #f4f7fe; color: #4318ff; border: 1px solid #4318ff; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer;">
+            🖨️ Export to PDF
+        </button>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="text-align: left; border-bottom: 2px solid #f4f7fe;">
+                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">TIMESTAMP</th>
+                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">ADMINISTRATOR</th>
+                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">ACTION PERFORMED</th>
+                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">TARGET USER</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr style="border-bottom: 1px solid #f4f7fe; transition: 0.2s;" onmouseover="this.style.background='#fcfdff'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 15px; color: #707eae; font-size: 0.85rem;">
+                    {{ log.timestamp.strftime('%d %b %Y | %I:%M %p') }}
+                </td>
+                <td style="padding: 15px; color: #1b2559; font-weight: 700;">
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 8px; height: 8px; background: #4318ff; border-radius: 50%;"></div>
+                        {{ log.user_name }}
+                    </span>
+                </td>
+                <td style="padding: 15px;">
+                    <span style="background: #eef2ff; color: #4318ff; padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">
+                        {{ log.action }}
+                    </span>
+                </td>
+                <td style="padding: 15px; color: #1b2559; font-weight: 500;">
+                    {{ log.target_user }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="padding: 40px; text-align: center; color: #a3aed0;">
+                    No logs found. System is running clean.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
