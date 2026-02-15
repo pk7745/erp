@@ -1,9 +1,10 @@
 import eventlet
 eventlet.monkey_patch()
 
-import pytesseract
 import os
 import io
+import pytesseract
+from PIL import Image
 import csv
 import pytz
 import shutil
@@ -18,7 +19,6 @@ from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
 from datetime import datetime
-from PIL import Image
 
 app = Flask(__name__)
 
@@ -1194,6 +1194,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
