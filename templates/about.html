@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Nexus | Enterprise Intelligence</title>
+    <title>About | BMSCCM Staff Portal</title>
     <style>
         :root {
-            --nexus-primary: #4318ff;
-            --nexus-navy: #1b2559;
-            --nexus-bg: #f4f7fe;
-            --nexus-gray: #a3aed0;
-            --nexus-success: #05cd99;
+            --bms-primary: #4318ff;
+            --bms-navy: #1b2559;
+            --bms-bg: #f4f7fe;
+            --bms-gray: #a3aed0;
+            --bms-success: #05cd99;
             --glass: rgba(255, 255, 255, 0.95);
         }
 
         body {
             margin: 0;
-            background: var(--nexus-bg);
+            background: var(--bms-bg);
             font-family: 'Plus Jakarta Sans', sans-serif;
             display: flex;
             scroll-behavior: smooth;
         }
 
-        /* Essential for your Sidebar Navigation */
+        /* Sidebar Navigation Spacer */
         .sidebar-spacer { width: 280px; flex-shrink: 0; }
 
         .about-container {
@@ -51,7 +51,7 @@
 
         .sub-nav a {
             text-decoration: none;
-            color: var(--nexus-navy);
+            color: var(--bms-navy);
             font-weight: 700;
             font-size: 0.85rem;
             text-transform: uppercase;
@@ -59,32 +59,38 @@
             transition: 0.3s;
         }
 
-        .sub-nav a:hover { color: var(--nexus-primary); }
+        .sub-nav a:hover { color: var(--bms-primary); }
 
-        /* Hero Section with Logo */
+        /* Hero Section */
         .hero-card {
-            background: linear-gradient(135deg, var(--nexus-navy) 0%, var(--nexus-primary) 100%);
+            background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-primary) 100%);
             border-radius: 30px;
-            padding: 80px 40px;
+            padding: 60px 40px;
             text-align: center;
             color: white;
             margin-bottom: 40px;
             box-shadow: 0 20px 40px rgba(67, 24, 255, 0.2);
-            position: relative;
         }
 
-        .company-logo {
+        .hero-card a {
+            text-decoration: none;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .hero-card a:hover { opacity: 0.8; }
+
+        .college-logo-circle {
             width: 80px;
             height: 80px;
             background: white;
-            border-radius: 20px;
+            border-radius: 50%;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            color: var(--nexus-primary);
-            font-size: 2rem;
+            color: var(--bms-primary);
+            font-size: 1.5rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
 
@@ -105,12 +111,11 @@
             transition: 0.3s;
         }
 
-        .stat-card:hover { transform: translateY(-10px); border-color: var(--nexus-primary); }
+        .stat-card:hover { transform: translateY(-10px); border-color: var(--bms-primary); }
+        .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--bms-primary); display: block; }
+        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--bms-gray); text-transform: uppercase; }
 
-        .stat-number { font-size: 2.2rem; font-weight: 800; color: var(--nexus-primary); display: block; }
-        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--nexus-gray); text-transform: uppercase; }
-
-        /* Gallery Section */
+        /* Gallery */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -123,23 +128,21 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 10px 20px rgba(0,0,0,0.02);
-            transition: 0.3s;
         }
 
-        .gallery-card img { width: 100%; height: 200px; object-fit: cover; transition: 0.5s; }
-        .gallery-card:hover img { transform: scale(1.1); }
-        .gallery-info { padding: 15px; text-align: center; font-weight: 700; color: var(--nexus-navy); }
+        .gallery-card img { width: 100%; height: 220px; object-fit: cover; }
+        .gallery-info { padding: 15px; text-align: center; font-weight: 700; color: var(--bms-navy); }
 
-        /* Timeline Styles */
+        /* Timeline */
         .timeline { position: relative; padding: 40px 0; }
         .timeline-line { position: absolute; left: 20px; width: 4px; background: #e0e5f2; top: 0; bottom: 0; }
         .timeline-item { position: relative; padding-left: 60px; margin-bottom: 40px; }
-        .timeline-dot { position: absolute; left: 10px; width: 24px; height: 24px; background: var(--nexus-primary); border: 4px solid white; border-radius: 50%; z-index: 2; }
+        .timeline-dot { position: absolute; left: 10px; width: 24px; height: 24px; background: var(--bms-primary); border: 4px solid white; border-radius: 50%; z-index: 2; }
 
         .back-btn {
             display: inline-flex;
             align-items: center;
-            color: var(--nexus-primary);
+            color: var(--bms-primary);
             text-decoration: none;
             font-weight: 700;
             margin-bottom: 20px;
@@ -154,102 +157,104 @@
         <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
 
         <nav class="sub-nav">
-            <a href="#stats">Impact</a>
-            <a href="#mission">Mission</a>
-            <a href="#leadership">Leadership</a>
-            <a href="#journey">Journey</a>
-            <a href="#facilities">Facilities</a>
+            <a href="#stats">Overview</a>
+            <a href="#mission">Philosophy</a>
+            <a href="#leadership">Administration</a>
+            <a href="#journey">History</a>
+            <a href="#campus">Campus</a>
         </nav>
 
         <header class="hero-card">
-            <div class="company-logo">N</div>
-            <h1 style="margin: 0; font-size: 3rem; letter-spacing: -1px;">Beyond the Dashboard, {{ user.full_name }}</h1>
-            <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px;">The Future of Enterprise Resource Planning</p>
+            <div class="college-logo-circle">BMS</div>
+            <a href="https://www.bmsccm.ac.in/" target="_blank">
+                <h1 style="margin: 0; font-size: 2.5rem; letter-spacing: -1px;">BMS College of Commerce and Management</h1>
+            </a>
+            <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px;">Dedicated to Excellence in Education and Staff Collaboration</p>
         </header>
 
         <div id="stats" class="stats-grid">
             <div class="stat-card">
-                <span class="stat-number">500+</span>
-                <span class="stat-label">Global Partners</span>
+                <span class="stat-number">1950+</span>
+                <span class="stat-label">Students Enrolled</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">99.9%</span>
-                <span class="stat-label">System Uptime</span>
+                <span class="stat-number">85+</span>
+                <span class="stat-label">Expert Faculty</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">24/7</span>
-                <span class="stat-label">AI Monitoring</span>
+                <span class="stat-number">100%</span>
+                <span class="stat-label">Digital Campus</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">128-bit</span>
-                <span class="stat-label">Encryption</span>
+                <span class="stat-number">A+</span>
+                <span class="stat-label">Accreditation</span>
             </div>
         </div>
 
         <div id="mission" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 60px;">
-            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--nexus-primary);">
-                <h2 style="margin-top: 0; color: var(--nexus-navy);">Our Mission</h2>
-                <p style="color: var(--nexus-gray); line-height: 1.8;">To democratize enterprise intelligence by providing scalable, secure, and user-centric ERP solutions that transform how modern teams collaborate.</p>
+            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--bms-primary);">
+                <h2 style="margin-top: 0; color: var(--bms-navy);">Our Mission</h2>
+                <p style="color: var(--bms-gray); line-height: 1.8;">To provide quality education in commerce and management, fostering an environment of innovation, ethics, and professional growth for both students and staff.</p>
             </div>
-            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--nexus-success);">
-                <h2 style="margin-top: 0; color: var(--nexus-navy);">Our Vision</h2>
-                <p style="color: var(--nexus-gray); line-height: 1.8;">To become the global standard for the "Smart Workspace," where AI-driven insights and human creativity build the future of work.</p>
+            <div style="background: white; padding: 40px; border-radius: 30px; border-left: 10px solid var(--bms-success);">
+                <h2 style="margin-top: 0; color: var(--bms-navy);">Our Vision</h2>
+                <p style="color: var(--bms-gray); line-height: 1.8;">To be a premier institution that creates globally competent leaders through a blend of traditional values and modern technology.</p>
             </div>
         </div>
 
-        <h2 id="leadership" style="font-weight: 800; color: var(--nexus-navy); margin-bottom: 30px;">Executive Leadership</h2>
+        <h2 id="leadership" style="font-weight: 800; color: var(--bms-navy); margin-bottom: 30px;">College Administration</h2>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 60px;">
             <div style="background: white; display: flex; align-items: center; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.02);">
-                <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200" style="width: 100px; height: 100px; border-radius: 20px; margin-right: 20px; object-fit: cover;" alt="CEO">
+                <div style="width: 80px; height: 80px; background: #eef0f7; border-radius: 20px; margin-right: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">👨‍🏫</div>
                 <div>
-                    <h4 style="margin: 0; color: var(--nexus-navy);">Dr. Elena Vance</h4>
-                    <p style="color: var(--nexus-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Founder & Visionary</p>
-                    <small style="color: var(--nexus-gray);">Stanford AI Researcher</small>
+                    <h4 style="margin: 0; color: var(--bms-navy);">Principal's Office</h4>
+                    <p style="color: var(--bms-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Academic Leadership</p>
+                    <small style="color: var(--bms-gray);">BMSCCM Main Campus</small>
                 </div>
             </div>
             <div style="background: white; display: flex; align-items: center; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.02);">
-                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200" style="width: 100px; height: 100px; border-radius: 20px; margin-right: 20px; object-fit: cover;" alt="CTO">
+                <div style="width: 80px; height: 80px; background: #eef0f7; border-radius: 20px; margin-right: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🏢</div>
                 <div>
-                    <h4 style="margin: 0; color: var(--nexus-navy);">Marcus Sterling</h4>
-                    <p style="color: var(--nexus-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Chief Executive Officer</p>
-                    <small style="color: var(--nexus-gray);">SaaS Scaling Specialist</small>
+                    <h4 style="margin: 0; color: var(--bms-navy);">Board of Trustees</h4>
+                    <p style="color: var(--bms-primary); font-weight: 700; font-size: 0.8rem; margin: 5px 0;">Management & Governance</p>
+                    <small style="color: var(--bms-gray);">BMS Educational Trust</small>
                 </div>
             </div>
         </div>
 
         <div id="journey" class="timeline">
-            <h2 style="color: var(--nexus-navy); margin-bottom: 40px;">The Nexus Journey</h2>
+            <h2 style="color: var(--bms-navy); margin-bottom: 40px;">Institutional Journey</h2>
             <div class="timeline-line"></div>
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <h4 style="margin: 0; color: var(--nexus-primary);">2022: Genesis</h4>
-                <p style="color: var(--nexus-gray); font-size: 0.9rem;">Founded in Bengaluru's tech hub with a team of 5 engineers.</p>
+                <h4 style="margin: 0; color: var(--bms-primary);">The Foundation</h4>
+                <p style="color: var(--bms-gray); font-size: 0.9rem;">Established under the prestigious BMS Educational Trust to provide specialized commerce education.</p>
             </div>
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <h4 style="margin: 0; color: var(--nexus-primary);">2024: Intelligence Era</h4>
-                <p style="color: var(--nexus-gray); font-size: 0.9rem;">Launched Nexus ERP v1.0 with integrated predictive analytics.</p>
+                <h4 style="margin: 0; color: var(--bms-primary);">Present: Digital Transformation</h4>
+                <p style="color: var(--bms-gray); font-size: 0.9rem;">Implementation of advanced ERP systems and digital staff portals for seamless collaboration.</p>
             </div>
         </div>
 
-        <h2 id="facilities" style="margin-top: 60px; font-weight: 800; color: var(--nexus-navy);">Global Infrastructure</h2>
+        <h2 id="campus" style="margin-top: 60px; font-weight: 800; color: var(--bms-navy);">Campus Facilities</h2>
         <div class="gallery">
             <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=400" alt="HQ">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--nexus-primary);">World HQ - Bengaluru</div>
+                <img src="https://images.unsplash.com/photo-1541339907198-e08759dfc3ef?q=80&w=400" alt="Campus">
+                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-primary);">Main Building</div>
             </div>
             <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc51?q=80&w=400" alt="Data">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--nexus-navy);">Cloud Data Vault</div>
+                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=400" alt="Library">
+                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-navy);">Digital Library</div>
             </div>
             <div class="gallery-card">
-                <img src="https://images.unsplash.com/photo-1606857521015-7f9fdf423740?q=80&w=400" alt="Client">
-                <div class="gallery-info" style="border-bottom: 4px solid var(--nexus-success);">Executive Zone</div>
+                <img src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=400" alt="Staff Room">
+                <div class="gallery-info" style="border-bottom: 4px solid var(--bms-success);">Conference Hall</div>
             </div>
         </div>
 
-        <footer style="margin-top: 80px; text-align: center; color: var(--nexus-gray); font-size: 0.8rem; padding-bottom: 40px;">
-            © 2026 Nexus ERP Intelligence Systems. Powered by Advanced Data Architecture.
+        <footer style="margin-top: 80px; text-align: center; color: var(--bms-gray); font-size: 0.8rem; padding-bottom: 40px;">
+            © 2026 BMS College of Commerce and Management. Official Staff Information Portal.
         </footer>
     </div>
 </body>
