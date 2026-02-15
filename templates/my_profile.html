@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 900px; margin: 20px auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f4f7fe; padding-bottom: 20px; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: #1b2559;">👤 My Personal Profile</h2>
+        <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn" style="background: #4318ff; color: white; text-decoration: none;">Download ID Card</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+        <div style="text-align: center; border-right: 1px solid #eee; padding-right: 30px;">
+            <div style="width: 150px; height: 150px; border-radius: 50%; border: 5px solid #f4f7fe; margin: 0 auto 15px; overflow: hidden;">
+                {% if user.profile_pic and user.profile_pic != 'default.png' %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% else %}
+                    <div style="font-size: 4rem; background: #eee; height: 100%; display: flex; align-items: center; justify-content: center;">👤</div>
+                {% endif %}
+            </div>
+            <h3 style="margin: 0; color: #1b2559;">{{ user.full_name }}</h3>
+            <p style="color: #4318ff; font-weight: bold; margin: 5px 0;">{{ user.role }}</p>
+            <span class="badge" style="background: #c6f6d5; color: #22543d;">{{ user.status }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            
+            <div style="grid-column: span 2;"><h4 style="color: #a3aed0; margin-bottom: 5px; border-bottom: 1px solid #f4f7fe;">Office Details</h4></div>
+            <div>
+                <small style="color: #a3aed0;">Department</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.department }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Department ID</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.dept_id or 'Not Assigned' }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Employee ID</small>
+                <p style="margin: 0; font-weight: 600;">#BMS-{{ user.id }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Joining Date</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.join_date }}</p>
+            </div>
+
+            <div style="grid-column: span 2; margin-top: 15px;"><h4 style="color: #a3aed0; margin-bottom: 5px; border-bottom: 1px solid #f4f7fe;">Personal Details</h4></div>
+            <div>
+                <small style="color: #a3aed0;">Email</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.email }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Date of Birth</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.dob }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Religion</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.religion }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Caste</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.caste }}</p>
+            </div>
+            <div style="grid-column: span 2;">
+                <small style="color: #a3aed0;">Address</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.address }}</p>
+            </div>
+
+            <div style="grid-column: span 2; margin-top: 15px;"><h4 style="color: #a3aed0; margin-bottom: 5px; border-bottom: 1px solid #f4f7fe;">Financial Details</h4></div>
+            <div>
+                <small style="color: #a3aed0;">Monthly Basic Salary</small>
+                <p style="margin: 0; font-weight: 600; color: #05cd99;">₹{{ "{:,}".format(user.salary) }}</p>
+            </div>
+            <div>
+                <small style="color: #a3aed0;">Username</small>
+                <p style="margin: 0; font-weight: 600;">{{ user.username }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
