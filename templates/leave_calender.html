@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="background: white; border-radius: 20px; padding: 30px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div>
+            <h2 style="color: #1b2559; margin: 0; font-family: 'DM Sans', sans-serif;">🗓️ Staff Availability Map</h2>
+            <p style="color: #a3aed0; margin: 5px 0 0;">Visualizing staff coverage for the current month</p>
+        </div>
+        <div style="display: flex; gap: 15px; font-size: 0.8rem;">
+            <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #4318ff; border-radius: 3px;"></div> Faculty</span>
+            <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 12px; height: 12px; background: #8250df; border-radius: 3px;"></div> Admin/HOD</span>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #f4f7fe; border: 1px solid #f4f7fe; border-radius: 12px; overflow: hidden;">
+        {% for day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+        <div style="background: #ffffff; padding: 15px; text-align: center; font-weight: 700; color: #a3aed0; font-size: 0.8rem; text-transform: uppercase;">{{ day }}</div>
+        {% endfor %}
+
+        {% for day_num in range(1, 32) %}
+        <div style="background: #ffffff; min-height: 120px; padding: 10px; position: relative;">
+            <span style="font-weight: 700; color: #707eae; font-size: 0.9rem;">{{ day_num }}</span>
+            
+            <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                {% for leave in leaves %}
+                    {# Check if the current day_num falls between start and end date #}
+                    {% if leave.start_date.day <= day_num <= leave.end_date.day %}
+                    <div title="{{ leave.reason }}" style="
+                        background: {% if leave.role == 'Faculty' %}#eef2ff{% else %}#f8f5ff{% endif %}; 
+                        color: {% if leave.role == 'Faculty' %}#4318ff{% else %}#8250df{% endif %}; 
+                        padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; 
+                        border-left: 3px solid {% if leave.role == 'Faculty' %}#4318ff{% else %}#8250df{% endif %};
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        👤 {{ leave.user_name }}
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
