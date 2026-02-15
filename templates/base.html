@@ -30,9 +30,26 @@
         .fab-item { transition: 0.3s; display: flex; align-items: center; justify-content: center; }
         .fab-item:hover { background: #4318ff !important; color: white !important; transform: translateX(-5px); }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    </marquee>
     </style>
 </head>
 <body>
+    {% if active_broadcast %}
+    <div style="background: #e53e3e; color: white; padding: 12px 0; overflow: hidden; position: relative; z-index: 10001; display: flex; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+        <div style="background: #e53e3e; padding: 0 20px; font-weight: 800; position: absolute; z-index: 2; display: flex; align-items: center; gap: 8px;">
+            📢 <span style="letter-spacing: 1px;">CAMPUS ALERT</span>
+        </div>
+        <marquee behavior="scroll" direction="left" scrollamount="8" style="font-size: 1rem; font-weight: 600; padding-left: 160px;">
+            {{ active_broadcast.message }} &nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp; 
+            <span style="opacity: 0.9;">Posted by: {{ active_broadcast.author }} at {{ active_broadcast.timestamp.strftime('%I:%M %p') }}</span>
+            &nbsp;&nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp;&nbsp; {{ active_broadcast.message }}
+        </marquee>
+        {% if session['role'] in ['HR', 'Principal'] %}
+        <a href="{{ url_for('clear_broadcast') }}" style="color: white; margin-right: 20px; text-decoration: none; font-weight: bold; z-index: 2; background: rgba(0,0,0,0.2); width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; border-radius: 50%;" title="Dismiss Broadcast">✕</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="sidebar">
         <div class="sidebar-brand" style="padding-left: 15px; margin-bottom: 30px;">
             <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
@@ -41,13 +58,13 @@
         </div>
 
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
-        <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
-        <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+        <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
+        <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
+        <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
+        <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
         <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
         <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
-        <a href="{{ url_for('my_profile') }}" class="nav-link">
-    👤 My Profile
-</a>
+        <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
         
         <button onclick="toggleDarkMode()" class="btn" style="width: 80%; margin: 20px auto; display: block; background: #1b2559;">🌙 Toggle Dark</button>
         
@@ -57,7 +74,7 @@
     <div class="main" style="margin-left: 260px; padding: 40px; width: calc(100% - 260px);">
         <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
             {% if session['name'] %}
-            <a href="{{ url_for('profile') }}" class="profile-link" style="text-decoration: none; color: inherit; font-weight: bold; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd; padding: 8px 15px; border-radius: 8px;">
+            <a href="{{ url_for('my_profile') }}" class="profile-link" style="text-decoration: none; color: inherit; font-weight: bold; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd; padding: 8px 15px; border-radius: 8px;">
                 <span>👤</span> {{ session['name'] }}
             </a>
             {% endif %}
@@ -111,5 +128,3 @@
     </script>
 </body>
 </html>
-
-
