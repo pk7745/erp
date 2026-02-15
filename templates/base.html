@@ -75,6 +75,9 @@
             <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
             <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
+            {% if session['role'] == 'Principal' %}
+    <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); color: #4318ff; font-weight: bold; border-left: 4px solid #4318ff;">🛡️ Audit Logs</a>
+{% endif %}
             
             <button onclick="toggleDarkMode()" class="btn" style="width: 80%; margin: 20px auto; display: block; background: #1b2559;">🌙 Toggle Dark</button>
         </div>
@@ -142,3 +145,4 @@
     </script>
 </body>
 </html>
+
