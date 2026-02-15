@@ -1,6 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
 
+import pytesseract
 import os
 import io
 import csv
@@ -17,6 +18,7 @@ from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
 from datetime import datetime
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -54,7 +56,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v12.db'
+db_name = 'bms_college_v13.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -300,6 +302,44 @@ def leave_calendar():
             leave.role = "Faculty"  # Defaulting to Faculty to prevent crash
 
     return render_template('leave_calendar.html', leaves=approved_leaves)
+
+@app.route('/digital_vault')
+def digital_vault():
+    if session.get('role') not in ['HR', 'Principal']:
+        return redirect(url_for('dashboard'))
+    return render_template('digital_vault.html')
+
+@app.route('/scan_and_import', methods=['POST'])
+def scan_and_import():
+    if 'doc_image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+    
+    # 1. AI OCR Extraction
+    file = request.files['doc_image']
+    image = Image.open(file.stream)
+    extracted_text = pytesseract.image_to_string(image)
+    
+    # 2. Simple logic to "guess" the name (first non-empty line)
+    lines = [line.strip() for line in extracted_text.split('\n') if line.strip()]
+    guessed_name = lines[0] if lines else "Unknown Staff"
+    
+    # 3. Create Staff Profile Automatically
+    new_staff = User(
+        name=guessed_name,
+        role="Faculty", # Default role
+        status="Pending Verification"
+    )
+    db.session.add(new_staff)
+    db.session.commit()
+    
+    # 4. Log the action for the Principal
+    log_action(f"AI Auto-Imported new staff: {guessed_name}", target="Digital Vault")
+    
+    return jsonify({
+        "success": True,
+        "extracted_name": guessed_name,
+        "full_text": extracted_text
+    })
     
 @app.route('/dashboard')
 def dashboard():
@@ -1154,6 +1194,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
