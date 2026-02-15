@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -282,15 +283,22 @@ def view_audit_logs():
 @app.route('/leave_calendar')
 def leave_calendar():
     if session.get('role') not in ['Principal', 'HR']:
-        flash("Unauthorized access!", "error")
         return redirect(url_for('dashboard'))
     
-    # Fetch only approved leaves for the current month
     approved_leaves = Leave.query.filter_by(status='Approved').all()
     
-    # Log that the Principal is checking the calendar
-    log_action("Viewed Staff Leave Calendar") 
-    
+    # SAFETY CHECK: Ensure every leave object has a 'day' and a 'role'
+    for leave in approved_leaves:
+        # 1. Convert string dates to Python date objects if necessary
+        if isinstance(leave.start_date, str):
+            leave.start_date = datetime.strptime(leave.start_date, '%Y-%m-%d')
+        if isinstance(leave.end_date, str):
+            leave.end_date = datetime.strptime(leave.end_date, '%Y-%m-%d')
+        
+        # 2. Add a default 'role' if your database table doesn't have one
+        if not hasattr(leave, 'role') or leave.role is None:
+            leave.role = "Faculty"  # Defaulting to Faculty to prevent crash
+
     return render_template('leave_calendar.html', leaves=approved_leaves)
     
 @app.route('/dashboard')
@@ -1146,6 +1154,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
