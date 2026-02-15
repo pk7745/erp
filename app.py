@@ -186,6 +186,22 @@ class PayrollStructure(db.Model):
     ta_fixed = db.Column(db.Integer, default=2000)
     epf_percent = db.Column(db.Float, default=12.0)
 
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(100))  # The Admin who performed the action
+    action = db.Column(db.String(255))     # e.g., "Updated Salary", "Deleted Staff"
+    target_user = db.Column(db.String(100)) # The staff member affected
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+def log_action(action_text, target="System"):
+    new_log = AuditLog(
+        user_name=session.get('name', 'Unknown'),
+        action=action_text,
+        target_user=target
+    )
+    db.session.add(new_log)
+    db.session.commit()
+
 # ==========================================
 # 3. HELPER FUNCTIONS
 # ==========================================
@@ -428,6 +444,7 @@ def edit_salary(uid):
         emp.salary = int(request.form['new_salary'])
         db.session.add(Notification(message=f"SALARY CHANGE: {emp.full_name} updated from ₹{old_sal} to ₹{emp.salary}"))
         db.session.commit()
+        log_action("Updated Salary", target=staff_member.name)
     return redirect(url_for('staff_directory'))
 
 @app.route('/attendance', methods=['GET', 'POST'])
@@ -487,6 +504,7 @@ def approve_leave(id, action):
     elif action == 'reject':
         leave_req.status, leave_req.rejection_reason = 'Rejected', request.args.get('reason', 'No reason provided')
     db.session.commit()
+    log_action("Approved Leave Request", target=leave_request.user_name)
     return redirect(url_for('leave'))
 
 @app.route('/expenses', methods=['GET', 'POST'])
@@ -776,6 +794,7 @@ def get_stats():
 
 @app.route('/logout')
 def logout():
+    log_action("User Logged Out") # Records the logout
     session.clear(); return redirect(url_for('login'))
 
 @app.route('/principal_request_salary/<int:uid>', methods=['POST'])
@@ -1102,6 +1121,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
