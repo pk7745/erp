@@ -236,6 +236,15 @@ def login():
         flash('Invalid Username or Password.', 'danger')
     return render_template('login.html')
 
+@app.route('/my_profile')
+def my_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Fetch the logged-in user's full data
+    user = User.query.get(session['user_id'])
+    return render_template('my_profile.html', user=user)
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session: 
@@ -1060,6 +1069,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
