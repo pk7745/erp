@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Campus Life | BMSCCM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bms-blue: #1b2559; --bms-accent: #4318ff; --bms-gold: #ffb800; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f7fe; color: var(--bms-blue); line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .back-nav { text-decoration: none; color: var(--bms-accent); font-weight: 700; margin-bottom: 20px; display: inline-block; }
+        
+        /* Layout */
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-top: 30px; }
+        
+        /* High-Impact Hero */
+        .life-hero { 
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://www.bmsccm.ac.in/assets/images/slider/banner2.jpg') center/cover;
+            height: 350px; border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white; text-align: center;
+        }
+
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .fest-highlight { 
+            grid-column: span 2; background: var(--bms-blue); color: white; padding: 40px; 
+            border-radius: 24px; position: relative; overflow: hidden;
+        }
+        .fest-tag { background: var(--bms-gold); color: black; padding: 5px 15px; border-radius: 50px; font-weight: 800; font-size: 0.8rem; }
+        
+        /* Activity List */
+        .club-item { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .club-icon { background: #eef2ff; color: var(--bms-accent); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('about') }}" class="back-nav">← Return to About</a>
+        
+        <header class="life-hero">
+            <div>
+                <h1 style="font-size: 3rem; margin: 0;">Life at BMSCCM</h1>
+                <p>Nurturing creativity and leadership beyond the classroom.</p>
+            </div>
+        </header>
+
+        <div class="grid-3">
+            <div class="fest-highlight">
+                <span class="fest-tag">ANNUAL EVENT</span>
+                <h2 style="font-size: 2.2rem; margin: 15px 0;">Samskruthi 2025-26</h2>
+                <p>Our flagship Inter-collegiate Cultural & Management Fest. Witnessed by over 10,000+ students across India. Features DJ nights, fashion shows, and 30+ competitive events like "Best Manager" and "Street Play."</p>
+                <div style="margin-top: 20px; display: flex; gap: 15px;">
+                    <div style="text-align: center;"><b style="font-size: 1.5rem; display: block;">111+</b><small>Colleges</small></div>
+                    <div style="text-align: center;"><b style="font-size: 1.5rem; display: block;">30+</b><small>Events</small></div>
+                    <div style="text-align: center;"><b style="font-size: 1.5rem; display: block;">3 Days</b><small>Carnival</small></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🎭 Arts & Theatre</h3>
+                <p><b>Bhavaranga:</b> The prestigious theatre club known for award-winning street plays and mime acts at national levels.</p>
+                <div class="club-item"><div class="club-icon">🎨</div><span>Flair Intra-College Fest</span></div>
+                <div class="club-item"><div class="club-icon">🎬</div><span>Reel-making & Short Films</span></div>
+            </div>
+
+            <div class="card">
+                <h3>🏆 Sports Excellence</h3>
+                <p>A flexible curriculum that allows athletes to thrive in District and State levels.</p>
+                <div class="club-item"><div class="club-icon">🏏</div><span>Cricket & Football Teams</span></div>
+                <div class="club-item"><div class="club-icon">🏸</div><span>Indoor Sports Room (TT/Chess)</span></div>
+            </div>
+
+            <div class="card">
+                <h3>🤝 Social Wings</h3>
+                <p>Engaging students in community development and social responsibility.</p>
+                <ul style="padding-left: 20px;">
+                    <li><b>NCC:</b> National Cadet Corps</li>
+                    <li><b>NSS:</b> National Service Scheme</li>
+                    <li><b>Red Cross:</b> Blood donation & social camps</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>🏢 Modern Facilities</h3>
+                <p>Located in V.V. Puram, featuring:</p>
+                <ul style="padding-left: 20px; font-size: 0.9rem;">
+                    <li>Air-Conditioned Classrooms</li>
+                    <li>Seminar Hall with High-End Audio</li>
+                    <li>Rooftop Canteen (Terrace Lounge)</li>
+                    <li>Smart-Board Enabled Teaching</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer style="text-align: center; margin-top: 50px; color: var(--bms-gray);">
+            <p>© 2026 BMS College of Commerce & Management Staff Portal</p>
+        </footer>
+    </div>
+</body>
+</html>
