@@ -8,4 +8,7 @@ pytz
 fpdf
 qrcode
 pillow
+pytesseract
+
+
 
