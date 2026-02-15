@@ -53,7 +53,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v9.db'
+db_name = 'bms_college_v10.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -86,7 +86,9 @@ class User(db.Model):
     join_date = db.Column(db.String(20), default="2023-01-01")
     caste = db.Column(db.String(50), default='General')
     religion = db.Column(db.String(50), default='Not Specified')
-    profile_pic = db.Column(db.String(200), default='default.png') # NEW FIELD
+    profile_pic = db.Column(db.String(200), default='default.png')# NEW FIELD
+    department = db.Column(db.String(100), nullable=True)
+    dept_id = db.Column(db.String(50), nullable=True)
     
     tasks = db.relationship('Task', backref='user', lazy=True)
     attendance = db.relationship('Attendance', backref='user', lazy=True)
@@ -384,6 +386,8 @@ def add_employee():
             join_date=request.form.get('join_date', '2023-01-01'),
             caste=request.form.get('caste'),
             religion=request.form.get('religion')
+            dept: request.form.get('dept'),       # New Field
+            dept_id: request.form.get('dept_id'),
         )
         db.session.add(new_user)
         db.session.commit()
@@ -970,24 +974,72 @@ def handle_chat(data):
 
 def seed_database():
     db.create_all()
-    if not User.query.filter_by(username='admin').first():
-        db.session.add(User(username='admin', password=generate_password_hash('admin123'), role='HR', full_name='System Admin', email='hr@bmsccm.edu', dob='1985-10-25', join_date='2018-05-10', caste='General', religion='Hindu'))
-    if not User.query.filter_by(username='acc1').first():
-        db.session.add(User(username='acc1', password=generate_password_hash('pay123'), role='Accountant', full_name='Rajesh Finance', email='accounts@bmsccm.edu', dob='1990-03-12', join_date='2020-11-20', caste='General', religion='Hindu'))
     
+    # System Admin with Address & Dept
+    if not User.query.filter_by(username='admin').first():
+        db.session.add(User(
+            username='admin', 
+            password=generate_password_hash('admin123'), 
+            role='HR', 
+            full_name='System Admin', 
+            email='hr@bmsccm.edu', 
+            dob='1985-10-25', 
+            join_date='2018-05-10', 
+            caste='General', 
+            religion='Hindu',
+            department='Administration',
+            dept_id='BMS-ADM-001',
+            address='BMSCCM Campus, Basavanagudi, Bengaluru'
+        ))
+
+    # Accountant with Address & Dept
+    if not User.query.filter_by(username='acc1').first():
+        db.session.add(User(
+            username='acc1', 
+            password=generate_password_hash('pay123'), 
+            role='Accountant', 
+            full_name='Rajesh Finance', 
+            email='accounts@bmsccm.edu', 
+            dob='1990-03-12', 
+            join_date='2020-11-20', 
+            caste='General', 
+            religion='Hindu',
+            department='Accounts',
+            dept_id='BMS-ACC-001',
+            address='No. 45, Gandhi Bazaar, Bengaluru'
+        ))
+    
+    # Faculty list with added Dept, DeptID, and Address (Address is at the end)
+    # Format: (username, name, role, email, caste, religion, dob, join, dept, dept_id, address)
     faculties = [
-        ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01'),
-        ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15'),
-        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10'),
-        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14'),
-        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20'),
-        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01'),
-        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01'),
-        ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15')
+        ('balram', 'Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01', 'Commerce', 'BMS-COM-101', 'Jayanagar 4th Block, Bengaluru'),
+        ('kiran', 'Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15', 'Computer Applications', 'BMS-BCA-001', 'Banashankari 3rd Stage, Bengaluru'),
+        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10', 'Management', 'BMS-MGT-201', 'V.V. Puram, Bengaluru'),
+        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14', 'Commerce', 'BMS-COM-102', 'Basavanagudi, Bengaluru'),
+        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20', 'Commerce', 'BMS-COM-103', 'JP Nagar, Bengaluru'),
+        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01', 'Management', 'BMS-MGT-202', 'Uttarahalli, Bengaluru'),
+        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01', 'Commerce', 'BMS-COM-999', 'Bengaluru South'),
+        ('pankaj', 'Mr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15', 'Executive', 'BMS-EXE-001', 'Principal Quarters, BMSCCM')
     ]
-    for u, f, r, e, c, rel, d, j in faculties:
+
+    for u, f, r, e, c, rel, d, j, dept, did, addr in faculties:
         if not User.query.filter_by(username=u).first():
-            db.session.add(User(username=u, password=generate_password_hash('bms123'), role=r, full_name=f, salary=50000, email=e, dob=d, join_date=j, caste=c, religion=rel))
+            db.session.add(User(
+                username=u, 
+                password=generate_password_hash('bms123'), 
+                role=r, 
+                full_name=f, 
+                salary=50000, 
+                email=e, 
+                dob=d, 
+                join_date=j, 
+                caste=c, 
+                religion=rel,
+                department=dept,
+                dept_id=did,
+                address=addr
+            ))
+            
     db.session.commit()
 
 with app.app_context():
@@ -997,6 +1049,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
