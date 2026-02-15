@@ -97,6 +97,13 @@ class User(db.Model):
     kpis = db.relationship('PerformanceKPI', backref='user', lazy=True)
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender_info', lazy=True)
 
+class Broadcast(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String(500), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    active = db.Column(db.Boolean, default=True)
+    author = db.Column(db.String(100)) # e.g., "Principal"
+
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -919,7 +926,28 @@ def generate_id(uid):
     response = make_response(pdf.output(dest='S').encode('latin-1'))
     response.headers['Content-Type'] = 'application/pdf'
     return response
+
+@app.route('/send_broadcast', methods=['POST'])
+def send_broadcast():
+    if session.get('role') not in ['HR', 'Principal']:
+        return "Unauthorized", 403
     
+    msg = request.form.get('message')
+    if msg:
+        # Deactivate old broadcasts so only one shows at a time
+        Broadcast.query.update({Broadcast.active: False})
+        
+        new_broadcast = Broadcast(message=msg, author=session.get('full_name'))
+        db.session.add(new_broadcast)
+        db.session.commit()
+    return redirect(url_for('dashboard'))
+
+@app.route('/clear_broadcast')
+def clear_broadcast():
+    Broadcast.query.update({Broadcast.active: False})
+    db.session.commit()
+    return redirect(url_for('dashboard'))
+
 @app.route('/payslip_history')
 def payslip_history():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -1069,6 +1097,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
