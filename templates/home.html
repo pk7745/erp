@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus ERP | Enterprise Intelligence</title>
+    <title>BMSCCM | Staff Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         :root {
-            --primary: #4318ff;
+            /* Official BMSCCM Colors */
+            --primary: #800000; /* BMS Maroon */
+            --gold: #C5A059;    /* BMS Gold accent */
             --navy: #1b2559;
             --text-gray: #707eae;
             --light-bg: #f4f7fe;
@@ -23,17 +25,16 @@
             background: #FAFCFF;
         }
 
-        /* FULL SCREEN HERO LOGIC */
         .hero {
-            min-height: 100vh; /* Ensures full screen height */
-            width: 100vw;      /* Ensures full screen width */
+            min-height: 100vh;
+            width: 100vw;
             display: flex;
             align-items: center;
             justify-content: center;
             background: 
-                radial-gradient(circle at 90% 10%, rgba(67, 24, 255, 0.08), transparent 40%),
-                radial-gradient(circle at 10% 90%, rgba(5, 205, 153, 0.05), transparent 40%),
-                linear-gradient(135deg, #fdfbff 0%, #f4f7fe 100%);
+                radial-gradient(circle at 90% 10%, rgba(128, 0, 0, 0.05), transparent 40%),
+                radial-gradient(circle at 10% 90%, rgba(197, 160, 89, 0.05), transparent 40%),
+                linear-gradient(135deg, #ffffff 0%, #fdf5f5 100%);
             text-align: center;
             padding: 40px 20px;
             box-sizing: border-box;
@@ -44,11 +45,12 @@
             top: 30px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 800;
             color: var(--navy);
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             z-index: 10;
+            text-transform: uppercase;
         }
 
         .hero-content {
@@ -63,24 +65,23 @@
         }
 
         .hero-content h1 {
-            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
             color: var(--navy);
             margin: 15px 0 25px;
-            line-height: 1.1;
+            line-height: 1.2;
             font-weight: 800;
         }
 
         .hero-content p {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: var(--text-gray);
             margin-bottom: 40px;
             line-height: 1.6;
-            max-width: 700px;
+            max-width: 750px;
             margin-left: auto;
             margin-right: auto;
         }
 
-        /* BUTTONS */
         .home-btns {
             display: flex;
             gap: 15px;
@@ -96,155 +97,108 @@
             text-decoration: none;
             font-weight: bold;
             font-size: 1.1rem;
-            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.2);
+            box-shadow: 0 10px 20px rgba(128, 0, 0, 0.2);
             transition: 0.3s;
+            border: 2px solid transparent;
         }
 
         .btn-launch:hover {
             transform: translateY(-3px);
-            filter: brightness(1.1);
-        }
-
-        /* INTERACTIVE FEATURE RIBBON */
-        .feature-ribbon {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 40px;
-        }
-
-        .feature-link {
-            text-decoration: none;
-            transition: transform 0.3s ease;
-        }
-
-        .feature-link:hover {
-            transform: translateY(-5px);
-        }
-
-        .f-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--navy);
-            font-weight: 600;
             background: white;
-            padding: 14px 28px;
-            border-radius: 50px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid rgba(67, 24, 255, 0.05);
+            color: var(--primary);
+            border: 2px solid var(--primary);
         }
 
-        .dot {
-            height: 8px;
-            width: 8px;
-            background: #05cd99;
-            border-radius: 50%;
-        }
-
-        /* GRID FOR CARDS (Ultimate V2 Feature) */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
-            margin-top: 60px;
+            margin-top: 40px;
             width: 100%;
         }
 
         .feature-card {
             background: white;
-            padding: 30px;
-            border-radius: 24px;
-            border: 1px solid rgba(67, 24, 255, 0.08);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(128, 0, 0, 0.08);
             text-align: center;
             transition: 0.3s;
             box-shadow: 0 10px 30px rgba(0,0,0,0.02);
         }
 
         .feature-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 15px 35px rgba(67, 24, 255, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(197, 160, 89, 0.15);
         }
 
-        .feature-card .icon {
-            font-size: 35px;
-            margin-bottom: 15px;
-            display: block;
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            background: rgba(128, 0, 0, 0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
         }
 
         .feature-card h3 {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
             color: var(--navy);
+            font-size: 1.1rem;
         }
 
         .feature-card small {
             color: var(--text-gray);
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
 
-    <div class="nav-brand">NEXUS<span style="color: var(--primary);">ERP</span></div>
+    <div class="nav-brand">BMS<span style="color: var(--primary);">CCM</span> Staff Portal</div>
 
     <section class="hero">
         <div class="hero-content">
-            <div style="display: inline-block; background: rgba(67, 24, 255, 0.1); color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
-                Enterprise Unified Portal
+            <div style="display: inline-block; background: rgba(128, 0, 0, 0.1); color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
+                Faculty & Administration Hub
             </div>
             
-            <h1>Smart Workspace for <br> <span style="color: var(--primary);">Smart Enterprises.</span></h1>
+            <h1>Empowering Academic <br> <span style="color: var(--primary);">Excellence & Management.</span></h1>
             
-            <p>Streamline attendance, manage secure internal communications, and track real-time performance within a single, high-performance ecosystem.</p>
+            <p>Access the unified BMS Centre for Communication and Management ecosystem for real-time attendance, digital document vaulting, and seamless staff communication.</p>
             
             <div class="home-btns">
-                <a href="{{ url_for('login') }}" class="btn-launch">Launch Nexus Dashboard</a>
-            </div>
-
-            <div class="feature-ribbon">
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="f-item"><span class="dot"></span> Secure Chat</div>
-                </a>
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="f-item"><span class="dot" style="background: var(--primary);"></span> HR Management</div>
-                </a>
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="f-item"><span class="dot"></span> Smart Analytics</div>
-                </a>
+                <a href="{{ url_for('login') }}" class="btn-launch">Enter Staff Dashboard</a>
             </div>
 
             <div class="feature-grid">
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="feature-card">
-                        <span class="icon">👥</span>
-                        <h3>Staff Portal</h3>
-                        <small>Attendance & Leave</small>
-                    </div>
-                </a>
+                <div class="feature-card">
+                    <div class="icon-circle">📅</div>
+                    <h3>Leave Map</h3>
+                    <small>Availability Calendar</small>
+                </div>
 
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="feature-card">
-                        <span class="icon">💰</span>
-                        <h3>Finance</h3>
-                        <small>Claims & Payroll</small>
-                    </div>
-                </a>
+                <div class="feature-card">
+                    <div class="icon-circle">📁</div>
+                    <h3>Digital Vault</h3>
+                    <small>AI-Powered OCR Scanning</small>
+                </div>
 
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="feature-card">
-                        <span class="icon">📈</span>
-                        <h3>Reporting</h3>
-                        <small>Visual Analytics</small>
-                    </div>
-                </a>
+                <div class="feature-card">
+                    <div class="icon-circle">📢</div>
+                    <h3>Broadcast</h3>
+                    <small>Institutional Alerts</small>
+                </div>
 
-                <a href="{{ url_for('login') }}" class="feature-link">
-                    <div class="feature-card">
-                        <span class="icon">🛡️</span>
-                        <h3>Security</h3>
-                        <small>Role-based Access</small>
-                    </div>
-                </a>
+                <div class="feature-card">
+                    <div class="icon-circle">🛡️</div>
+                    <h3>Audit Log</h3>
+                    <small>Secure Operations</small>
+                </div>
             </div>
         </div>
     </section>
