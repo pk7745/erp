@@ -46,7 +46,6 @@
                 prejoinPageEnabled: false,
                 disableChat: false,
                 disableRaiseHand: false,
-                // STABILITY UPDATES: Prevent timeouts and third-party interruptions
                 disableThirdPartyRequests: true,
                 enableNoisyMicDetection: false,
                 enableClosePage: false,
@@ -202,6 +201,18 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 20px;">
+            {% if session['role'] in ['HR', 'Principal'] %}
+            <div class="card" style="background: white; padding: 20px; border-radius: 15px; border-left: 5px solid #ee5d50;">
+                <h3 style="margin-top: 0; color: #1b2559;">🚀 Campus Broadcast</h3>
+                <p style="font-size: 0.8rem; color: #707eae; margin-bottom: 12px;">Send an emergency alert to all logged-in staff.</p>
+                <form action="{{ url_for('send_broadcast') }}" method="POST">
+                    <input type="text" name="message" placeholder="Type announcement..." required 
+                           style="width: 100%; border-radius: 8px; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;">
+                    <button type="submit" class="btn" style="background: #ee5d50; color: white; width: 100%; border: none; padding: 10px; border-radius: 8px; font-weight: bold;">Broadcast Now</button>
+                </form>
+            </div>
+            {% endif %}
+
             <div class="card" style="background: white; padding: 20px; border-radius: 15px; text-align: center;">
                 <h3 style="margin-top: 0; color: #1b2559;">📊 Work Mode Distro</h3>
                 <div style="height: 180px; position: relative;"><canvas id="modeChart"></canvas></div>
@@ -283,5 +294,3 @@
     });
 </script>
 {% endblock %}
-
-
