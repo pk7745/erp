@@ -53,7 +53,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v11.db'
+db_name = 'bms_college_v12.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -278,6 +278,20 @@ def view_audit_logs():
     # Fetch all logs, newest first
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
+    
+@app.route('/leave_calendar')
+def leave_calendar():
+    if session.get('role') not in ['Principal', 'HR']:
+        flash("Unauthorized access!", "error")
+        return redirect(url_for('dashboard'))
+    
+    # Fetch only approved leaves for the current month
+    approved_leaves = Leave.query.filter_by(status='Approved').all()
+    
+    # Log that the Principal is checking the calendar
+    log_action("Viewed Staff Leave Calendar") 
+    
+    return render_template('leave_calendar.html', leaves=approved_leaves)
     
 @app.route('/dashboard')
 def dashboard():
@@ -1132,6 +1146,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
