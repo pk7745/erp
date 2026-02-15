@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Courses & Programs | BMSCCM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bms-blue: #1b2559; --bms-accent: #4318ff; --bms-gold: #ffb800; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f7fe; color: var(--bms-blue); }
+        .container { max-width: 1100px; margin: 50px auto; padding: 0 20px; }
+        .back-nav { margin-bottom: 20px; display: block; text-decoration: none; color: var(--bms-accent); font-weight: 700; }
+        .course-header { background: white; padding: 40px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .course-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .course-card { background: white; padding: 30px; border-radius: 20px; border-left: 6px solid var(--bms-accent); transition: 0.3s; }
+        .course-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(67, 24, 255, 0.1); }
+        .badge { background: #eef2ff; color: var(--bms-accent); padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 800; }
+        .analytics-box { grid-column: span 2; background: var(--bms-blue); color: white; border-left-color: var(--bms-gold); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('about') }}" class="back-nav">← Return to About</a>
+        <div class="course-header">
+            <h1 style="margin: 0; font-size: 2.5rem;">Academic Programs</h1>
+            <p style="color: #a3aed0;">Affiliated to Bengaluru City University | NEP 2020 Compliant</p>
+        </div>
+
+        <div class="course-grid">
+            <div class="course-card analytics-box">
+                <span class="badge" style="background: var(--bms-gold); color: black;">FEATURED SPECIALIZATION</span>
+                <h2>B.Com - Business Data Analytics</h2>
+                <p>Equips students with analytical tools to interpret business problems. Includes industry-ready modules:</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <span style="border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem;">Advanced Excel</span>
+                    <span style="border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem;">SAP</span>
+                    <span style="border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem;">Artificial Intelligence</span>
+                    <span style="border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem;">Python for Data Analytics</span>
+                </div>
+            </div>
+
+            <div class="course-card">
+                <span class="badge">UG PROGRAM</span>
+                <h3>Bachelor of Commerce (B.Com)</h3>
+                <p>Regular degree focusing on Accounting, Finance, and Taxation. Integrated with CA/CS coaching options.</p>
+            </div>
+
+            <div class="course-card">
+                <span class="badge">UG PROGRAM</span>
+                <h3>BBA (Management)</h3>
+                <p>Focused on Marketing, HR, and Entrepreneurship to develop industry-ready leaders.</p>
+            </div>
+
+            <div class="course-card">
+                <span class="badge">PG PROGRAM</span>
+                <h3>Executive PGDM</h3>
+                <p>Designed for working professionals. Focused on strategic management and corporate ethics.</p>
+            </div>
+
+            <div class="course-card">
+                <span class="badge">PROFESSIONAL</span>
+                <h3>Integrated Professional Courses</h3>
+                <p>Strategic partnerships for CA (Chartered Accountancy), CS, and ACCA global certifications.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
