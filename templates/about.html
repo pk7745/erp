@@ -9,7 +9,6 @@
         :root {
             --bms-blue: #1b2559;
             --bms-accent: #4318ff;
-            --bms-success: #05cd99;
             --bms-gold: #ffb800;
             --bms-gray: #a3aed0;
             --bg-soft: #f4f7fe;
@@ -23,8 +22,8 @@
             color: var(--bms-blue);
         }
 
-        /* Top Nav */
-        .top-nav {
+        /* Nav Bar */
+        .official-header {
             background: white;
             padding: 15px 5%;
             display: flex;
@@ -33,43 +32,32 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
 
-        .brand {
+        .brand-link {
             display: flex;
             align-items: center;
             gap: 15px;
             text-decoration: none;
+            color: var(--bms-blue);
         }
 
-        .brand-logo {
+        .brand-icon {
             background: var(--bms-blue);
             color: white;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
             font-weight: 800;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
         }
 
-        .brand-text h1 {
-            font-size: 0.95rem;
-            margin: 0;
-            color: var(--bms-blue);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Hero */
-        .hero {
+        /* Hero Section */
+        .hero-banner {
             width: 100%;
-            height: 450px;
-            background: linear-gradient(rgba(27, 37, 89, 0.85), rgba(67, 24, 255, 0.6)), 
-                        url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1920') center/cover;
+            height: 550px;
+            background: linear-gradient(rgba(27, 37, 89, 0.8), rgba(27, 37, 89, 0.4)), 
+                        url('https://www.bmsccm.ac.in/assets/images/slider/banner1.jpg') center/cover;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -78,190 +66,171 @@
             color: white;
         }
 
-        /* Clickable Stats Grid */
-        .stats-grid {
-            max-width: 1200px;
-            margin: -50px auto 50px;
+        .hero-banner h1 { font-size: 4rem; margin: 0; font-weight: 800; text-shadow: 2px 2px 10px rgba(0,0,0,0.3); }
+
+        /* Interactive Grid */
+        .main-wrapper {
+            max-width: 1300px;
+            margin: -80px auto 60px;
+            padding: 0 20px;
+        }
+
+        .action-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
-            padding: 0 20px;
+            margin-bottom: 50px;
         }
 
-        .stat-link {
-            text-decoration: none;
+        .action-card {
             background: white;
-            padding: 30px;
-            border-radius: 20px;
+            padding: 35px 20px;
+            border-radius: 24px;
             text-align: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
+            text-decoration: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-bottom: 5px solid transparent;
         }
 
-        .stat-link:hover {
-            transform: translateY(-10px);
-            border-color: var(--bms-accent);
+        .action-card:hover {
+            transform: translateY(-15px);
+            border-bottom: 5px solid var(--bms-accent);
         }
 
-        .stat-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
-        .stat-val { font-size: 2rem; font-weight: 800; color: var(--bms-accent); display: block; }
-        .stat-lab { font-size: 0.75rem; color: var(--bms-gray); font-weight: 700; text-transform: uppercase; }
+        .action-card i { font-size: 2.5rem; margin-bottom: 15px; display: block; }
+        .action-card span { font-weight: 800; color: var(--bms-blue); font-size: 1.1rem; }
 
-        /* Sections */
-        .section-container {
-            max-width: 1200px;
-            margin: 0 auto 60px;
-            padding: 0 20px;
+        /* Information Blocks */
+        .info-section {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 30px;
+            margin-top: 40px;
         }
 
-        .grid-2 {
+        .content-box {
+            background: white;
+            padding: 50px;
+            border-radius: 30px;
+            line-height: 1.8;
+        }
+
+        .highlight-list {
+            list-style: none;
+            padding: 0;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            gap: 15px;
+            margin-top: 25px;
         }
 
-        .info-card {
-            background: white;
-            padding: 40px;
-            border-radius: 24px;
-            position: relative;
-            overflow: hidden;
+        .highlight-list li {
+            background: #f8faff;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--bms-accent);
+            border-left: 4px solid var(--bms-accent);
         }
 
-        .info-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 6px; height: 100%;
-            background: var(--bms-accent);
-        }
-
-        /* Feature Icons Bar */
-        .feature-nav {
-            display: flex;
-            justify-content: space-between;
-            background: var(--bms-blue);
-            padding: 40px;
-            border-radius: 30px;
-            margin-bottom: 60px;
-        }
-
-        .feature-item {
-            text-decoration: none;
-            color: white;
-            text-align: center;
-            flex: 1;
-            transition: 0.3s;
-        }
-
-        .feature-item:hover { transform: scale(1.1); color: var(--bms-gold); }
-        .feature-item i { font-size: 2.5rem; margin-bottom: 15px; display: block; }
-
-        .btn-main {
-            background: var(--bms-accent);
-            color: white;
-            padding: 20px 45px;
-            border-radius: 15px;
-            text-decoration: none;
-            font-weight: 700;
+        .visit-btn {
             display: inline-block;
+            background: var(--bms-accent);
+            color: white;
+            padding: 20px 50px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-top: 40px;
             transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(67, 24, 255, 0.3);
         }
 
-        .btn-main:hover { background: var(--bms-blue); transform: translateY(-3px); }
+        .visit-btn:hover {
+            background: var(--bms-blue);
+            transform: scale(1.05);
+        }
 
     </style>
 </head>
 <body>
 
-    <nav class="top-nav">
-        <a href="https://www.bmsccm.ac.in/" target="_blank" class="brand">
-            <div class="brand-logo">BMS</div>
-            <div class="brand-text">
-                <h1>College of Commerce & Management</h1>
+    <nav class="official-header">
+        <a href="https://www.bmsccm.ac.in/" target="_blank" class="brand-link">
+            <div class="brand-icon">BMS</div>
+            <div style="line-height: 1;">
+                <b style="font-size: 1.2rem; display: block;">BMSCCM</b>
+                <small style="color: var(--bms-gray); font-size: 0.7rem; font-weight: 700;">ESTD. 1950</small>
             </div>
         </a>
-        <a href="{{ url_for('dashboard') }}" style="text-decoration: none; color: var(--bms-accent); font-weight: 700;">← Back to Portal</a>
+        <div style="display: flex; gap: 20px;">
+            <a href="{{ url_for('dashboard') }}" style="text-decoration: none; color: var(--bms-accent); font-weight: 800;">Portal Dashboard</a>
+        </div>
     </nav>
 
-    <header class="hero">
-        <h1 style="font-size: 3.5rem; margin: 0; font-weight: 800;">Legacy of 75+ Years</h1>
-        <p style="font-size: 1.2rem; opacity: 0.9; max-width: 700px;">Nurturing the leaders of tomorrow through holistic education and professional excellence in the heart of Bengaluru.</p>
+    <header class="hero-banner">
+        <h1 id="hero-title">Beyond Education</h1>
+        <p style="font-size: 1.4rem; max-width: 800px; margin-top: 15px; opacity: 0.9;">Building Excellence in Commerce and Management for over 7 Decades.</p>
     </header>
 
-    <div class="stats-grid">
-        <a href="https://www.bmsccm.ac.in/placements" target="_blank" class="stat-link">
-            <span class="stat-icon">💼</span>
-            <span class="stat-val">100%</span>
-            <span class="stat-lab">Placement Support</span>
-        </a>
-        <a href="https://www.bmsccm.ac.in/courses" target="_blank" class="stat-link">
-            <span class="stat-icon">📚</span>
-            <span class="stat-val">UG/PG</span>
-            <span class="stat-lab">Academic Programs</span>
-        </a>
-        <a href="https://www.bmsccm.ac.in/library" target="_blank" class="stat-link">
-            <span class="stat-icon">🏢</span>
-            <span class="stat-val">24/7</span>
-            <span class="stat-lab">Digital Library</span>
-        </a>
-        <a href="https://www.bmsccm.ac.in/faculty" target="_blank" class="stat-link">
-            <span class="stat-icon">🎓</span>
-            <span class="stat-val">Ph.D</span>
-            <span class="stat-lab">Expert Faculty</span>
-        </a>
-    </div>
-
-    <div class="section-container">
-        <div class="grid-2">
-            <div class="info-card">
-                <h2 style="color: var(--bms-accent);">The BMS Philosophy</h2>
-                <p>BMSCCM is a premier institution under the <b>BMS Educational Trust</b>. We focus on providing industry-aligned commerce and management education. Our campus in Basavanagudi serves as a hub for academic rigor and cultural heritage.</p>
-                <ul style="color: var(--bms-gray); font-weight: 600; line-height: 2;">
-                    <li>✓ National & International Seminars</li>
-                    <li>✓ Industry Internship Programs</li>
-                    <li>✓ Integrated Professional Courses (CA/CS/ACCA)</li>
-                </ul>
-            </div>
-            <div class="info-card" style="background: var(--bms-blue); color: white;">
-                <h2 style="color: var(--bms-gold);">Strategic Vision</h2>
-                <p style="opacity: 0.9;">To be an institution of excellence by providing high-quality education to inspire and transform young lives in the global community.</p>
-                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-                <h3 style="margin: 0;">Our Core Values</h3>
-                <p style="font-size: 0.9rem; opacity: 0.8;">Transparency, Integrity, Excellence, and Social Responsibility.</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="section-container">
-        <div class="feature-nav">
-            <a href="https://www.bmsccm.ac.in/facilities" target="_blank" class="feature-item">
-                <i>🏫</i>
-                <span>Campus Life</span>
-            </a>
-            <a href="https://www.bmsccm.ac.in/research" target="_blank" class="feature-item">
-                <i>🔬</i>
-                <span>Research Hub</span>
-            </a>
-            <a href="https://www.bmsccm.ac.in/events" target="_blank" class="feature-item">
-                <i>🎭</i>
-                <span>Student Clubs</span>
-            </a>
-            <a href="https://www.bmsccm.ac.in/admission" target="_blank" class="feature-item">
+    <div class="main-wrapper">
+        <div class="action-grid">
+            <a href="https://www.bmsccm.ac.in/admission" target="_blank" class="action-card">
                 <i>📝</i>
                 <span>Admissions</span>
             </a>
+            <a href="https://www.bmsccm.ac.in/courses" target="_blank" class="action-card">
+                <i>🎓</i>
+                <span>Academic Programs</span>
+            </a>
+            <a href="https://www.bmsccm.ac.in/placements" target="_blank" class="action-card">
+                <i>📈</i>
+                <span>Placement Cell</span>
+            </a>
+            <a href="https://www.bmsccm.ac.in/campus-life" target="_blank" class="action-card">
+                <i>🎭</i>
+                <span>Student Life</span>
+            </a>
         </div>
-    </div>
 
-    <div class="section-container" style="text-align: center; padding-bottom: 80px;">
-        <h2 style="font-size: 2rem; margin-bottom: 30px;">Discover Our World-Class Campus</h2>
-        <a href="https://www.bmsccm.ac.in/" target="_blank" class="btn-main">Visit Official Website</a>
-        <p style="margin-top: 30px; color: var(--bms-gray); font-size: 0.85rem;">
-            No-97, Kavi Lakshmisha Road, V.V. Puram, Bengaluru - 560 004<br>
-            © 2026 BMSCCM Staff Portal. Information synced with Official College Database.
-        </p>
+        <div class="info-section">
+            <div class="content-box">
+                <h2 style="font-size: 2.2rem; margin-top: 0;">Institutional Legacy</h2>
+                <p>BMS College of Commerce & Management is one of the premier institutions under the umbrella of <b>BMS Educational Trust</b>. Strategically located in the heart of Bengaluru, we provide a vibrant environment where students can master the complexities of the modern corporate world.</p>
+                
+                <ul class="highlight-list">
+                    <li>✓ National Level Seminars</li>
+                    <li>✓ Industry Expert Interactions</li>
+                    <li>✓ State-of-the-Art IT Lab</li>
+                    <li>✓ High-Speed Campus WiFi</li>
+                    <li>✓ Digital Reference Library</li>
+                    <li>✓ Soft Skill Workshops</li>
+                </ul>
+
+                <a href="https://www.bmsccm.ac.in/" target="_blank" class="visit-btn">Visit Official Website</a>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="content-box" style="padding: 30px; background: var(--bms-blue); color: white;">
+                    <h3 style="margin-top: 0; color: var(--bms-gold);">Our Vision</h3>
+                    <p style="font-size: 0.95rem; opacity: 0.9;">To be an institution of excellence by providing high-quality education to inspire and transform young lives in the global community.</p>
+                </div>
+                <div class="content-box" style="padding: 30px; border: 2px solid #e2e8f0;">
+                    <h3 style="margin-top: 0; color: var(--bms-accent);">Management Info</h3>
+                    <p style="font-size: 0.9rem; color: var(--bms-gray);">Managed by the prestigious BMS Educational Trust, Bengaluru. Dedicated to the vision of Late Sri. B. M. Sreenivasaiah.</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 80px; border-top: 1px solid #e2e8f0; padding-top: 40px;">
+            <p style="color: var(--bms-gray); font-size: 0.85rem;">
+                No-97, Kavi Lakshmisha Road, V.V. Puram, Bengaluru - 560 004<br>
+                © 2026 BMSCCM Staff Portal | Powered by Internal Resource Systems
+            </p>
+        </div>
     </div>
 
 </body>
