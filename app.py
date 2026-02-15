@@ -860,46 +860,57 @@ def generate_id(uid):
     
     # Header Branding
     pdf.set_fill_color(27, 37, 89)
-    pdf.rect(0, 0, 54, 20, 'F')
+    pdf.rect(0, 0, 54, 18, 'F')
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 8)
     pdf.text(12, 10, "BMSCCM STAFF ID")
     
     # Profile Picture
-    pic_path = os.path.join(app.config['UPLOAD_FOLDER'], u.profile_pic)
-    if not os.path.exists(pic_path) or u.profile_pic == 'default.png':
-        pdf.rect(17, 22, 20, 20) # Placeholder
+    pic_path = os.path.join(app.config['UPLOAD_FOLDER'], u.profile_pic) if u.profile_pic else None
+    if not pic_path or not os.path.exists(pic_path) or u.profile_pic == 'default.png':
+        pdf.rect(17, 20, 20, 20) # Placeholder
     else:
-        pdf.image(pic_path, 17, 22, 20, 20)
+        pdf.image(pic_path, 17, 20, 20, 20)
 
     # Details
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Arial", 'B', 9)
-    pdf.set_xy(0, 45)
-    pdf.cell(54, 5, u.full_name.upper(), 0, 1, 'C')
-    pdf.set_font("Arial", '', 7)
-    pdf.cell(54, 4, u.role, 0, 1, 'C')
-    pdf.cell(54, 4, f"ID: BMS-{u.id}", 0, 1, 'C')
+    pdf.set_font("Arial", 'B', 8)
+    pdf.set_xy(0, 42)
+    pdf.cell(54, 4, u.full_name.upper(), 0, 1, 'C')
+    
+    pdf.set_font("Arial", 'B', 6)
+    pdf.set_text_color(67, 24, 255) # BMS Blue
+    pdf.cell(54, 3, f"{u.department}", 0, 1, 'C')
+    
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", '', 6)
+    pdf.cell(54, 3, f"Role: {u.role}", 0, 1, 'C')
+    pdf.cell(54, 3, f"Dept ID: {u.dept_id}", 0, 1, 'C')
+    pdf.cell(54, 3, f"DOB: {u.dob}", 0, 1, 'C')
+
+    # Small Address
+    pdf.set_font("Arial", '', 5)
+    pdf.set_xy(2, 58)
+    pdf.multi_cell(50, 2.5, f"Addr: {u.address}", 0, 'C')
 
     # QR Code for verification
-    qr_content = f"VERIFIED: {u.full_name} | ROLE: {u.role} | DEPT: BMSCCM"
+    qr_content = f"VERIFIED: {u.full_name} | DEPT_ID: {u.dept_id} | BMSCCM"
     qr = qrcode.make(qr_content)
     qr_io = io.BytesIO()
     qr.save(qr_io, format='PNG')
     qr_io.seek(0)
     
-    # Temp save QR to show in PDF
     qr_temp_path = f"static/uploads/qr_{uid}.png"
     with open(qr_temp_path, "wb") as f: f.write(qr_io.getvalue())
     
-    pdf.image(qr_temp_path, 20, 62, 14, 14)
-    pdf.set_font("Arial", 'I', 5)
-    pdf.text(15, 78, "Scan to Verify Employment")
+    pdf.image(qr_temp_path, 21, 68, 12, 12)
+    pdf.set_font("Arial", 'I', 4)
+    pdf.text(18, 82, "Scan to Verify Employment")
 
     response = make_response(pdf.output(dest='S').encode('latin-1'))
     response.headers['Content-Type'] = 'application/pdf'
     return response
-
+    
 @app.route('/payslip_history')
 def payslip_history():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -1049,6 +1060,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
