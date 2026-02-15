@@ -1016,6 +1016,11 @@ def handle_chat(data):
         'time': now.strftime("%I:%M %p")
     }, broadcast=True)
 
+@app.context_processor
+def inject_broadcast():
+    # This makes the active alert available to all templates (base.html)
+    active = Broadcast.query.filter_by(active=True).order_by(Broadcast.id.desc()).first()
+    return dict(active_broadcast=active)
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -1097,6 +1102,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
