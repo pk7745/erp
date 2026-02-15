@@ -114,8 +114,10 @@
         </marquee>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
-        <h1 style="margin: 0; color: #1b2559;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h1>
+   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px;">
+        <a href="https://www.bmsccm.ac.in/" target="_blank" style="text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+            <h1 style="margin: 0; color: #1b2559; cursor: pointer;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h1>
+        </a>
         <div style="display: flex; gap: 10px; align-items: center;">
             <a href="{{ url_for('chat') }}" class="btn" style="position: relative; background: #4318ff; text-decoration: none; color: white;">
                 💬 BMS Connect
@@ -281,3 +283,4 @@
     });
 </script>
 {% endblock %}
+
