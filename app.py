@@ -169,15 +169,26 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     
-    # These MUST exist for your dashboard query to work
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))      
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))  
-    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))  
+    # Hierarchy Columns
+    # 'assigned_to' = The person who must do the work (Faculty/Staff)
+    # 'assigned_by' = The person who gave the task (Principal/HOD)
+    # 'user_id'     = Used for personal tasks/dashboard queries
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
     status = db.Column(db.String(20), default='Pending')
     is_done = db.Column(db.Boolean, default=False)
-    reply_content = db.Column(db.Text) 
+    
+    # This is the "Box" where staff submit their assigned task
+    reply_content = db.Column(db.Text)
+    
     completed_at = db.Column(db.DateTime)
+
+    # Relationships to pull names for your activity room
+    # Allows you to use {{ task.task_sender.full_name }} in HTML
+    task_recipient = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
+    task_sender = db.relationship('User', foreign_keys=[assigned_by], backref='sent_tasks')
 
 
 class Notification(db.Model):
@@ -356,27 +367,30 @@ def activity_room():
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
-    sender_role = session.get('role')
+    sender = User.query.get(session['user_id'])
     target_id = request.form.get('staff_id')
     title = request.form.get('title')
-    
     target_user = User.query.get(target_id)
+
+    # 1 & 2: Hierarchy Logic
+    can_assign = False
+    if sender.role == 'Principal':
+        can_assign = True # Can assign to everyone
+    elif sender.role == 'HOD' and target_user.role == 'Faculty':
+        can_assign = True # HOD (Kiran) can only assign to Faculty
     
-    # STRICT HIERARCHY LOGIC
-    if sender_role == 'HOD' and target_user.role != 'Faculty':
-        flash("HODs can only assign tasks to Faculty!", "error")
+    if can_assign:
+        new_task = Task(
+            title=title,
+            assigned_to=target_id,  # The Recipient
+            assigned_by=sender.id,  # The Assigner (Principal/HOD)
+            status='Pending'
+        )
+        db.session.add(new_task)
+        db.session.commit()
         return redirect(url_for('activity_room'))
-    
-    # Principal can assign to anyone (handled by the dropdown options)
-    
-    new_task = Task(
-        title=title,
-        assigned_to=target_id,
-        sender_id=session['user_id']
-    )
-    db.session.add(new_task)
-    db.session.commit()
-    return redirect(url_for('activity_room'))
+    else:
+        return "Permission Denied: You cannot assign tasks to this role.", 403
     
 @app.route('/leave_calendar')
 def leave_calendar():
@@ -1190,11 +1204,11 @@ def generate_payslip_historical(uid, month):
     # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
     return generate_payslip(uid) # Temporary redirect to main logic for now
 
-@app.route('/complete_task/<int:id>', methods=['POST'])
-def complete_task(id):
-    task = Task.query.get_or_404(id)
+@app.route('/submit_task/<int:task_id>', methods=['POST'])
+def submit_task(task_id):
+    task = Task.query.get_or_404(task_id)
     if task.assigned_to == session['user_id']:
-        task.reply_content = request.form.get('reply') # Captures the reply block text
+        task.reply_content = request.form.get('submission_text')
         task.is_done = True
         task.status = 'Completed'
         task.completed_at = datetime.utcnow()
@@ -1354,6 +1368,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
