@@ -168,18 +168,20 @@ class PerformanceKPI(db.Model):
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    # The column the error complained about:
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id')) 
+    
+    # This specific name is required by your relationship logic
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id')) 
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
     status = db.Column(db.String(20), default='Pending')
     is_done = db.Column(db.Boolean, default=False)
-    # This stores what is typed in your new <textarea>:
-    reply_content = db.Column(db.Text) 
+    reply_content = db.Column(db.Text) # For the reply block
     completed_at = db.Column(db.DateTime)
 
-    # These links allow 'task_sender.full_name' to work in your HTML
-    task_receiver = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
+    # Relationships to make the names show up in your HTML
+    task_receiver = db.relationship('User', foreign_keys=[user_id], backref='received_tasks')
     task_sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tasks')
+
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1355,6 +1357,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
