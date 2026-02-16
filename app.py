@@ -181,6 +181,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     message = db.Column(db.String(255))
+    is_read = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=get_ist_time)
 
 class ActivityReport(db.Model):
@@ -1379,6 +1380,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
