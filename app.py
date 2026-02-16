@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v21.db'
+db_name = 'bms_college_v22.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -99,14 +99,12 @@ class User(db.Model):
 
     # 1. Personal Tasks (Tasks the user created for themselves)
     # We removed the duplicate 'tasks' line and kept this one.
-    tasks = db.relationship('Task', backref='task_owner', foreign_keys='Task.user_id')
+   tasks = db.relationship('Task', backref='owner_link', foreign_keys='Task.user_id')
 
     # 2. Tasks Assigned TO this user (The Inbox)
-    tasks_assigned_to_me = db.relationship('Task', backref='task_recipient', foreign_keys='Task.assigned_to')
-
+   tasks_assigned_to_me = db.relationship('Task', backref='recipient_link', foreign_keys='Task.assigned_to')
     # 3. Tasks Delegated BY this user (The Outbox)
-    tasks_delegated_by_me = db.relationship('Task', backref='task_sender', foreign_keys='Task.assigned_by')
-    
+    tasks_delegated_by_me = db.relationship('Task', backref='sender_link', foreign_keys='Task.assigned_by')
     # 4. Other system relationships
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
@@ -187,8 +185,8 @@ class Task(db.Model):
 
     # Relationships to pull names for your activity room
     # Allows you to use {{ task.task_sender.full_name }} in HTML
-    task_recipient = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
-    task_sender = db.relationship('User', foreign_keys=[assigned_by], backref='sent_tasks')
+    task_recipient = db.relationship('User', foreign_keys=[assigned_to])
+    task_sender = db.relationship('User', foreign_keys=[assigned_by])
 
 
 class Notification(db.Model):
@@ -1368,6 +1366,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
