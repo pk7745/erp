@@ -104,7 +104,7 @@ class User(db.Model):
     # 2. Tasks Assigned TO this user (The Inbox)
    tasks_assigned_to_me = db.relationship('Task', backref='recipient_link', foreign_keys='Task.assigned_to')
     # 3. Tasks Delegated BY this user (The Outbox)
-    tasks_delegated_by_me = db.relationship('Task', backref='sender_link', foreign_keys='Task.assigned_by')
+   tasks_delegated_by_me = db.relationship('Task', backref='sender_link', foreign_keys='Task.assigned_by')
     # 4. Other system relationships
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
@@ -1380,6 +1380,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
