@@ -305,22 +305,47 @@ def view_audit_logs():
 
 @app.route('/activity')
 def activity_room():
-    # Fetch tasks assigned TO the user
-    my_tasks = Task.query.filter_by(assigned_to=session['user_id']).all()
+    user_id = session.get('user_id')
+    user_role = session.get('role')
+
+    # --- 1. EXISTING LOGIC: Fetch tasks ---
+    my_tasks = Task.query.filter_by(assigned_to=user_id).all()
     
-    # If Principal/HOD, fetch tasks they ASSIGNED to others
     assigned_by_me = []
-    if session['role'] in ['Principal', 'HOD']:
-        assigned_by_me = Task.query.filter_by(assigned_by=session['user_id']).all()
-        
-    # Stats for the Growth Chart (Example logic)
-    # Count completed tasks over the last 7 days
-    growth_data = [2, 5, 3, 8, 6, 9, 12] # Replace with DB query logic
+    if user_role in ['Principal', 'HOD']:
+        assigned_by_me = Task.query.filter_by(assigned_by=user_id).all()
+
+    # --- 2. NEW LOGIC: Individual Names for Dropdown ---
+    # Fetch specific faculty members by name
+    faculty_members = User.query.filter_by(role='Faculty').all()
+    # If Principal, also fetch HODs to assign tasks to them individually
+    hod_members = User.query.filter_by(role='HOD').all() if user_role == 'Principal' else []
+
+    # --- 3. UPDATED LOGIC: Growth Chart (Real DB Data) ---
+    growth_data = []
+    labels = []
     
+    # Logic to get the last 7 days of completed tasks
+    for i in range(6, -1, -1):
+        day_date = (datetime.now() - timedelta(days=i)).date()
+        labels.append(day_date.strftime('%a')) # 'Mon', 'Tue', etc.
+        
+        # Count tasks completed by the user on this specific day
+        count = Task.query.filter(
+            Task.assigned_to == user_id,
+            Task.is_done == True,
+            func.date(Task.completed_at) == day_date
+        ).count()
+        growth_data.append(count)
+
+    # --- 4. RETURN: All existing and new variables ---
     return render_template('activity.html', 
                            my_tasks=my_tasks, 
                            assigned_by_me=assigned_by_me,
-                           growth_data=growth_data)
+                           growth_data=growth_data,
+                           labels=labels,
+                           faculty_members=faculty_members,
+                           hod_members=hod_members)
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
@@ -1316,6 +1341,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
