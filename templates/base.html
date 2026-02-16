@@ -84,6 +84,23 @@
 {% endif %}
             <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
             <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
+            <a href="{{ url_for('activity_room') }}" class="nav-link" style="position: relative;">
+    <i class="fas fa-tasks"></i> Activity Room
+    
+    {% if pending_tasks_count > 0 %}
+    <span style="position: absolute; top: 10px; right: 10px; background: var(--danger); color: white; font-size: 0.6rem; padding: 2px 6px; border-radius: 50%; font-weight: 900; animation: pulse 2s infinite;">
+        {{ pending_tasks_count }}
+    </span>
+    {% endif %}
+</a>
+
+<style>
+@keyframes pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(238, 93, 80, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(238, 93, 80, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(238, 93, 80, 0); }
+}
+</style>
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
             {% if session['role'] == 'Principal' %}
     <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); color: #4318ff; font-weight: bold; border-left: 4px solid #4318ff;">🛡️ Audit Logs</a>
@@ -191,6 +208,7 @@
     </script>
     </body>
 </html>
+
 
 
 
