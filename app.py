@@ -167,12 +167,19 @@ class PerformanceKPI(db.Model):
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.Text, nullable=False)
-    assigned_by = db.Column(db.String(100)) # e.g., 'Principal'
-    assigned_to = db.Column(db.Integer)      # User ID
-    status = db.Column(db.String(20), default='Pending') # Pending, Replied
-    reply_content = db.Column(db.Text)       # The block for the reply
-    
+    title = db.Column(db.String(200), nullable=False)
+    # The column the error complained about:
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id')) 
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20), default='Pending')
+    is_done = db.Column(db.Boolean, default=False)
+    # This stores what is typed in your new <textarea>:
+    reply_content = db.Column(db.Text) 
+    completed_at = db.Column(db.DateTime)
+
+    # These links allow 'task_sender.full_name' to work in your HTML
+    task_receiver = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
+    task_sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tasks')
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -350,21 +357,23 @@ def activity_room():
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
-    title = request.form.get('title')
-    target_id = request.form.get('staff_id')
     sender_role = session.get('role')
+    target_id = request.form.get('staff_id')
+    title = request.form.get('title')
     
-    # Hierarchy Check
     target_user = User.query.get(target_id)
+    
+    # STRICT HIERARCHY LOGIC
     if sender_role == 'HOD' and target_user.role != 'Faculty':
-        return "Unauthorized: HOD can only assign to Faculty", 403
-
+        flash("HODs can only assign tasks to Faculty!", "error")
+        return redirect(url_for('activity_room'))
+    
+    # Principal can assign to anyone (handled by the dropdown options)
+    
     new_task = Task(
         title=title,
         assigned_to=target_id,
-        sender_id=session['user_id'],
-        status='Pending',
-        is_done=False
+        sender_id=session['user_id']
     )
     db.session.add(new_task)
     db.session.commit()
@@ -1185,12 +1194,12 @@ def generate_payslip_historical(uid, month):
 @app.route('/complete_task/<int:id>', methods=['POST'])
 def complete_task(id):
     task = Task.query.get_or_404(id)
-    # Save the reply content from the form
-    task.reply_content = request.form.get('reply')
-    task.is_done = True
-    task.status = 'Completed'
-    task.completed_at = datetime.utcnow()
-    db.session.commit()
+    if task.assigned_to == session['user_id']:
+        task.reply_content = request.form.get('reply') # Captures the reply block text
+        task.is_done = True
+        task.status = 'Completed'
+        task.completed_at = datetime.utcnow()
+        db.session.commit()
     return redirect(url_for('activity_room'))
     
 @app.route('/delete_meeting/<room_name>')
@@ -1346,6 +1355,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
