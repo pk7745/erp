@@ -435,3 +435,56 @@ input:focus, select:focus {
     opacity: 1;
     transform: translateY(0);
 }
+/* --- 3D SPATIAL ENGINE --- */
+:root {
+    --perspective: 1200px;
+    --rotation-x: 10deg;
+    --rotation-y: -10deg;
+}
+
+body {
+    perspective: var(--perspective);
+    background-attachment: fixed;
+}
+
+/* The 3D Stage */
+.main {
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* This creates the initial tilt */
+    transform: rotateX(2deg) rotateY(-2deg) translateZ(0);
+}
+
+/* High-Performance 3D Cards */
+.card {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    /* This creates the "floating" shadow gap */
+    box-shadow: 
+        20px 20px 60px rgba(0,0,0,0.05),
+        -5px -5px 20px rgba(255,255,255,0.8);
+}
+
+.card:hover {
+    /* Pops toward the user on Z-axis */
+    transform: translateZ(30px) rotateX(0deg) rotateY(0deg);
+    box-shadow: var(--shadow-hover);
+}
+
+/* Making buttons look like physical keys */
+.btn {
+    transform: translateZ(5px);
+    box-shadow: 0 6px 0 var(--p-dark);
+    transition: all 0.1s ease;
+}
+
+.btn:active {
+    transform: translateZ(2px);
+    box-shadow: 0 2px 0 var(--p-dark);
+}
+
+/* Floating Sidebar (Fixed in space) */
+.sidebar {
+    transform: translateZ(50px);
+    border-right: 2px solid var(--gold-glow);
+}
