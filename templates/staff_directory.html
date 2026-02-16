@@ -153,9 +153,11 @@
                                     </button>
                                 {% endif %}
                             </div>
-                        {% else %}
-                            <span class="badge" style="background:#c6f6d5; color:#22543d;">✓ Active</span>
-                        {% endif %}
+                       {% else %}
+    <span class="badge pulse-active" style="display: inline-block; padding: 5px 10px; border-radius: 12px;">
+        ● Active
+    </span>
+{% endif %}
                     </td>
                     <td>
                         <div style="margin-bottom: 8px;">
@@ -201,7 +203,7 @@
         <form action="{{ url_for('finalize_payroll_config') }}" method="POST">
             <input type="hidden" name="user_id" id="modal_uid">
             <div style="margin-bottom:15px;">
-                <label style="display:block; font-size:0.8rem; margin-bottom:5px;">Approved Basic Salary</label>
+                <label style="display:block; font-size:0.8rem; margin-bottom:5px;">Approved Salary</label>
                 <input type="number" name="new_salary" id="modal_salary" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" readonly>
             </div>
             <div style="background:#f4f7fe; padding:15px; border-radius:10px; margin-bottom:20px; font-size:0.8rem; color:#4a5568;">
@@ -293,4 +295,5 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
 });
 </script>
 {% endblock %}
+
 
