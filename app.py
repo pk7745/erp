@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v17.db'
+db_name = 'bms_college_v18.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -78,6 +78,7 @@ def get_ist_time():
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), default='Faculty') 
@@ -1378,6 +1379,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
