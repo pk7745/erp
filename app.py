@@ -339,6 +339,11 @@ def activity_room():
         ).count()
         growth_data.append(count)
         Notification.query.filter_by(user_id=session['user_id'], is_read=False).update({"is_read": True})
+        Notification.query.filter(
+        Notification.user_id == session['user_id'],
+        Notification.msg.contains('Task')
+    ).update({"is_read": True})
+    db.session.commit()
     # --- 4. RETURN: All existing and new variables ---
     return render_template('activity.html', 
                            my_tasks=my_tasks, 
@@ -485,6 +490,8 @@ def dashboard():
             notifs = []
 
     pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
+    Notification.query.filter_by(user_id=session['user_id'], is_read=False).update({"is_read": True})
+    db.session.commit()
     # Added 'meetings' to the return template
     return render_template('dashboard.html', 
                            user=user, 
@@ -1364,6 +1371,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
