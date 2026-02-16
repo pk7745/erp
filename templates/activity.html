@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .growth-card { background: linear-gradient(135deg, #2b3674 0%, #4318ff 100%); color: white; }
+    .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .pending { background: #fff7ed; color: #c2410c; }
+    .completed { background: #f0fdf4; color: #15803d; }
+</style>
+
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    
+    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px;">
+        
+        <div>
+            {% if session['role'] in ['Principal', 'HOD'] %}
+            <div class="bms-card">
+                <h3 style="color: var(--secondary);">📤 Delegate New Task</h3>
+                <form action="{{ url_for('assign_task') }}" method="POST">
+                    <input type="text" name="title" class="premium-input" placeholder="Task Description..." required>
+                    
+                    <select name="staff_id" class="premium-input" required>
+                        <option value="" disabled selected>Assign To...</option>
+                        {% if session['role'] == 'Principal' %}
+                            <option value="HOD">HOD</option>
+                            <option value="Accountant">Accountant</option>
+                            <option value="Admin">Admin</option>
+                        {% endif %}
+                        <option value="Faculty">Faculty Members</option>
+                    </select>
+                    
+                    <button type="submit" class="action-btn" style="background: var(--primary); color: white; width: 100%;">Assign Task</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div class="bms-card">
+                <h3 style="color: var(--secondary);">📥 My Assignments</h3>
+                {% for task in my_tasks %}
+                <div style="padding: 15px; border-bottom: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong>{{ task.title }}</strong>
+                        <span class="status-badge {{ task.status|lower }}">{{ task.status }}</span>
+                    </div>
+                    {% if task.status == 'Pending' %}
+                    <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="margin-top: 10px;">
+                        <input type="text" name="reply" class="premium-input" style="font-size: 0.8rem;" placeholder="Reply to HOD/Principal...">
+                        <button class="action-btn" style="background: var(--success); color: white; padding: 5px 15px; font-size: 0.8rem;">Mark as Done</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
+            <div class="bms-card growth-card">
+                <h3>📈 Performance Growth</h3>
+                <p style="opacity: 0.8;">Your productivity trend over the last 7 days</p>
+                <canvas id="growthChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <div class="bms-card">
+                <h3 style="color: var(--secondary);">📋 Task History</h3>
+                </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('growthChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Tasks Completed',
+                data: {{ growth_data }},
+                borderColor: '#ffffff',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } },
+                x: { grid: { display: false }, ticks: { color: '#fff' } }
+            },
+            animation: { duration: 2000, easing: 'easeOutQuart' }
+        }
+    });
+</script>
+{% endblock %}
