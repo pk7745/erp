@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | BMS COLLEGE OF COMMERCE AND MANAGEMENT </title>
+    <title>Login | BMS COLLEGE OF COMMERCE AND MANAGEMENT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4318ff;
+            --primary: #800000;         /* BMS Maroon */
+            --primary-light: #a31a1a;
+            --gold: #D4AF37;            /* Satin Gold */
             --navy: #1b2559;
             --error: #ea3a3a;
             --text-gray: #707eae;
+            --glass: rgba(255, 255, 255, 0.85);
         }
 
         body {
@@ -18,167 +22,229 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f4f7fe;
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            /* Phenomenal Mesh Gradient Background */
+            background: 
+                radial-gradient(at 0% 0%, rgba(128, 0, 0, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.1) 0px, transparent 50%),
+                #f4f7fe;
+            font-family: 'Manrope', sans-serif;
+            overflow: hidden;
+            /* This enables the 3D effect depth */
+            perspective: 1000px;
         }
 
+        /* 3D Glass Card */
         .login-card {
-            background: white;
-            padding: 45px;
-            border-radius: 24px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.04);
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 50px;
+            border-radius: 32px;
+            /* High-end layered shadow */
+            box-shadow: 
+                0 10px 30px rgba(0,0,0,0.03),
+                0 30px 60px rgba(128,0,0,0.08);
             width: 100%;
             max-width: 420px;
             text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            /* Smooth reset transition */
+            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
         }
 
-        /* ALERT STYLING */
+        .login-card:hover {
+            box-shadow: 0 40px 80px rgba(128,0,0,0.12);
+        }
+
+        /* Elements inside card get a 3D lift */
+        .brand-name, .login-form, .footer-text {
+            transform: translateZ(30px);
+        }
+
+        /* ALERT STYLING (Preserved & Upgraded) */
         .alert-box {
             background: #fff5f5;
             color: var(--error);
             padding: 14px;
-            border-radius: 14px;
-            border: 1px solid #fed7d7;
+            border-radius: 16px;
+            border: 1px solid rgba(234, 58, 58, 0.1);
             margin-bottom: 25px;
-            font-size: 0.95rem;
-            font-weight: 600;
+            font-size: 0.9rem;
+            font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            animation: shake 0.4s ease-in-out;
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
 
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
-        /* UPDATED FOR POINT 3 */
         .brand-name {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--navy);
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             letter-spacing: -0.5px;
-            line-height: 1.3;
+            line-height: 1.2;
             text-transform: uppercase;
+        }
+
+        .brand-highlight {
+            color: var(--primary);
+            font-size: 1.35rem;
+            display: block;
+            margin-top: 5px;
+            background: linear-gradient(90deg, var(--primary), #4a0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         input {
             width: 100%;
-            padding: 16px;
+            padding: 18px;
             margin: 12px 0;
-            border: 1px solid #e0e5f2;
-            border-radius: 14px;
+            border: 1px solid rgba(224, 229, 242, 0.8);
+            background: rgba(244, 247, 254, 0.5);
+            border-radius: 16px;
             box-sizing: border-box;
             font-size: 1rem;
+            font-family: inherit;
             outline: none;
-            transition: 0.3s;
+            transition: all 0.3s ease;
         }
 
         input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1);
+            background: white;
+            box-shadow: 0 10px 20px rgba(128, 0, 0, 0.05);
+            transform: translateY(-2px);
         }
 
         .btn-login {
             width: 100%;
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, #5a0000 100%);
             color: white;
-            padding: 16px;
+            padding: 18px;
             border: none;
-            border-radius: 14px;
-            font-weight: 700;
+            border-radius: 16px;
+            font-weight: 800;
             font-size: 1.1rem;
             cursor: pointer;
-            margin-top: 15px;
-            transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.15);
+            margin-top: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(128, 0, 0, 0.25);
+            letter-spacing: 0.5px;
         }
 
         .btn-login:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(128, 0, 0, 0.35);
             filter: brightness(1.1);
+        }
+
+        .btn-login:active {
+            transform: translateY(0) scale(0.98);
         }
 
         .forgot-link {
             display: block;
-            margin-top: 20px;
-            color: var(--primary);
+            margin-top: 25px;
+            color: var(--text-gray);
             text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-size: 0.85rem;
+            font-weight: 700;
             transition: 0.3s;
         }
 
         .forgot-link:hover {
-            text-decoration: underline;
-            opacity: 0.8;
+            color: var(--primary);
         }
 
         .footer-text {
-            margin-top: 25px;
-            font-size: 0.8rem;
+            margin-top: 35px;
+            font-size: 0.7rem;
             color: var(--text-gray);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            font-weight: 800;
+        }
+
+        /* Floating decoration elements */
+        .orb {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(128,0,0,0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
         }
     </style>
 </head>
 <body>
 
+    <div class="orb" style="top: -100px; left: -100px;"></div>
+    <div class="orb" style="bottom: -100px; right: -100px;"></div>
+
     <div class="login-card">
-        <div class="brand-name">BMS COLLEGE OF <br> <span style="color: var(--primary);">COMMERCE AND MANAGEMENT</span></div>
-        <p style="color: var(--text-gray); margin-bottom: 30px;">Faculty & Staff Enterprise Login</p>
+        <div class="brand-name">
+            BMS COLLEGE OF <br> 
+            <span class="brand-highlight">COMMERCE AND MANAGEMENT</span>
+        </div>
+        <p style="color: var(--text-gray); margin-bottom: 35px; font-weight: 600; font-size: 0.9rem;">Faculty & Staff Enterprise Portal</p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for message in messages %}
               <div class="alert-box">
-                <span>⚠️</span> {{ message }}
+                <span style="background: var(--error); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px;">!</span> 
+                {{ message }}
               </div>
             {% endfor %}
           {% endif %}
         {% endwith %}
 
-        <form method="POST">
+        <form method="POST" class="login-form">
             <input type="text" name="username" placeholder="Username" required>
             <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="btn-login">Sign In</button>
+            <button type="submit" class="btn-login">Sign Into Portal</button>
         </form>
 
-        <a href="{{ url_for('forgot_password') }}" class="forgot-link">Forgot Password?</a>
+        <a href="{{ url_for('forgot_password') }}" class="forgot-link">Request Access Recovery</a>
 
         <div class="footer-text">
-            © 2026 BMSCCM
+            SECURE ACCESS &copy; 2026 BMSCCM
         </div>
     </div>
 
+    <script>
+        const card = document.querySelector('.login-card');
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
+
+        document.addEventListener('mousemove', (e) => {
+            if (!motionQuery.matches) return;
+
+            const { clientX, clientY } = e;
+            const { innerWidth, innerHeight } = window;
+
+            // Smooth 3D Rotation Calculation
+            const xRotation = ((clientY / innerHeight) - 0.5) * -15; // Max 15 deg
+            const yRotation = ((clientX / innerWidth) - 0.5) * 15;
+
+            card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
+        });
+
+        // Elegant Reset when mouse leaves the viewport
+        document.addEventListener('mouseleave', () => {
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        });
+    </script>
 </body>
 </html>
-
-<scrpit>
-const card = document.querySelector('.login-card');
-const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
-
-document.addEventListener('mousemove', (e) => {
-    if (!motionQuery.matches) return;
-
-    const { clientX, clientY } = e;
-    const { innerWidth, innerHeight } = window;
-
-    // Calculate rotation (max 10 degrees)
-    const xRotation = ((clientY / innerHeight) - 0.5) * -20;
-    const yRotation = ((clientX / innerWidth) - 0.5) * 20;
-
-    card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
-});
-
-// Reset position when mouse leaves
-document.addEventListener('mouseleave', () => {
-    card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-});
-</scrpit>
-
