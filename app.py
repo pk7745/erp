@@ -493,13 +493,6 @@ def dashboard():
             notifs = []
 
     pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
-    try:
-        # Re-check your Notification class. If you have a column like 'uid' or 'owner', use that.
-        # If you are sure it's 'id', use:
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error updating notifications: {e}")
-    # Added 'meetings' to the return template
     return render_template('dashboard.html', 
                            user=user, 
                            notifications=notifs, 
@@ -1377,6 +1370,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
