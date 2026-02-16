@@ -446,4 +446,59 @@ body {
     perspective: var(--perspective);
     background-attachment: fixed;
 }
+/* --- THE 3D FLIP THEATER --- */
+.flip-card {
+    background-color: transparent;
+    width: 60px;
+    height: 60px;
+    perspective: 1000px; /* High perspective for dramatic flip */
+    cursor: pointer;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-front, .flip-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden; /* Fix for Safari */
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.flip-front {
+    background: var(--p-light);
+}
+
+.flip-back {
+    background: var(--p);
+    color: white;
+    transform: rotateY(180deg);
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 5px;
+    text-align: center;
+}
+
+.staff-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
