@@ -11,6 +11,7 @@ import shutil
 import math
 import qrcode  # Ensure you run 'pip install qrcode'
 from datetime import datetime, timedelta
+from sqlalchemy import func
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -56,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v16.db'
+db_name = 'bms_college_v17.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -1356,6 +1357,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
