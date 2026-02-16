@@ -1,5 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
+<div style="display: flex; gap: 20px; margin-bottom: 30px; perspective: 1000px;">
+    
+    <div class="card" style="flex: 1; background: linear-gradient(135deg, #4318ff, #707eff); color: white; transform: rotateX(10deg) rotateY(-5deg); transition: 0.5s; cursor: pointer;" onmouseover="this.style.transform='translateZ(20px) rotateX(0) rotateY(0)'" onmouseout="this.style.transform='rotateX(10deg) rotateY(-5deg)'">
+        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">Total Workforce</small>
+        <h2 style="margin: 5px 0; font-size: 2rem;">{{ employees|length }}</h2>
+        <div style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; display: inline-block;">
+            Active Staff
+        </div>
+    </div>
+
+    <div class="card" style="flex: 1; background: linear-gradient(135deg, #1b2559, #2b3674); color: white; transform: rotateX(10deg) rotateY(5deg); transition: 0.5s; cursor: pointer;" onmouseover="this.style.transform='translateZ(20px) rotateX(0) rotateY(0)'" onmouseout="this.style.transform='rotateX(10deg) rotateY(5deg)'">
+        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">Monthly Budget (Basic)</small>
+        {% set total_salary = [] %}
+        {% for emp in employees %}
+            {% if total_salary.append(emp.salary) %}{% endif %}
+        {% endfor %}
+        <h2 style="margin: 5px 0; font-size: 2rem;">₹{{ "{:,}".format(total_salary|sum) }}</h2>
+        <div style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; display: inline-block;">
+            Basic Salary Outflow
+        </div>
+    </div>
+
+</div>
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <h2 style="margin: 0;">👥 Staff Directory</h2>
@@ -270,3 +293,4 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
 });
 </script>
 {% endblock %}
+
