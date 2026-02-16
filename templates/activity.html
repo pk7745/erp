@@ -19,13 +19,28 @@
                     <input type="text" name="title" class="premium-input" placeholder="Task Description..." required>
                     
                     <select name="staff_id" class="premium-input" required>
-                        <option value="" disabled selected>Assign To...</option>
-                        {% if session['role'] == 'Principal' %}
-                            <option value="HOD">HOD</option>
-                            <option value="Accountant">Accountant</option>
-                            <option value="Admin">Admin</option>
+                        <option value="" disabled selected>Select Staff Member...</option>
+                        
+                        {% if hod_members %}
+                        <optgroup label="Heads of Department">
+                            {% for hod in hod_members %}
+                                <option value="{{ hod.id }}">{{ hod.full_name }}</option>
+                            {% endfor %}
+                        </optgroup>
                         {% endif %}
-                        <option value="Faculty">Faculty Members</option>
+
+                        <optgroup label="Faculty Members">
+                            {% for faculty in faculty_members %}
+                                <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
+                            {% endfor %}
+                        </optgroup>
+
+                        {% if session['role'] == 'Principal' %}
+                            <optgroup label="Staff Roles">
+                                <option value="Accountant">Accountant</option>
+                                <option value="Admin">Admin</option>
+                            </optgroup>
+                        {% endif %}
                     </select>
                     
                     <button type="submit" class="action-btn" style="background: var(--primary); color: white; width: 100%;">Assign Task</button>
@@ -38,7 +53,10 @@
                 {% for task in my_tasks %}
                 <div style="padding: 15px; border-bottom: 1px solid #eee;">
                     <div style="display: flex; justify-content: space-between;">
-                        <strong>{{ task.title }}</strong>
+                        <div>
+                            <strong>{{ task.title }}</strong>
+                            <br><small style="color: #666;">From: {{ task.task_sender.full_name if task.task_sender else 'System' }}</small>
+                        </div>
                         <span class="status-badge {{ task.status|lower }}">{{ task.status }}</span>
                     </div>
                     {% if task.status == 'Pending' %}
@@ -48,6 +66,8 @@
                     </form>
                     {% endif %}
                 </div>
+                {% else %}
+                <p style="padding: 15px; text-align: center; color: #999;">No pending tasks assigned to you.</p>
                 {% endfor %}
             </div>
         </div>
@@ -61,7 +81,13 @@
             
             <div class="bms-card">
                 <h3 style="color: var(--secondary);">📋 Task History</h3>
+                {% for task in my_tasks if task.is_done %}
+                <div style="padding: 10px; border-bottom: 1px solid #f5f5f5; font-size: 0.9rem;">
+                    <span style="color: var(--success);">✔</span> {{ task.title }} 
+                    <span style="float: right; color: #999; font-size: 0.8rem;">{{ task.completed_at.strftime('%Y-%m-%d') if task.completed_at }}</span>
                 </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
@@ -69,24 +95,36 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('growthChart').getContext('2d');
+    
+    // Create a smooth gradient for the chart
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            labels: {{ labels|tojson }}, // UPDATED: Real days from Python
             datasets: [{
                 label: 'Tasks Completed',
-                data: {{ growth_data }},
+                data: {{ growth_data|tojson }}, // UPDATED: Real counts from Python
                 borderColor: '#ffffff',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 3,
+                backgroundColor: gradient,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 5
+                pointRadius: 5,
+                pointBackgroundColor: '#4318ff'
             }]
         },
         options: {
             plugins: { legend: { display: false } },
             scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#fff' } },
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255,255,255,0.1)' }, 
+                    ticks: { color: '#fff', stepSize: 1 } 
+                },
                 x: { grid: { display: false }, ticks: { color: '#fff' } }
             },
             animation: { duration: 2000, easing: 'easeOutQuart' }
