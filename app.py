@@ -342,11 +342,6 @@ def activity_room():
         ).count()
         growth_data.append(count)
         Notification.query.filter_by(user_id=session['user_id'], is_read=False).update({"is_read": True})
-        Notification.query.filter(
-        Notification.user_id == session['user_id'],
-        Notification.msg.contains('Task')
-    ).update({"is_read": True})
-    db.session.commit()
     # --- 4. RETURN: All existing and new variables ---
     return render_template('activity.html', 
                            my_tasks=my_tasks, 
@@ -1370,6 +1365,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
