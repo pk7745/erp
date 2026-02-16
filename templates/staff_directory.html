@@ -70,14 +70,6 @@
                 <input type="text" name="address" placeholder="No. 123, Street, Bengaluru" style="width:100%;">
             </div>
             <div>
-                <label style="font-size: 0.8rem; color: #666;">Religion</label>
-                <input type="text" name="religion" style="width:100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Caste</label>
-                <input type="text" name="caste" style="width:100%;">
-            </div>
-            <div>
                 <label style="font-size: 0.8rem; color: #666;">Date of Birth</label>
                 <input type="date" name="dob" required style="width:100%; padding: 8px;">
             </div>
@@ -110,15 +102,23 @@
                 <td>{{ emp.email }}</td>
                 
                 <td>
-                    {% if emp.status == 'Pending Admin Verification' %}
+                    {% if emp.status == 'Pending HR Verification' %}
                         <div style="display:flex; flex-direction:column; gap:5px;">
-                            <span class="badge" style="background:#f6e05e; color:#856404;">📂 Docs Pending</span>
+                            <span class="badge" style="background:#f6e05e; color:#856404;">📂 HR Verify Needed</span>
                             {% if session['role'] == 'HR' %}
-                                <a href="{{ url_for('admin_verify_docs', uid=emp.id) }}" class="badge" style="background:#4318ff; color:white; text-decoration:none; text-align:center;">Verify Now</a>
+                                <a href="{{ url_for('admin_verify_docs', uid=emp.id) }}" class="badge" style="background:#4318ff; color:white; text-decoration:none; text-align:center;">Approve Hike</a>
                             {% endif %}
                         </div>
-                    {% elif emp.status == 'Pending Payroll Config' %}
-                        <span class="badge" style="background:#bee3f8; color:#2c5282;">💰 Awaiting Accountant</span>
+                    {% elif emp.status == 'Pending Accountant Configuration' %}
+                        <div style="display:flex; flex-direction:column; gap:5px;">
+                            <span class="badge" style="background:#bee3f8; color:#2c5282;">💰 Awaiting Accountant</span>
+                            {% if session['role'] == 'Accountant' %}
+                                <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" 
+                                        class="badge" style="background:#05cd99; color:white; border:none; cursor:pointer; padding:5px;">
+                                    Configure & Finalize
+                                </button>
+                            {% endif %}
+                        </div>
                     {% else %}
                         <span class="badge" style="background:#c6f6d5; color:#22543d;">✓ Active</span>
                     {% endif %}
@@ -126,14 +126,14 @@
 
                 <td>
                     <div style="margin-bottom: 8px;">
-                        <small style="color:#a3aed0;">Basic: </small><strong>₹{{ "{:,}".format(emp.salary) }}</strong>
+                        <small style="color:#a3aed0;">Current Basic: </small><strong>₹{{ "{:,}".format(emp.salary) }}</strong>
                     </div>
 
                     {% if session['role'] == 'Principal' %}
                         <form action="{{ url_for('principal_request_salary', uid=emp.id) }}" method="POST" style="display:flex; gap:5px; margin-bottom: 10px;">
                             <input type="number" name="new_salary" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}" 
                                    oninput="calculateLiveNet({{ emp.id }})" style="width:90px; padding:4px;">
-                            <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem;">Update</button>
+                            <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem;">Request Hike</button>
                         </form>
                     {% else %}
                         <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
@@ -141,7 +141,7 @@
 
                     <div id="fullBreakdown_{{ emp.id }}" style="background: #f8f9fc; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">
-                            <span style="font-size: 0.7rem; color: #4a5568; font-weight: bold;">OFFICIAL NET</span>
+                            <span style="font-size: 0.7rem; color: #4a5568; font-weight: bold;">EST. NET TAKE-HOME</span>
                             <span id="netDisplay_{{ emp.id }}" style="font-weight:bold; color:#05cd99; font-size: 0.9rem;">₹0</span>
                         </div>
                         <div id="breakdown_{{ emp.id }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.65rem; color: #718096;">
@@ -151,21 +151,12 @@
 
                <td>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="badge" 
-                           style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 5px;">
-                           🪪 Generate ID
-                        </a>
+                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="badge" style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 5px;">🪪 ID Card</a>
+                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none; text-align: center; padding: 5px;">📄 Payslip</a>
                         
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" 
-                           style="text-decoration: none; text-align: center; padding: 5px;">
-                           📄 Payslip
-                        </a>
-
-                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" style="margin-top: 5px;">
+                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data">
                             <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none;" onchange="this.form.submit()">
-                            <label for="file_{{ emp.id }}" style="cursor:pointer; font-size: 0.75rem; color: #4318ff; font-weight: bold; text-decoration: underline; display: block; text-align: center;">
-                                📸 Update Photo
-                            </label>
+                            <label for="file_{{ emp.id }}" style="cursor:pointer; font-size: 0.7rem; color: #4318ff; text-align: center; display: block; text-decoration: underline;">📸 Update Photo</label>
                         </form>
                     </div>
                 </td>
@@ -175,20 +166,23 @@
     </table>
 </div>
 
-<div id="payrollModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div class="card" style="width:400px; background:white; padding:20px; border-radius:10px;">
-        <h3 id="modalTitle">Configure Payroll</h3>
+<div id="payrollModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+    <div class="card" style="width:400px; background:white; padding:30px; border-radius:15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <h3 id="modalTitle" style="color:#1b2559; margin-top:0;">Configure Payroll</h3>
         <form action="{{ url_for('finalize_payroll_config') }}" method="POST">
             <input type="hidden" name="user_id" id="modal_uid">
-            <div style="margin-bottom:10px;">
-                <label style="font-size:0.8rem;">Confirm Basic Salary</label>
-                <input type="number" name="new_salary" id="modal_salary" style="width:100%; padding:8px;" readonly>
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-size:0.8rem; margin-bottom:5px;">Approved Basic Salary</label>
+                <input type="number" name="new_salary" id="modal_salary" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px;" readonly>
             </div>
-            <div style="margin-bottom:15px; font-size: 0.75rem; color: #666;">
-                BMS Standard: Adjustable TDS Slab | HRA 40% | DA 10% | EPF 12%
+            <div style="background:#f4f7fe; padding:15px; border-radius:10px; margin-bottom:20px; font-size:0.8rem; color:#4a5568;">
+                <strong>BMSCCM Standards:</strong><br>
+                • HRA: 40% | DA: 10%<br>
+                • TA: ₹2,000 (Fixed)<br>
+                • EPF: 12% | P.Tax: ₹200
             </div>
             <div style="display:flex; gap:10px;">
-                <button type="submit" class="btn" style="flex:1;">Finalize</button>
+                <button type="submit" class="btn" style="flex:2;">Finalize Payroll</button>
                 <button type="button" class="btn" style="background:#666; flex:1;" onclick="document.getElementById('payrollModal').style.display='none'">Cancel</button>
             </div>
         </form>
@@ -196,6 +190,15 @@
 </div>
 
 <script>
+// Logic for Modal Popup
+function openPayrollModal(uid, name, salary) {
+    document.getElementById('modal_uid').value = uid;
+    document.getElementById('modal_salary').value = salary;
+    document.getElementById('modalTitle').innerText = 'Finalize Payroll for ' + name;
+    document.getElementById('payrollModal').style.display = 'flex';
+}
+
+// Live Salary Calculation Engine
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
@@ -207,19 +210,10 @@ function calculateLiveNet(empId) {
     const ta = 2000;
     const gross = basic + hra + da + ta;
     
-    let tdsRate = 0;
-    if (gross > 100000) {
-        tdsRate = 0.15;
-    } else if (gross > 50000) {
-        tdsRate = 0.10;
-    } else {
-        tdsRate = 0.05;
-    }
-    
+    let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
     const epf = Math.floor((basic + da) * 0.12);
     const tds = Math.floor(gross * tdsRate);
     const pt = 200;
-    
     const net = gross - (epf + tds + pt);
 
     if (empId === 'NEW' && basic > 0) document.getElementById('calc_NEW').style.display = 'block';
@@ -228,14 +222,13 @@ function calculateLiveNet(empId) {
     const breakDisp = document.getElementById('breakdown_' + empId);
 
     if (netDisp) netDisp.innerText = '₹' + net.toLocaleString('en-IN');
-    
     if (breakDisp) {
         breakDisp.innerHTML = `
             <span>HRA: ₹${hra.toLocaleString('en-IN')}</span>
             <span>DA: ₹${da.toLocaleString('en-IN')}</span>
             <span>TA: ₹${ta.toLocaleString('en-IN')}</span>
             <span style="font-weight:bold; color:#1b2559">Gross: ₹${gross.toLocaleString('en-IN')}</span>
-            <span style="color:#e53e3e">TDS (${Math.round(tdsRate * 100)}%): ₹${tds.toLocaleString('en-IN')}</span>
+            <span style="color:#e53e3e">TDS: ₹${tds.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">EPF: ₹${epf.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">P.Tax: ₹${pt}</span>
         `;
@@ -248,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {% endfor %}
 });
 
+// Search functionality
 document.getElementById('directorySearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
     document.querySelectorAll('#directoryTable tr').forEach(row => {
