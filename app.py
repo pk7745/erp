@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v18.db'
+db_name = 'bms_college_v19.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -496,8 +496,6 @@ def dashboard():
     try:
         # Re-check your Notification class. If you have a column like 'uid' or 'owner', use that.
         # If you are sure it's 'id', use:
-        Notification.query.filter_by(id=session['user_id'], is_read=False).update({"is_read": True})
-        db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"Error updating notifications: {e}")
@@ -1290,12 +1288,11 @@ def inject_notifications():
     if 'user_id' in session:
         u_id = session['user_id']
         # Count general unread notifications (for Dashboard/Bell icon)
-        notif_count = Notification.query.filter_by(user_id=u_id, is_read=False).count()
         # Count pending tasks specifically for Activity Room
         task_count = Task.query.filter_by(assigned_to=u_id, is_done=False).count()
         
         return dict(
-            global_notif_count=notif_count,
+            global_notif_count=0,  # Set to 0 for now so Dashboard doesn't crash
             pending_tasks_count=task_count
         )
     return dict(global_notif_count=0, pending_tasks_count=0)
@@ -1380,6 +1377,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
