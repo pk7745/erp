@@ -56,7 +56,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v13.db'
+db_name = 'bms_college_v14.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -165,8 +165,11 @@ class Notification(db.Model):
 class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    staff_name = db.Column(db.String(100))
+    report_to = db.Column(db.String(50)) # Stores 'Principal' or 'HOD'
+    topic = db.Column(db.String(200))
     content = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=get_ist_time)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Meeting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -830,11 +833,32 @@ def send_payslip_email(uid):
 
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
-    db.session.add(ActivityReport(user_id=session['user_id'], content=request.form['content']))
-    db.session.add(Notification(message=f"REPORT: {session['name']} submitted a report"))
-    db.session.commit()
-    return redirect(url_for('dashboard'))
+    # 1. Capture the new fields from the Solid Template
+    report_to = request.form.get('report_to')  # Principal or HOD
+    topic = request.form.get('report_topic')
+    content = request.form.get('report_content')
+    
+    # 2. Add to ActivityReport table 
+    # (Ensure your Database Model has 'report_to' and 'topic' columns)
+    new_report = ActivityReport(
+        user_id=session['user_id'],
+        staff_name=session['name'], # Helpful for HOD/Principal view
+        report_to=report_to,
+        topic=topic,
+        content=content
+    )
+    db.session.add(new_report)
 
+    # 3. Add to System Audit/Notification Feed
+    # This makes it show up in the "Activity Feed" card on the right
+    audit_msg = f"📄 {session['name']} submitted a report to {report_to} regarding {topic}"
+    db.session.add(Notification(msg=audit_msg))
+
+    # 4. Save and Redirect
+    db.session.commit()
+    flash(f"Report successfully submitted to {report_to}!", "success")
+    return redirect(url_for('dashboard'))
+    
 @app.route('/add_task', methods=['POST'])
 def add_task():
     db.session.add(Task(user_id=session['user_id'], title=request.form['title']))
@@ -1212,6 +1236,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
