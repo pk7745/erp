@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v23.db'
+db_name = 'bms_college_v24.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -318,60 +318,59 @@ def view_audit_logs():
 
 @app.route('/activity_room')
 def activity_room():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+    if 'user_id' not in session: return redirect(url_for('login'))
+    
     user = User.query.get(session['user_id'])
     
-    # 1. Get ALL tasks where the logged-in user is the RECIPIENT
+    # Inbox: Tasks assigned to the logged-in user
     my_tasks = Task.query.filter_by(assigned_to=user.id).all()
     
-    # 2. Data for the Dropdown (Principal sees all, HOD sees Faculty)
-    all_staff = User.query.all()
-    faculty_members = User.query.filter_by(role='Faculty').all()
+    # Dropdown Categories
+    # Everyone except the Principal themselves
+    all_staff = User.query.filter(User.role != 'Principal').all()
     
-    # 3. Mock data for the Growth Chart (Labels and Data)
-    labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    growth_data = [2, 5, 3, 8, 4, 10, 7] # Replace with real counts if desired
+    # Only those with role 'Faculty'
+    faculty_members = User.query.filter_by(role='Faculty').all()
 
-    return render_template('activity.html',
-                           my_tasks=my_tasks,
-                           all_staff=all_staff,
+    return render_template('activity_room.html', 
+                           my_tasks=my_tasks, 
+                           all_staff=all_staff, 
                            faculty_members=faculty_members,
-                           labels=labels,
-                           growth_data=growth_data)
-
+                           labels=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                           growth_data=[0]*7)
+    
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
+    if 'user_id' not in session: return redirect(url_for('login'))
+    
     sender = User.query.get(session['user_id'])
     target_id = request.form.get('staff_id')
-    title = request.form.get('title')
     target_user = User.query.get(target_id)
+    title = request.form.get('title')
 
-    # Hierarchy validation
+    # THE LOGIC RULES:
     can_assign = False
-    if sender.role == 'Principal':
-        can_assign = True  # Principal targets HOD, Admin, Accountant, Faculty
-    elif sender.role == 'HOD' and target_user.role == 'Faculty':
-        can_assign = True  # HOD (Kiran) targets Faculty only
     
+    # 1. Principal can command EVERYONE (Admin, Accountant, HOD, Faculty)
+    if sender.role == 'Principal':
+        can_assign = True
+    
+    # 2. HOD can command ONLY Faculty
+    elif 'HOD' in sender.role and target_user.role == 'Faculty':
+        can_assign = True
+
     if can_assign:
         new_task = Task(
             title=title,
-            assigned_to=target_id,  # Recipient ID
-            assigned_by=sender.id,   # Sender ID
-            user_id=target_id,       # Also set user_id so it shows on their dashboard
+            assigned_to=target_id,  # The staff receiving the task
+            assigned_by=sender.id,   # The Principal or HOD
+            user_id=target_id,       # So it shows on the staff's dashboard
             status='Pending'
         )
         db.session.add(new_task)
         db.session.commit()
-        return redirect(url_for('activity_room'))
-    else:
-        # Subtle flash message or error
-        return "Unauthorized Assignment", 403
+    
+    return redirect(url_for('activity_room'))
     
 @app.route('/leave_calendar')
 def leave_calendar():
@@ -1187,22 +1186,13 @@ def generate_payslip_historical(uid, month):
 
 @app.route('/complete_task/<int:id>', methods=['POST'])
 def complete_task(id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-        
     task = Task.query.get_or_404(id)
-    
-    # Ensure only the assigned person can complete it
+    # Ensure only the assigned staff can reply
     if task.assigned_to == session['user_id']:
-        reply = request.form.get('reply') # From your 'fantastic' UI textarea
-        
-        task.reply_content = reply
+        task.reply_content = request.form.get('reply') # The text from the box
         task.is_done = True
         task.status = 'Completed'
-        task.completed_at = datetime.utcnow()
-        
         db.session.commit()
-        
     return redirect(url_for('activity_room'))
     
 @app.route('/delete_meeting/<room_name>')
@@ -1358,6 +1348,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
