@@ -170,7 +170,7 @@ class Task(db.Model):
     title = db.Column(db.String(200), nullable=False)
     
     # This specific name is required by your relationship logic
-  assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
     status = db.Column(db.String(20), default='Pending')
@@ -1357,6 +1357,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
