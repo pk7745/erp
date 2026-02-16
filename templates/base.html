@@ -190,16 +190,5 @@
     </script>
     </body>
 </html>
-<script>
-document.addEventListener('mousemove', (e) => {
-    const main = document.querySelector('.main');
-    if(!main) return;
 
-    // Calculate mouse position relative to center of screen
-    const x = (window.innerWidth / 2 - e.pageX) / 45; // Sensitivity
-    const y = (window.innerHeight / 2 - e.pageY) / 45;
 
-    // Apply the rotation logic
-    main.style.transform = `rotateX(${y}deg) rotateY(${-x}deg) translateZ(0)`;
-});
-</script>
