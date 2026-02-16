@@ -158,3 +158,25 @@
 
 </body>
 </html>
+
+const card = document.querySelector('.login-card');
+const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
+
+document.addEventListener('mousemove', (e) => {
+    if (!motionQuery.matches) return;
+
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+
+    // Calculate rotation (max 10 degrees)
+    const xRotation = ((clientY / innerHeight) - 0.5) * -20;
+    const yRotation = ((clientX / innerWidth) - 0.5) * 20;
+
+    card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
+});
+
+// Reset position when mouse leaves
+document.addEventListener('mouseleave', () => {
+    card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+});
+
