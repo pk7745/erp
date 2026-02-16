@@ -14,14 +14,8 @@
         body.dark-mode .sidebar { background: #111c44; }
         
         /* High Contrast Notification Styles */
-        .flash-msg {
-            font-weight: 600;
-            color: #1a1a1a; 
-            transition: all 0.3s ease;
-        }
-        body.dark-mode .flash-msg {
-            color: #ffffff; 
-        }
+        .flash-msg { font-weight: 600; color: #1a1a1a; transition: all 0.3s ease; }
+        body.dark-mode .flash-msg { color: #ffffff; }
 
         /* Profile Link Hover Effect */
         .profile-link:hover { opacity: 0.8; transform: translateY(-1px); transition: all 0.2s; background: rgba(0,0,0,0.05); }
@@ -31,16 +25,30 @@
         .fab-item:hover { background: #4318ff !important; color: white !important; transform: translateX(-5px); }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         
-        /* NEW: Sidebar Fix for scrolling */
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            position: fixed;
-            overflow-y: auto;
-        }
+        /* Sidebar Fix for scrolling */
+        .sidebar { display: flex; flex-direction: column; height: 100vh; position: fixed; overflow-y: auto; }
         .sidebar-content { flex-grow: 1; }
         .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: auto; }
+
+        /* PULSE BADGE STYLES */
+        .pulse-badge {
+            position: absolute;
+            right: 15px;
+            background: #ee5d50;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 900;
+            animation: pulse-animation 2s infinite;
+            box-shadow: 0 0 10px rgba(238, 93, 80, 0.5);
+            pointer-events: none;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(238, 93, 80, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(238, 93, 80, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(238, 93, 80, 0); }
+        }
     </style>
 </head>
 <body>
@@ -67,39 +75,46 @@
                 </a>
             </div>
 
-            <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Dashboard</a>
-            <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
+            <a href="{{ url_for('dashboard') }}" class="sidebar-link" style="position: relative;" onclick="clearBadge(this)">
+                📊 Dashboard
+                {% if global_notif_count and global_notif_count > 0 %}
+                    <span class="pulse-badge">{{ global_notif_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{{ url_for('chat') }}" class="sidebar-link" style="position: relative;" onclick="clearBadge(this)">💬 Group Chat</a> 
             <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
             <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
+
             {% if session['role'] in ['Principal', 'HR'] %}
-    <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); border-left: 4px solid #4318ff;">📅 Leave Calendar</a>
-{% else %}
-    <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
-{% endif %}
+                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); border-left: 4px solid #4318ff;">📅 Leave Calendar</a>
+            {% else %}
+                <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+            {% endif %}
+
             {% if session.get('role') in ['HR', 'Principal'] %}
-    <a href="{{ url_for('digital_vault') }}" class="sidebar-link" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: #a3aed0; text-decoration: none; font-weight: 500; transition: 0.3s;">
-        <span style="font-size: 1.2rem;">📁</span>
-        <span class="link-text">Digital Vault</span>
-    </a>
-{% endif %}
-           <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
-<a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
+                <a href="{{ url_for('digital_vault') }}" class="sidebar-link" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: #a3aed0; text-decoration: none; font-weight: 500; transition: 0.3s;">
+                    <span style="font-size: 1.2rem;">📁</span>
+                    <span class="link-text">Digital Vault</span>
+                </a>
+            {% endif %}
 
-<a href="{{ url_for('activity_room') }}" class="sidebar-link" style="position: relative; display: flex; align-items: center; gap: 12px;">
-    <span style="font-size: 1.2rem;">📝</span>
-    <span class="link-text">Activity Room</span>
-    
-    {% if pending_tasks_count and pending_tasks_count > 0 %}
-    <span style="position: absolute; right: 15px; background: #ee5d50; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 900; animation: pulse 2s infinite; box-shadow: 0 0 10px rgba(238, 93, 80, 0.5);">
-        {{ pending_tasks_count }}
-    </span>
-    {% endif %}
-</a>
+            <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
+            <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
 
-<a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
+            <a href="{{ url_for('activity_room') }}" class="sidebar-link" style="position: relative; display: flex; align-items: center; gap: 12px;" onclick="clearBadge(this)">
+                <span style="font-size: 1.2rem;">📝</span>
+                <span class="link-text">Activity Room</span>
+                {% if pending_tasks_count and pending_tasks_count > 0 %}
+                    <span class="pulse-badge">{{ pending_tasks_count }}</span>
+                {% endif %}
+            </a>
+
+            <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
+
             {% if session['role'] == 'Principal' %}
-    <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); color: #4318ff; font-weight: bold; border-left: 4px solid #4318ff;">🛡️ Audit Logs</a>
-{% endif %}
+                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: rgba(67, 24, 255, 0.05); color: #4318ff; font-weight: bold; border-left: 4px solid #4318ff;">🛡️ Audit Logs</a>
+            {% endif %}
             
             <button onclick="toggleDarkMode()" class="btn" style="width: 80%; margin: 20px auto; display: block; background: #1b2559;">🌙 Toggle Dark</button>
         </div>
@@ -130,7 +145,6 @@
         {% endwith %}
         
         {% block content %}{% endblock %}
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </div>
 
     {% if session['user_id'] %}
@@ -138,7 +152,6 @@
         <button onclick="toggleFab()" id="fab-main" style="width: 60px; height: 60px; border-radius: 50%; background: #4318ff; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(67, 24, 255, 0.4); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
             <span id="fab-icon">⚡</span>
         </button>
-        
         <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end; animation: fadeIn 0.2s ease;">
             <a href="{{ url_for('chat') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">💬 Quick Message</a>
             <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: #4318ff; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #4318ff; font-size: 0.9rem;">🕒 Mark Attendance</a>
@@ -165,46 +178,37 @@
                 icon.innerText = '⚡';
             }
         }
+
+        // JS Handler to instantly clear badge on click
+        function clearBadge(element) {
+            const badge = element.querySelector('.pulse-badge');
+            if (badge) {
+                badge.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                badge.style.opacity = '0';
+                badge.style.transform = 'scale(0)';
+            }
+        }
+
+        // Skeleton Loader Logic
+        document.addEventListener("DOMContentLoaded", () => {
+            const skeleton = document.getElementById('skeleton-container');
+            const content = document.getElementById('real-content');
+            const startTime = Date.now();
+            window.addEventListener('load', () => {
+                const elapsedTime = Date.now() - startTime;
+                const remainingTime = Math.max(600 - elapsedTime, 0);
+                setTimeout(() => {
+                    if(skeleton) skeleton.style.opacity = '0';
+                    setTimeout(() => {
+                        if(skeleton) skeleton.style.display = 'none';
+                        if(content) {
+                            content.style.display = 'block';
+                            setTimeout(() => { content.classList.add('content-visible'); }, 50);
+                        }
+                    }, 400); 
+                }, remainingTime);
+            });
+        });
     </script>
 </body>
 </html>
-<script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const skeleton = document.getElementById('skeleton-container');
-        const content = document.getElementById('real-content');
-        
-        // We set a minimum time of 600ms so the user actually sees the 
-        // beautiful shimmer effect you worked so hard on.
-        const startTime = Date.now();
-
-        window.addEventListener('load', () => {
-            const elapsedTime = Date.now() - startTime;
-            const remainingTime = Math.max(600 - elapsedTime, 0);
-
-            setTimeout(() => {
-                // 1. Fade out skeleton
-                if(skeleton) skeleton.style.opacity = '0';
-                
-                setTimeout(() => {
-                    // 2. Hide skeleton and show real content container
-                    if(skeleton) skeleton.style.display = 'none';
-                    if(content) {
-                        content.style.display = 'block';
-                        
-                        // 3. Trigger the fade-in and slide-up animation
-                        setTimeout(() => {
-                            content.classList.add('content-visible');
-                        }, 50);
-                    }
-                }, 400); 
-            }, remainingTime);
-        });
-    });
-    </script>
-    </body>
-</html>
-
-
-
-
-
