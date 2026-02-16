@@ -873,42 +873,60 @@ def logout():
 @app.route('/principal_request_salary/<int:uid>', methods=['POST'])
 def principal_request_salary(uid):
     if session.get('role') != 'Principal': return "Unauthorized", 403
-    new_val = int(request.form.get('new_salary'))
-    existing = SalaryUpdate.query.filter_by(user_id=uid).first()
-    if existing: existing.new_salary, existing.status = new_val, 'Pending Admin Approval'
-    else: db.session.add(SalaryUpdate(user_id=uid, new_salary=new_val))
+    new_sal = request.form.get('new_salary')
+    
+    # Create or Update a SalaryUpdate record
+    upd = SalaryUpdate.query.filter_by(user_id=uid).first() or SalaryUpdate(user_id=uid)
+    upd.new_salary = float(new_sal)
+    upd.status = 'Pending HR Verification' # Step 1
+    
+    # Also update the main user status so the UI knows where it is
+    user = User.query.get(uid)
+    user.status = 'Pending HR Verification'
+    
+    db.session.add(upd)
     db.session.commit()
+    log_action(f"Principal requested salary hike: ₹{new_sal}", target=user.full_name)
     return redirect(url_for('staff_directory'))
-
-@app.route('/admin_verify_salary/<int:req_id>')
-def admin_verify_salary(req_id):
+    
+@app.route('/admin_verify_docs/<int:uid>')
+def admin_verify_docs(uid):
     if session.get('role') != 'HR': return "Unauthorized", 403
-    req = SalaryUpdate.query.get(req_id)
-    req.status = 'Pending Accountant Configuration'
-    db.session.commit()
+    user = User.query.get(uid)
+    upd = SalaryUpdate.query.filter_by(user_id=uid).first()
+    
+    if upd:
+        upd.status = 'Pending Accountant Configuration' # Step 2
+        user.status = 'Pending Accountant Configuration'
+        db.session.commit()
+        log_action("HR Verified Salary Update", target=user.full_name)
     return redirect(url_for('staff_directory'))
-
+    
 @app.route('/finalize_payroll_config', methods=['POST'])
 def finalize_payroll_config():
     if session.get('role') != 'Accountant': return "Unauthorized", 403
     uid = request.form.get('user_id')
     u = User.query.get(uid)
+    
+    # Update Payroll Structure
     struct = PayrollStructure.query.filter_by(user_id=uid).first() or PayrollStructure(user_id=uid)
-    struct.hra_percent = float(request.form.get('hra_pc', 40.0))
-    struct.da_percent = float(request.form.get('da_pc', 10.0))
-    struct.epf_percent = float(request.form.get('epf_pc', 12.0))
-    struct.ta_fixed = int(request.form.get('ta_fixed', 2000))
+    struct.hra_percent = 40.0
+    struct.da_percent = 10.0
+    struct.epf_percent = 12.0
+    struct.ta_fixed = 2000
+    
+    # Finalize Salary
     req = SalaryUpdate.query.filter_by(user_id=uid).first()
-    if req: u.salary = req.new_salary; db.session.delete(req)
-    db.session.add(struct); db.session.commit()
+    if req:
+        u.salary = req.new_salary
+        u.status = 'Active' # Step 3 - Finalized
+        db.session.delete(req)
+    
+    db.session.add(struct)
+    db.session.commit()
+    log_action("Accountant Finalized Payroll", target=u.full_name)
     return redirect(url_for('staff_directory'))
-
-@app.route('/admin_verify_docs/<int:uid>')
-def admin_verify_docs(uid):
-    if session.get('role') != 'HR': return "Unauthorized", 403
-    user = User.query.get(uid)
-    if user: user.status = 'Pending Payroll Config'; db.session.commit()
-    return redirect(url_for('staff_directory'))
+    
 
 @socketio.on('send_chat_message')
 def handle_chat(data):
@@ -1194,6 +1212,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
