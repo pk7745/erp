@@ -8,7 +8,6 @@
 </style>
 
 <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-    
     <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px;">
         
         <div>
@@ -21,10 +20,10 @@
                     <select name="staff_id" class="premium-input" required>
                         <option value="" disabled selected>Select Staff Member...</option>
                         
-                        {% if hod_members %}
-                        <optgroup label="Heads of Department">
-                            {% for hod in hod_members %}
-                                <option value="{{ hod.id }}">{{ hod.full_name }}</option>
+                        {% if session['role'] == 'Principal' %}
+                        <optgroup label="HODs & Staff">
+                            {% for user in all_staff if user.role in ['HOD', 'Admin', 'Accountant'] %}
+                                <option value="{{ user.id }}">{{ user.full_name }} ({{ user.role }})</option>
                             {% endfor %}
                         </optgroup>
                         {% endif %}
@@ -34,15 +33,7 @@
                                 <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
                             {% endfor %}
                         </optgroup>
-
-                        {% if session['role'] == 'Principal' %}
-                            <optgroup label="Staff Roles">
-                                <option value="Accountant">Accountant</option>
-                                <option value="Admin">Admin</option>
-                            </optgroup>
-                        {% endif %}
                     </select>
-                    
                     <button type="submit" class="action-btn" style="background: var(--primary); color: white; width: 100%;">Assign Task</button>
                 </form>
             </div>
@@ -50,24 +41,18 @@
 
             <div class="bms-card">
                 <h3 style="color: var(--secondary);">📥 My Assignments</h3>
-                {% for task in my_tasks %}
+                {% for task in my_tasks if not task.is_done %}
                 <div style="padding: 15px; border-bottom: 1px solid #eee;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <div>
-                            <strong>{{ task.title }}</strong>
-                            <br><small style="color: #666;">From: {{ task.task_sender.full_name if task.task_sender else 'System' }}</small>
-                        </div>
-                        <span class="status-badge {{ task.status|lower }}">{{ task.status }}</span>
-                    </div>
-                    {% if task.status == 'Pending' %}
+                    <strong>{{ task.title }}</strong>
+                    <br><small>From: {{ task.task_sender.full_name if task.task_sender else 'Principal' }}</small>
+                    
                     <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="margin-top: 10px;">
-                        <input type="text" name="reply" class="premium-input" style="font-size: 0.8rem;" placeholder="Reply to HOD/Principal...">
-                        <button class="action-btn" style="background: var(--success); color: white; padding: 5px 15px; font-size: 0.8rem;">Mark as Done</button>
+                        <textarea name="reply" class="premium-input" style="height: 50px; font-size: 0.8rem;" placeholder="Write your reply to Principal/HOD..." required></textarea>
+                        <button class="action-btn" style="background: var(--success); color: white; padding: 5px 15px; width: 100%;">Send Reply & Complete</button>
                     </form>
-                    {% endif %}
                 </div>
                 {% else %}
-                <p style="padding: 15px; text-align: center; color: #999;">No pending tasks assigned to you.</p>
+                <p style="padding: 15px; text-align: center; color: #999;">No pending tasks.</p>
                 {% endfor %}
             </div>
         </div>
@@ -75,59 +60,42 @@
         <div>
             <div class="bms-card growth-card">
                 <h3>📈 Performance Growth</h3>
-                <p style="opacity: 0.8;">Your productivity trend over the last 7 days</p>
                 <canvas id="growthChart" style="max-height: 300px;"></canvas>
             </div>
             
             <div class="bms-card">
                 <h3 style="color: var(--secondary);">📋 Task History</h3>
                 {% for task in my_tasks if task.is_done %}
-                <div style="padding: 10px; border-bottom: 1px solid #f5f5f5; font-size: 0.9rem;">
-                    <span style="color: var(--success);">✔</span> {{ task.title }} 
-                    <span style="float: right; color: #999; font-size: 0.8rem;">{{ task.completed_at.strftime('%Y-%m-%d') if task.completed_at }}</span>
+                <div style="padding: 10px; border-bottom: 1px solid #f5f5f5;">
+                    <span style="color: var(--success);">✔</span> {{ task.title }}
+                    {% if task.reply_content %}
+                        <div style="font-size: 0.8rem; color: #666; margin-left: 20px;">Replying: {{ task.reply_content }}</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
         </div>
+
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('growthChart').getContext('2d');
-    
-    // Create a smooth gradient for the chart
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: {{ labels|tojson }}, // UPDATED: Real days from Python
+            labels: {{ labels|tojson }},
             datasets: [{
                 label: 'Tasks Completed',
-                data: {{ growth_data|tojson }}, // UPDATED: Real counts from Python
+                data: {{ growth_data|tojson }},
                 borderColor: '#ffffff',
-                borderWidth: 3,
-                backgroundColor: gradient,
                 fill: true,
-                tension: 0.4,
-                pointRadius: 5,
-                pointBackgroundColor: '#4318ff'
+                tension: 0.4
             }]
         },
-        options: {
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { 
-                    beginAtZero: true,
-                    grid: { color: 'rgba(255,255,255,0.1)' }, 
-                    ticks: { color: '#fff', stepSize: 1 } 
-                },
-                x: { grid: { display: false }, ticks: { color: '#fff' } }
-            },
-            animation: { duration: 2000, easing: 'easeOutQuart' }
+        options: { 
+            scales: { y: { beginAtZero: true, ticks: {color: '#fff'} }, x: { ticks: {color: '#fff'} } }
         }
     });
 </script>
