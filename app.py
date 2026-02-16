@@ -92,8 +92,11 @@ class User(db.Model):
     profile_pic = db.Column(db.String(200), default='default.png')# NEW FIELD
     department = db.Column(db.String(100), nullable=True)
     dept_id = db.Column(db.String(50), nullable=True)
+    tasks_created = db.relationship('Task', backref='creator', foreign_keys='Task.user_id')
+    tasks_assigned_to_me = db.relationship('Task', backref='assignee', foreign_keys='Task.assigned_to')
+    tasks_delegated_by_me = db.relationship('Task', backref='delegator', foreign_keys='Task.assigned_by')
     
-    tasks = db.relationship('Task', backref='user', lazy=True)
+    tasks = db.relationship('Task', backref='owner', foreign_keys='Task.user_id')
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
     claims = db.relationship('ExpenseClaim', backref='rel_user', lazy=True)
@@ -153,13 +156,26 @@ class PerformanceKPI(db.Model):
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     title = db.Column(db.String(100))
     is_done = db.Column(db.Boolean, default=False)
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id')) # The recipient
-    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id')) # The sender (Principal/HOD)
-    status = db.Column(db.String(50), default="Pending")         # Track progress
-    reply = db.Column(db.Text)                                   # For employee responses
+    status = db.Column(db.String(50), default="Pending")
+    reply = db.Column(db.Text)
+
+    # 1. The original creator (for personal tasks)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # 2. The staff member receiving the task
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # 3. The Principal/HOD who sent the task
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    # Explicit Relationships (Optional but highly recommended for cleaner code)
+    # These let you do things like: task.recipient.username
+    recipient = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
+    sender = db.relationship('User', foreign_keys=[assigned_by], backref='sent_tasks')
+    creator = db.relationship('User', foreign_keys=[user_id], backref='personal_tasks')
+    
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -310,17 +326,24 @@ def activity_room():
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
+    # Capture data from the new Activity Room form
     new_task = Task(
-        title=request.form['title'],
-        assigned_to=request.form['staff_id'], # Selected from dropdown
-        assigned_by=session['user_id'],
+        title=request.form.get('title'),
+        assigned_to=request.form.get('staff_id'), # From the dropdown
+        assigned_by=session['user_id'],          # Current logged in Principal/HOD
         status="Pending"
     )
-    # Trigger the sidebar badge for the recipient
-    db.session.add(Notification(user_id=request.form['staff_id'], msg="New Task Assigned!"))
     db.session.add(new_task)
+    
+    # Add notification for the recipient so the red badge pops up
+    notif = Notification(
+        user_id=request.form.get('staff_id'), 
+        msg=f"📢 New task assigned by {session['name']}"
+    )
+    db.session.add(notif)
+    
     db.session.commit()
-    flash("Task Delegated Successfully", "success")
+    flash("Task assigned successfully!", "success")
     return redirect(url_for('activity_room'))
     
 @app.route('/leave_calendar')
@@ -1135,7 +1158,19 @@ def generate_payslip_historical(uid, month):
     # This uses your existing generate_payslip logic but injects the specific month name
     # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
     return generate_payslip(uid) # Temporary redirect to main logic for now
-
+@app.route('/complete_task/<int:id>', methods=['POST'])
+def complete_task(id):
+    task = Task.query.get_or_404(id)
+    task.reply = request.form.get('reply')
+    task.is_done = True
+    task.status = "Completed"
+    
+    # Notify the person who assigned it
+    db.session.add(Notification(user_id=task.assigned_by, msg=f"✅ {session['name']} completed: {task.title}"))
+    
+    db.session.commit()
+    return redirect(url_for('activity_room'))
+    
 @app.route('/delete_meeting/<room_name>')
 def delete_meeting(room_name):
     if 'user_id' not in session: 
@@ -1283,6 +1318,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
