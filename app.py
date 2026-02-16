@@ -94,18 +94,15 @@ class User(db.Model):
     profile_pic = db.Column(db.String(200), default='default.png')
     department = db.Column(db.String(100), nullable=True)
     dept_id = db.Column(db.String(50), nullable=True)
+    # 1. Personal Tasks
+    tasks = db.relationship('Task', backref='owner_link', foreign_keys='Task.user_id')
 
-    # --- RELATIONSHIPS (Fixed & Non-Conflicting) ---
+    # 2. Tasks Assigned TO this user
+    tasks_assigned_to_me = db.relationship('Task', backref='recipient_link', foreign_keys='Task.assigned_to')
 
-    # 1. Personal Tasks (Tasks the user created for themselves)
-    # We removed the duplicate 'tasks' line and kept this one.
-   tasks = db.relationship('Task', backref='owner_link', foreign_keys='Task.user_id')
+    # 3. Tasks Delegated BY this user
+    tasks_delegated_by_me = db.relationship('Task', backref='sender_link', foreign_keys='Task.assigned_by')
 
-    # 2. Tasks Assigned TO this user (The Inbox)
-   tasks_assigned_to_me = db.relationship('Task', backref='recipient_link', foreign_keys='Task.assigned_to')
-    # 3. Tasks Delegated BY this user (The Outbox)
-   tasks_delegated_by_me = db.relationship('Task', backref='sender_link', foreign_keys='Task.assigned_by')
-    # 4. Other system relationships
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
     claims = db.relationship('ExpenseClaim', backref='rel_user', lazy=True)
@@ -1380,6 +1377,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
