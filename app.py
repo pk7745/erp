@@ -284,6 +284,40 @@ def view_audit_logs():
     # Fetch all logs, newest first
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
+
+@app.route('/activity')
+def activity_room():
+    # Fetch tasks assigned TO the user
+    my_tasks = Task.query.filter_by(assigned_to=session['user_id']).all()
+    
+    # If Principal/HOD, fetch tasks they ASSIGNED to others
+    assigned_by_me = []
+    if session['role'] in ['Principal', 'HOD']:
+        assigned_by_me = Task.query.filter_by(assigned_by=session['user_id']).all()
+        
+    # Stats for the Growth Chart (Example logic)
+    # Count completed tasks over the last 7 days
+    growth_data = [2, 5, 3, 8, 6, 9, 12] # Replace with DB query logic
+    
+    return render_template('activity.html', 
+                           my_tasks=my_tasks, 
+                           assigned_by_me=assigned_by_me,
+                           growth_data=growth_data)
+
+@app.route('/assign_task', methods=['POST'])
+def assign_task():
+    new_task = Task(
+        title=request.form['title'],
+        assigned_to=request.form['staff_id'], # Selected from dropdown
+        assigned_by=session['user_id'],
+        status="Pending"
+    )
+    # Trigger the sidebar badge for the recipient
+    db.session.add(Notification(user_id=request.form['staff_id'], msg="New Task Assigned!"))
+    db.session.add(new_task)
+    db.session.commit()
+    flash("Task Delegated Successfully", "success")
+    return redirect(url_for('activity_room'))
     
 @app.route('/leave_calendar')
 def leave_calendar():
@@ -1236,6 +1270,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
