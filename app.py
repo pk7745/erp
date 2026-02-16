@@ -56,7 +56,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v14.db'
+db_name = 'bms_college_v15.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -156,6 +156,10 @@ class Task(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     title = db.Column(db.String(100))
     is_done = db.Column(db.Boolean, default=False)
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id')) # The recipient
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id')) # The sender (Principal/HOD)
+    status = db.Column(db.String(50), default="Pending")         # Track progress
+    reply = db.Column(db.Text)                                   # For employee responses
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1279,6 +1283,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
