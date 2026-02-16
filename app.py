@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v20.db'
+db_name = 'bms_college_v21.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -169,14 +169,14 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     
-    # These three columns MUST exist to satisfy your User relationships
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))      # Owner
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))  # Recipient
-    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Sender
+    # These MUST exist for your dashboard query to work
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))      
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))  
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))  
     
     status = db.Column(db.String(20), default='Pending')
     is_done = db.Column(db.Boolean, default=False)
-    reply_content = db.Column(db.Text)                             # The Reply Block
+    reply_content = db.Column(db.Text) 
     completed_at = db.Column(db.DateTime)
 
 
@@ -1354,6 +1354,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
