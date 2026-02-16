@@ -1,129 +1,155 @@
-/* BMSCCM Enterprise Portal - Master Stylesheet 2026 (Premium Edition) */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* BMSCCM ENTERPRISE PORTAL - MASTER CLASS EDITION 
+   "Royal Glass" Design System v2.0
+   Designed for High-Performance Visuals & User Delight
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-    /* --- The Royal Palette --- */
-    --p: #800000;              /* BMS Maroon (Primary) */
-    --p-light: #9A1B1B;        /* Lighter Maroon for gradients */
-    --gold: #C5A059;           /* BMS Gold (Accent) */
-    --gold-glow: rgba(197, 160, 89, 0.4);
+    /* --- The Royal Palette (BMSCCM Identity) --- */
+    --p: #800000;              /* Imperial Maroon */
+    --p-dark: #5a0000;         /* Deep Velvet (Hover State) */
+    --p-light: #fff0f0;        /* Soft Maroon Tint */
     
-    /* --- Glass & Backgrounds --- */
-    --bg: #F2F4F8;             /* Ultra-light gray-blue base */
-    --glass: rgba(255, 255, 255, 0.75); /* Frosted Glass */
-    --glass-border: rgba(255, 255, 255, 0.6);
-    --sidebar: rgba(255, 255, 255, 0.85); /* Sidebar specific glass */
+    --gold: #D4AF37;           /* Satin Gold */
+    --gold-glow: rgba(212, 175, 55, 0.4);
+
+    /* --- Functional Colors --- */
+    --success: #059669;        /* Emerald (WFH/Active) */
+    --success-bg: #ecfdf5;     
+    --danger: #DC2626;         /* Crimson (Alerts) */
+    --danger-bg: #fef2f2;
+    --info: #2563EB;           /* Royal Blue (links) */
+
+    /* --- Surface & Glass --- */
+    --bg: #F3F4F6;             /* Cool Gray Base */
+    --glass: rgba(255, 255, 255, 0.85); /* Frosted Glass */
+    --glass-sidebar: rgba(255, 255, 255, 0.95);
+    --border: rgba(255, 255, 255, 0.6);
     
-    /* --- Typography & Functional --- */
-    --text: #1B2559;           /* Deep Navy for reading */
-    --text-light: #8F9BBA;     /* Soft Gray for labels */
-    --success: #05CD99;        /* Emerald Green */
-    --danger: #EE5D50;         /* Soft Red */
+    /* --- Typography --- */
+    --text-main: #111827;      /* Almost Black */
+    --text-muted: #6B7280;     /* Cool Gray */
     
-    /* --- Physics --- */
-    --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.02);
-    --shadow-card: 0 15px 35px rgba(49, 57, 84, 0.06);
-    --shadow-float: 0 20px 50px rgba(128, 0, 0, 0.15); /* Maroon Glow */
+    /* --- Physics (Shadows & Depth) --- */
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    --shadow-hover: 0 25px 50px -12px rgba(128, 0, 0, 0.15); /* Maroon tinted shadow */
+    --glow: 0 0 15px rgba(212, 175, 55, 0.3); /* Gold Glow */
 }
+
+/* --- Global Reset & Animations --- */
+* { box-sizing: border-box; }
 
 body {
-    font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
     background: 
-        radial-gradient(circle at 10% 10%, rgba(128, 0, 0, 0.03), transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(197, 160, 89, 0.05), transparent 40%),
-        var(--bg); /* Mesh Gradient Background */
-    color: var(--text);
+        radial-gradient(circle at 0% 0%, rgba(128, 0, 0, 0.03), transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.05), transparent 40%),
+        var(--bg);
+    color: var(--text-main);
     margin: 0;
     display: flex;
-    overflow-x: hidden;
     min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
 }
 
-/* --- Glassmorphism Sidebar --- */
+/* --- The Glass Sidebar --- */
 .sidebar {
-    width: 260px;
+    width: 280px; /* Slightly wider for elegance */
     position: fixed;
     height: 100vh;
-    background: var(--sidebar);
-    backdrop-filter: blur(20px); /* The "Frosted" Effect */
+    background: var(--glass-sidebar);
+    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    padding: 30px 20px;
-    box-shadow: 5px 0 30px rgba(0,0,0,0.02);
-    border-right: 1px solid var(--glass-border);
-    z-index: 100;
+    padding: 40px 25px;
+    border-right: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 10px 0 40px rgba(0,0,0,0.02);
+    z-index: 1000;
+    transition: all 0.4s ease;
 }
 
 .sidebar-link {
     padding: 16px 20px;
-    color: var(--text-light);
+    color: var(--text-muted);
     text-decoration: none;
     display: flex;
     align-items: center;
-    border-radius: 16px; /* Super rounded */
-    margin-bottom: 8px;
+    border-radius: 16px;
+    margin-bottom: 10px;
     font-weight: 600;
     font-size: 0.95rem;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    overflow: hidden;
+    border: 1px solid transparent;
 }
 
 .sidebar-link:hover {
-    background: linear-gradient(90deg, rgba(128, 0, 0, 0.05) 0%, transparent 100%);
+    background: linear-gradient(90deg, var(--p-light) 0%, white 100%);
     color: var(--p);
-    padding-left: 25px; /* Slight slide animation */
+    padding-left: 28px; /* Kinetic slide */
+    border-color: rgba(128, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(128, 0, 0, 0.05);
 }
 
-/* Active State indicator (optional) */
+/* Active Indicator Line */
 .sidebar-link:hover::before {
     content: '';
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    height: 20px;
+    height: 24px;
     width: 4px;
     background: var(--p);
     border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 8px rgba(128, 0, 0, 0.4);
 }
 
-/* --- Main Content Area --- */
+/* --- Main Content Stage --- */
 .main {
-    margin-left: 260px;
-    padding: 40px;
-    width: calc(100% - 260px);
-    max-width: 1600px; /* Prevent stretching on 4k screens */
+    margin-left: 280px;
+    padding: 50px;
+    width: calc(100% - 280px);
+    max-width: 1800px;
 }
 
-/* --- Levitating Dashboard Cards --- */
+/* --- Levitating Cards --- */
 .card {
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     padding: 35px;
     border-radius: 24px;
     box-shadow: var(--shadow-card);
-    margin-bottom: 30px;
-    border: 1px solid rgba(255,255,255,0.5);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 35px;
+    border: 1px solid rgba(255,255,255,1);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    position: relative;
+    overflow: hidden; /* For shine effects */
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-float);
-    border-color: rgba(197, 160, 89, 0.3); /* Subtle Gold Border */
+    transform: translateY(-5px) scale(1.002);
+    box-shadow: var(--shadow-hover);
+    border-color: rgba(212, 175, 55, 0.2);
 }
 
+/* Titles */
 h2, h3 {
-    color: var(--text);
+    color: var(--text-main);
     font-weight: 800;
     letter-spacing: -0.5px;
+    margin-bottom: 20px;
 }
 
-/* --- Requirement 1: Stats Container --- */
+h2 { font-size: 1.8rem; background: linear-gradient(90deg, var(--p), #2c0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* --- Requirement 1: Stats Container (Dashboard) --- */
 .stats-container { 
     display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive Grid */
-    gap: 25px; 
-    margin: 25px 0; 
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+    gap: 30px; 
+    margin: 30px 0; 
 }
 
 .stat-card { 
@@ -131,141 +157,97 @@ h2, h3 {
     border-radius: 24px; 
     color: white; 
     text-align: left; 
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
     position: relative;
     overflow: hidden;
-    transition: transform 0.3s ease;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
 }
 
-.stat-card:hover { transform: scale(1.02); }
-
-/* Decorative circles on cards */
+/* Abstract shapes on stat cards */
 .stat-card::after {
     content: '';
     position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 100px;
-    height: 100px;
-    background: rgba(255,255,255,0.1);
+    bottom: -30px;
+    right: -30px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255,255,255,0.15);
     border-radius: 50%;
+    backdrop-filter: blur(5px);
 }
 
-.stat-office { 
-    background: linear-gradient(135deg, var(--p) 0%, #5a0000 100%); 
-}
+.stat-office { background: linear-gradient(135deg, var(--p) 0%, #3d0000 100%); border-top: 1px solid rgba(255,255,255,0.2); }
+.stat-wfh { background: linear-gradient(135deg, var(--success) 0%, #064e3b 100%); border-top: 1px solid rgba(255,255,255,0.2); }
 
-.stat-wfh { 
-    background: linear-gradient(135deg, var(--success) 0%, #02a176 100%); 
-}
-
-/* --- Requirement 4: Notification Panel --- */
-.notif-panel { 
-    background: rgba(255, 255, 255, 0.6); 
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(238, 93, 80, 0.1); 
-    padding: 20px; 
-    border-radius: 20px; 
-    max-height: 300px; 
-    overflow-y: auto; 
-    /* Custom Scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: var(--text-light) transparent;
-}
-
-.notif-item { 
-    padding: 15px; 
-    border-bottom: 1px solid rgba(0,0,0,0.03); 
-    font-size: 0.9rem; 
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 12px;
-    margin-bottom: 5px;
-    background: white;
-}
-
-.notif-item:hover { background: #fffafa; }
-
-.notif-item.new { 
-    border-left: 3px solid var(--danger);
-    animation: pulse 2s infinite; 
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(238, 93, 80, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(238, 93, 80, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(238, 93, 80, 0); }
-}
-
-/* --- Requirement 5 & 7: Premium Tables --- */
+/* --- Requirement 5 & 7: The "Floating Row" Table --- */
 table {
     width: 100%;
-    border-collapse: separate; /* Allows border-radius on rows */
-    border-spacing: 0 10px; /* Spacing between rows */
-    margin-top: 20px;
+    border-collapse: separate;
+    border-spacing: 0 12px; /* Spacing between rows */
+    margin-top: 10px;
 }
 
 th {
     text-align: left;
-    color: var(--text-light);
+    color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 0 20px 10px 20px;
-    border: none;
+    letter-spacing: 1.5px;
+    padding: 0 25px 15px 25px;
     font-weight: 700;
+    border-bottom: 2px solid rgba(0,0,0,0.03);
 }
 
-/* Floating Table Rows */
+/* Each row is a card */
 tbody tr {
     background: white;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.02);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+    transition: all 0.2s ease;
+    border-radius: 16px;
 }
 
 tbody tr:hover {
-    transform: scale(1.005);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    transform: scale(1.01);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.08);
     z-index: 10;
     position: relative;
 }
 
 td {
-    padding: 20px;
-    border-top: 1px solid rgba(0,0,0,0.02);
-    border-bottom: 1px solid rgba(0,0,0,0.02);
+    padding: 22px 25px;
     font-size: 0.95rem;
-    color: var(--text);
+    color: var(--text-main);
+    border: none; /* Removed ugly borders */
 }
 
-/* Rounded corners for rows */
-td:first-child { border-radius: 16px 0 0 16px; border-left: 1px solid rgba(0,0,0,0.02); }
-td:last-child { border-radius: 0 16px 16px 0; border-right: 1px solid rgba(0,0,0,0.02); }
+/* Rounding the row corners */
+td:first-child { border-radius: 16px 0 0 16px; }
+td:last-child { border-radius: 0 16px 16px 0; }
 
-/* --- High-End Badges --- */
+/* --- High-End Actions & Badges --- */
 .badge {
-    padding: 6px 14px;
-    border-radius: 30px;
+    padding: 8px 16px;
+    border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 700;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     letter-spacing: 0.3px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    text-transform: uppercase;
 }
 
-/* Specific Badge colors to match Logic */
-.badge[style*="background:#f6e05e"] { background: #FFF8C5 !important; color: #856404 !important; border: 1px solid rgba(133, 100, 4, 0.1); }
-.badge[style*="background:#bee3f8"] { background: #E3F2FD !important; color: #1565C0 !important; border: 1px solid rgba(21, 101, 192, 0.1); }
-.badge[style*="background:#c6f6d5"] { background: #E8F5E9 !important; color: #2E7D32 !important; border: 1px solid rgba(46, 125, 50, 0.1); }
+/* Dynamic Badge Styling */
+.badge-office { background: var(--p-light); color: var(--p); border: 1px solid rgba(128, 0, 0, 0.1); }
+.badge-wfh { background: var(--success-bg); color: var(--success); border: 1px solid rgba(5, 150, 105, 0.1); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.1); }
 
-/* --- Buttons: The Gold Standard --- */
+/* --- The "Executive" Button --- */
 .btn {
-    background: var(--p);
+    background: linear-gradient(135deg, var(--p) 0%, var(--p-dark) 100%);
     color: white;
     border: none;
     padding: 12px 28px;
-    border-radius: 14px;
+    border-radius: 12px;
     cursor: pointer;
     text-decoration: none;
     font-weight: 700;
@@ -273,93 +255,123 @@ td:last-child { border-radius: 0 16px 16px 0; border-right: 1px solid rgba(0,0,0
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(128, 0, 0, 0.25);
     font-size: 0.9rem;
+    position: relative;
+    overflow: hidden;
 }
 
+/* Shine effect on hover */
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.btn:hover::after { left: 100%; }
 .btn:hover {
-    transform: translateY(-3px);
-    background: var(--p-light);
-    box-shadow: 0 8px 20px rgba(128, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(128, 0, 0, 0.35);
 }
 
-/* Secondary Button Style */
+/* Secondary Button (Cancel/Back) */
 .btn[style*="background: #666"] {
     background: white !important;
-    color: var(--text-light) !important;
-    border: 1px solid #e0e5f2 !important;
+    color: var(--text-muted) !important;
+    border: 1px solid #E5E7EB !important;
     box-shadow: none !important;
 }
-
 .btn[style*="background: #666"]:hover {
-    background: #f8f9fa !important;
-    color: var(--danger) !important;
-    border-color: var(--danger) !important;
+    border-color: var(--text-main) !important;
+    color: var(--text-main) !important;
+    background: #f9fafb !important;
 }
 
-/* --- Forms: Clean & Crisp --- */
+/* --- Notification Panel (The "Pulse") --- */
+.notif-panel { 
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.5);
+    padding: 20px; 
+    border-radius: 20px; 
+    max-height: 350px; 
+    overflow-y: auto; 
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
+}
+
+.notif-item { 
+    padding: 16px; 
+    border-bottom: 1px solid rgba(0,0,0,0.04); 
+    font-size: 0.9rem; 
+    display: flex;
+    justify-content: space-between;
+    border-radius: 12px;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+}
+
+.notif-item:hover { background: white; }
+
+.notif-item.new { 
+    border-left: 3px solid var(--danger);
+    background: linear-gradient(90deg, #fff5f5 0%, transparent 100%);
+    animation: gentlePulse 3s infinite; 
+}
+
+@keyframes gentlePulse {
+    0% { background-color: #fff5f5; }
+    50% { background-color: white; }
+    100% { background-color: #fff5f5; }
+}
+
+/* --- Forms: Precision Inputs --- */
 input, select, textarea {
     width: 100%;
     padding: 14px 18px;
     margin: 10px 0;
-    border: 1px solid #E0E5F2;
-    background: #FAFCFE;
-    border-radius: 14px;
-    box-sizing: border-box;
+    border: 1px solid #E5E7EB;
+    background: #F9FAFB;
+    border-radius: 12px;
     outline: none;
-    font-family: inherit;
+    font-family: 'Manrope', sans-serif;
     font-size: 0.95rem;
-    transition: 0.3s;
-    color: var(--text);
+    transition: all 0.3s ease;
+    color: var(--text-main);
 }
 
 input:focus, select:focus {
     border-color: var(--p);
     background: white;
-    box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.05);
+    box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.08);
+    transform: translateY(-1px);
 }
 
-/* --- Login & Special Pages --- */
-.login-bg {
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #fdfbff 0%, #f4f7fe 100%);
+/* --- Login & Modal Overlays --- */
+.login-bg, #payrollModal {
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.4) 100%), var(--bg);
+    backdrop-filter: blur(5px);
 }
 
+/* Flash Messages */
 .flash {
     padding: 18px;
-    border-radius: 14px;
+    border-radius: 12px;
     margin-bottom: 25px;
     font-weight: 600;
+    border-left: 4px solid transparent;
     display: flex;
     align-items: center;
-    gap: 10px;
+    box-shadow: var(--shadow-sm);
 }
+.success { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+.error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
-.success { background: #E6FFFA; color: #008f6d; border: 1px solid #B2F5EA; }
-.error { background: #FFF5F5; color: #C53030; border: 1px solid #FED7D7; }
-
-/* --- Special Status Indicators (Preserved) --- */
-.status-processed {
-    color: var(--text-light);
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    background: #F4F7FE;
-    padding: 6px 12px;
-    border-radius: 8px;
-}
-
-.self-posted {
-    color: var(--p);
-    font-size: 0.8rem;
-    background: rgba(128, 0, 0, 0.05);
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px dashed var(--p);
-    font-weight: 600;
-}
+/* Custom Scrollbar for a polished finish */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
