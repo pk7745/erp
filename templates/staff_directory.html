@@ -93,9 +93,23 @@
                 {% for emp in employees %}
                 <tr>
                     <td>
-                        <strong>{{ emp.full_name }}</strong><br>
-                        <small class="badge" style="background:#edf2f7; color:#4a5568;">{{ emp.role }}</small><br>
-                        <small style="color: #4318ff; font-weight: bold;">{{ emp.department }} ({{ emp.dept_id or 'No ID' }})</small>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div class="flip-card">
+                                <div class="flip-card-inner">
+                                    <div class="flip-front">
+                                        <img src="{{ url_for('static', filename='uploads/' + emp.photo) if emp.photo else 'https://ui-avatars.com/api/?name=' + emp.full_name }}" class="staff-img">
+                                    </div>
+                                    <div class="flip-back">
+                                        BMS<br>CCM
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <strong>{{ emp.full_name }}</strong><br>
+                                <small class="badge" style="background:#edf2f7; color:#4a5568;">{{ emp.role }}</small><br>
+                                <small style="color: #4318ff; font-weight: bold;">{{ emp.department }} ({{ emp.dept_id or 'No ID' }})</small>
+                            </div>
+                        </div>
                     </td>
                     <td>{{ emp.email }}</td>
                     <td>
@@ -205,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* YOUR ORIGINAL LOGIC (UNCHANGED) */
+/* ORIGINAL LOGIC */
 function openPayrollModal(uid, name, salary) {
     document.getElementById('modal_uid').value = uid;
     document.getElementById('modal_salary').value = salary;
