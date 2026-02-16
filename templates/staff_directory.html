@@ -3,15 +3,12 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
         <h2 style="margin: 0;">👥 Staff Directory</h2>
-        
         <div style="display: flex; gap: 10px; align-items: center;">
             <input type="text" id="directorySearch" placeholder="Search name, email, or role..." 
                    style="padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #ddd;">
-
             <a href="{{ url_for('email_staff_list') }}" class="btn" style="background: #1b2559; color: white; text-decoration: none;">
                 📧 Email List to Principal
             </a>
-            
             {% if session['role'] in ['HR', 'Principal'] %}
                 <button class="btn" onclick="document.getElementById('addForm').style.display='block'">+ Add Employee</button>
             {% endif %}
@@ -24,22 +21,10 @@
             <button class="btn" style="background: #666;" onclick="document.getElementById('addForm').style.display='none'">Cancel</button>
         </div>
         <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Full Name</label>
-                <input type="text" name="full_name" placeholder="John Doe" required style="width:100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Email Address</label>
-                <input type="email" name="email" placeholder="john@nexus.com" required style="width:100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Username</label>
-                <input type="text" name="username" placeholder="johndoe123" required style="width:100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Password</label>
-                <input type="password" name="password" placeholder="••••••••" required style="width:100%;">
-            </div>
+            <div><label style="font-size: 0.8rem; color: #666;">Full Name</label><input type="text" name="full_name" placeholder="John Doe" required style="width:100%;"></div>
+            <div><label style="font-size: 0.8rem; color: #666;">Email Address</label><input type="email" name="email" placeholder="john@nexus.com" required style="width:100%;"></div>
+            <div><label style="font-size: 0.8rem; color: #666;">Username</label><input type="text" name="username" placeholder="johndoe123" required style="width:100%;"></div>
+            <div><label style="font-size: 0.8rem; color: #666;">Password</label><input type="password" name="password" placeholder="••••••••" required style="width:100%;"></div>
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Department</label>
                 <select name="department" style="width:100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
@@ -51,119 +36,126 @@
                     <option value="Administration">Administration</option>
                 </select>
             </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Department ID</label>
-                <input type="text" name="dept_id" placeholder="BMS-COM-001" style="width:100%;">
-            </div>
+            <div><label style="font-size: 0.8rem; color: #666;">Department ID</label><input type="text" name="dept_id" placeholder="BMS-COM-001" style="width:100%;"></div>
             <div>
                 <label style="font-size: 0.8rem; color: #666;">Monthly Salary (INR)</label>
-                <input type="number" name="salary" id="salaryInput_NEW" placeholder="50000" required 
-                       oninput="calculateLiveNet('NEW')" style="width:100%;">
+                <input type="number" name="salary" id="salaryInput_NEW" placeholder="50000" required oninput="calculateLiveNet('NEW')" style="width:100%;">
                 <div id="calc_NEW" style="display:none; background: #f4f7fe; padding: 10px; border-radius: 8px; margin-top: 10px;">
                     <p style="margin: 0; font-size: 0.65rem; color: #a3aed0; font-weight: bold;">OFFICIAL TAKE-HOME (NET)</p>
                     <h4 id="netDisplay_NEW" style="margin: 2px 0; color: #05cd99;">₹0</h4>
                     <div id="breakdown_NEW" style="font-size: 0.7rem;"></div>
                 </div>
             </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Office/Home Address</label>
-                <input type="text" name="address" placeholder="No. 123, Street, Bengaluru" style="width:100%;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Date of Birth</label>
-                <input type="date" name="dob" required style="width:100%; padding: 8px;">
-            </div>
-            <div>
-                <label style="font-size: 0.8rem; color: #666;">Joining Date</label>
-                <input type="date" name="join_date" required style="width:100%; padding: 8px;">
-            </div>
+            <div><label style="font-size: 0.8rem; color: #666;">Office/Home Address</label><input type="text" name="address" placeholder="No. 123, Street, Bengaluru" style="width:100%;"></div>
+            <div><label style="font-size: 0.8rem; color: #666;">Date of Birth</label><input type="date" name="dob" required style="width:100%; padding: 8px;"></div>
+            <div><label style="font-size: 0.8rem; color: #666;">Joining Date</label><input type="date" name="join_date" required style="width:100%; padding: 8px;"></div>
             <button type="submit" class="btn" style="grid-column: span 2; margin-top: 10px;">Save Employee</button>
         </form>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Name & Department</th>
-                <th>Email</th>
-                <th>Status & Workflow</th>
-                <th style="min-width: 220px;">Salary & Deductions</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="directoryTable">
-            {% for emp in employees %}
-            <tr>
-                <td>
-                    <strong>{{ emp.full_name }}</strong><br>
-                    <small class="badge" style="background:#edf2f7; color:#4a5568;">{{ emp.role }}</small><br>
-                    <small style="color: #4318ff; font-weight: bold;">{{ emp.department }} ({{ emp.dept_id or 'No ID' }})</small>
-                </td>
-                <td>{{ emp.email }}</td>
-                
-                <td>
-                    {% if emp.status == 'Pending HR Verification' %}
-                        <div style="display:flex; flex-direction:column; gap:5px;">
-                            <span class="badge" style="background:#f6e05e; color:#856404;">📂 HR Verify Needed</span>
-                            {% if session['role'] == 'HR' %}
-                                <a href="{{ url_for('admin_verify_docs', uid=emp.id) }}" class="badge" style="background:#4318ff; color:white; text-decoration:none; text-align:center;">Approve Hike</a>
-                            {% endif %}
-                        </div>
-                    {% elif emp.status == 'Pending Accountant Configuration' %}
-                        <div style="display:flex; flex-direction:column; gap:5px;">
-                            <span class="badge" style="background:#bee3f8; color:#2c5282;">💰 Awaiting Accountant</span>
-                            {% if session['role'] == 'Accountant' %}
-                                <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" 
-                                        class="badge" style="background:#05cd99; color:white; border:none; cursor:pointer; padding:5px;">
-                                    Configure & Finalize
-                                </button>
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <span class="badge" style="background:#c6f6d5; color:#22543d;">✓ Active</span>
-                    {% endif %}
-                </td>
+    <div id="skeleton-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name & Department</th>
+                    <th>Email</th>
+                    <th>Status & Workflow</th>
+                    <th style="min-width: 220px;">Salary & Deductions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(5) %}
+                <tr class="skeleton-row">
+                    <td><div class="skeleton skeleton-text" style="width: 140px;"></div><br><div class="skeleton skeleton-text" style="width: 80px;"></div></td>
+                    <td><div class="skeleton skeleton-text" style="width: 120px;"></div></td>
+                    <td><div class="skeleton skeleton-text" style="width: 100px;"></div></td>
+                    <td><div class="skeleton skeleton-text" style="width: 180px;"></div></td>
+                    <td><div class="skeleton skeleton-text" style="width: 80px;"></div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                <td>
-                    <div style="margin-bottom: 8px;">
-                        <small style="color:#a3aed0;">Current Basic: </small><strong>₹{{ "{:,}".format(emp.salary) }}</strong>
-                    </div>
-
-                    {% if session['role'] == 'Principal' %}
-                        <form action="{{ url_for('principal_request_salary', uid=emp.id) }}" method="POST" style="display:flex; gap:5px; margin-bottom: 10px;">
-                            <input type="number" name="new_salary" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}" 
-                                   oninput="calculateLiveNet({{ emp.id }})" style="width:90px; padding:4px;">
-                            <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem;">Request Hike</button>
-                        </form>
-                    {% else %}
-                        <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
-                    {% endif %}
-
-                    <div id="fullBreakdown_{{ emp.id }}" style="background: #f8f9fc; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">
-                            <span style="font-size: 0.7rem; color: #4a5568; font-weight: bold;">EST. NET TAKE-HOME</span>
-                            <span id="netDisplay_{{ emp.id }}" style="font-weight:bold; color:#05cd99; font-size: 0.9rem;">₹0</span>
+    <div id="real-content" class="content-hidden" style="display: none;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name & Department</th>
+                    <th>Email</th>
+                    <th>Status & Workflow</th>
+                    <th style="min-width: 220px;">Salary & Deductions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="directoryTable">
+                {% for emp in employees %}
+                <tr>
+                    <td>
+                        <strong>{{ emp.full_name }}</strong><br>
+                        <small class="badge" style="background:#edf2f7; color:#4a5568;">{{ emp.role }}</small><br>
+                        <small style="color: #4318ff; font-weight: bold;">{{ emp.department }} ({{ emp.dept_id or 'No ID' }})</small>
+                    </td>
+                    <td>{{ emp.email }}</td>
+                    <td>
+                        {% if emp.status == 'Pending HR Verification' %}
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <span class="badge" style="background:#f6e05e; color:#856404;">📂 HR Verify Needed</span>
+                                {% if session['role'] == 'HR' %}
+                                    <a href="{{ url_for('admin_verify_docs', uid=emp.id) }}" class="badge" style="background:#4318ff; color:white; text-decoration:none; text-align:center;">Approve Hike</a>
+                                {% endif %}
+                            </div>
+                        {% elif emp.status == 'Pending Accountant Configuration' %}
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <span class="badge" style="background:#bee3f8; color:#2c5282;">💰 Awaiting Accountant</span>
+                                {% if session['role'] == 'Accountant' %}
+                                    <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" 
+                                            class="badge" style="background:#05cd99; color:white; border:none; cursor:pointer; padding:5px;">
+                                        Configure & Finalize
+                                    </button>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="badge" style="background:#c6f6d5; color:#22543d;">✓ Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="margin-bottom: 8px;">
+                            <small style="color:#a3aed0;">Current Basic: </small><strong>₹{{ "{:,}".format(emp.salary) }}</strong>
                         </div>
-                        <div id="breakdown_{{ emp.id }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.65rem; color: #718096;">
+                        {% if session['role'] == 'Principal' %}
+                            <form action="{{ url_for('principal_request_salary', uid=emp.id) }}" method="POST" style="display:flex; gap:5px; margin-bottom: 10px;">
+                                <input type="number" name="new_salary" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}" 
+                                       oninput="calculateLiveNet({{ emp.id }})" style="width:90px; padding:4px;">
+                                <button type="submit" class="btn" style="padding:4px 8px; font-size:0.75rem;">Request Hike</button>
+                            </form>
+                        {% else %}
+                            <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
+                        {% endif %}
+                        <div id="fullBreakdown_{{ emp.id }}" style="background: #f8f9fc; padding: 10px; border-radius: 8px; border: 1px solid #edf2f7;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">
+                                <span style="font-size: 0.7rem; color: #4a5568; font-weight: bold;">EST. NET TAKE-HOME</span>
+                                <span id="netDisplay_{{ emp.id }}" style="font-weight:bold; color:#05cd99; font-size: 0.9rem;">₹0</span>
+                            </div>
+                            <div id="breakdown_{{ emp.id }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.65rem; color: #718096;"></div>
                         </div>
-                    </div>
-                </td>
-
-               <td>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="badge" style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 5px;">🪪 ID Card</a>
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none; text-align: center; padding: 5px;">📄 Payslip</a>
-                        
-                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data">
-                            <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none;" onchange="this.form.submit()">
-                            <label for="file_{{ emp.id }}" style="cursor:pointer; font-size: 0.7rem; color: #4318ff; text-align: center; display: block; text-decoration: underline;">📸 Update Photo</label>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <a href="{{ url_for('generate_id', uid=emp.id) }}" class="badge" style="background: #4318ff; color: white; text-decoration: none; text-align: center; padding: 5px;">🪪 ID Card</a>
+                            <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="badge badge-wfh" style="text-decoration: none; text-align: center; padding: 5px;">📄 Payslip</a>
+                            <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data">
+                                <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none;" onchange="this.form.submit()">
+                                <label for="file_{{ emp.id }}" style="cursor:pointer; font-size: 0.7rem; color: #4318ff; text-align: center; display: block; text-decoration: underline;">📸 Update Photo</label>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div id="payrollModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
@@ -190,7 +182,30 @@
 </div>
 
 <script>
-// Logic for Modal Popup
+/* SKELETON TRANSITION SCRIPT */
+document.addEventListener("DOMContentLoaded", () => {
+    const skeleton = document.getElementById('skeleton-container');
+    const content = document.getElementById('real-content');
+    const startTime = Date.now();
+
+    window.addEventListener('load', () => {
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(600 - elapsedTime, 0);
+
+        setTimeout(() => {
+            if(skeleton) skeleton.style.opacity = '0';
+            setTimeout(() => {
+                if(skeleton) skeleton.style.display = 'none';
+                if(content) {
+                    content.style.display = 'block';
+                    setTimeout(() => { content.classList.add('content-visible'); }, 50);
+                }
+            }, 400); 
+        }, remainingTime);
+    });
+});
+
+/* YOUR ORIGINAL LOGIC (UNCHANGED) */
 function openPayrollModal(uid, name, salary) {
     document.getElementById('modal_uid').value = uid;
     document.getElementById('modal_salary').value = salary;
@@ -198,29 +213,22 @@ function openPayrollModal(uid, name, salary) {
     document.getElementById('payrollModal').style.display = 'flex';
 }
 
-// Live Salary Calculation Engine
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
-    
     let basic = parseFloat(input.value) || 0;
-    
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
     const ta = 2000;
     const gross = basic + hra + da + ta;
-    
     let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
     const epf = Math.floor((basic + da) * 0.12);
     const tds = Math.floor(gross * tdsRate);
     const pt = 200;
     const net = gross - (epf + tds + pt);
-
     if (empId === 'NEW' && basic > 0) document.getElementById('calc_NEW').style.display = 'block';
-
     const netDisp = document.getElementById('netDisplay_' + empId);
     const breakDisp = document.getElementById('breakdown_' + empId);
-
     if (netDisp) netDisp.innerText = '₹' + net.toLocaleString('en-IN');
     if (breakDisp) {
         breakDisp.innerHTML = `
@@ -230,8 +238,7 @@ function calculateLiveNet(empId) {
             <span style="font-weight:bold; color:#1b2559">Gross: ₹${gross.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">TDS: ₹${tds.toLocaleString('en-IN')}</span>
             <span style="color:#e53e3e">EPF: ₹${epf.toLocaleString('en-IN')}</span>
-            <span style="color:#e53e3e">P.Tax: ₹${pt}</span>
-        `;
+            <span style="color:#e53e3e">P.Tax: ₹${pt}</span>`;
     }
 }
 
@@ -241,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
     {% endfor %}
 });
 
-// Search functionality
 document.getElementById('directorySearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
     document.querySelectorAll('#directoryTable tr').forEach(row => {
