@@ -365,30 +365,35 @@ def activity_room():
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
     sender = User.query.get(session['user_id'])
     target_id = request.form.get('staff_id')
     title = request.form.get('title')
     target_user = User.query.get(target_id)
 
-    # 1 & 2: Hierarchy Logic
+    # Hierarchy validation
     can_assign = False
     if sender.role == 'Principal':
-        can_assign = True # Can assign to everyone
+        can_assign = True  # Principal targets HOD, Admin, Accountant, Faculty
     elif sender.role == 'HOD' and target_user.role == 'Faculty':
-        can_assign = True # HOD (Kiran) can only assign to Faculty
+        can_assign = True  # HOD (Kiran) targets Faculty only
     
     if can_assign:
         new_task = Task(
             title=title,
-            assigned_to=target_id,  # The Recipient
-            assigned_by=sender.id,  # The Assigner (Principal/HOD)
+            assigned_to=target_id,  # Recipient ID
+            assigned_by=sender.id,   # Sender ID
+            user_id=target_id,       # Also set user_id so it shows on their dashboard
             status='Pending'
         )
         db.session.add(new_task)
         db.session.commit()
         return redirect(url_for('activity_room'))
     else:
-        return "Permission Denied: You cannot assign tasks to this role.", 403
+        # Subtle flash message or error
+        return "Unauthorized Assignment", 403
     
 @app.route('/leave_calendar')
 def leave_calendar():
@@ -1202,15 +1207,24 @@ def generate_payslip_historical(uid, month):
     # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
     return generate_payslip(uid) # Temporary redirect to main logic for now
 
-@app.route('/submit_task/<int:task_id>', methods=['POST'])
-def submit_task(task_id):
-    task = Task.query.get_or_404(task_id)
+@app.route('/complete_task/<int:id>', methods=['POST'])
+def complete_task(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    task = Task.query.get_or_404(id)
+    
+    # Ensure only the assigned person can complete it
     if task.assigned_to == session['user_id']:
-        task.reply_content = request.form.get('submission_text')
+        reply = request.form.get('reply') # From your 'fantastic' UI textarea
+        
+        task.reply_content = reply
         task.is_done = True
         task.status = 'Completed'
         task.completed_at = datetime.utcnow()
+        
         db.session.commit()
+        
     return redirect(url_for('activity_room'))
     
 @app.route('/delete_meeting/<room_name>')
@@ -1366,6 +1380,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
