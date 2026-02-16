@@ -1270,12 +1270,19 @@ def inject_broadcast():
     return dict(active_broadcast=active)
 
 @app.context_processor
-def inject_pending_count():
+def inject_notifications():
     if 'user_id' in session:
-        # This makes 'pending_tasks_count' available to ALL templates automatically
-        count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
-        return dict(pending_tasks_count=count)
-    return dict(pending_tasks_count=0)
+        u_id = session['user_id']
+        # Count general unread notifications (for Dashboard/Bell icon)
+        notif_count = Notification.query.filter_by(user_id=u_id, is_read=False).count()
+        # Count pending tasks specifically for Activity Room
+        task_count = Task.query.filter_by(assigned_to=u_id, is_done=False).count()
+        
+        return dict(
+            global_notif_count=notif_count,
+            pending_tasks_count=task_count
+        )
+    return dict(global_notif_count=0, pending_tasks_count=0)
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -1357,6 +1364,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
