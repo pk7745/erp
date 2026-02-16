@@ -332,7 +332,7 @@ def activity_room():
     # Only those with role 'Faculty'
     faculty_members = User.query.filter_by(role='Faculty').all()
 
-    return render_template('activity_room.html', 
+    return render_template('activity.html', 
                            my_tasks=my_tasks, 
                            all_staff=all_staff, 
                            faculty_members=faculty_members,
@@ -1348,6 +1348,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
