@@ -57,7 +57,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v22.db'
+db_name = 'bms_college_v23.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -316,49 +316,30 @@ def view_audit_logs():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
 
-@app.route('/activity')
+@app.route('/activity_room')
 def activity_room():
-    user_id = session.get('user_id')
-    user_role = session.get('role')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
-    # --- 1. EXISTING LOGIC: Fetch tasks ---
-    my_tasks = Task.query.filter_by(assigned_to=user_id).all()
+    user = User.query.get(session['user_id'])
     
-    assigned_by_me = []
-    if user_role in ['Principal', 'HOD']:
-        assigned_by_me = Task.query.filter_by(assigned_by=user_id).all()
-
-    # --- 2. NEW LOGIC: Individual Names for Dropdown ---
-    # Fetch specific faculty members by name
+    # 1. Get ALL tasks where the logged-in user is the RECIPIENT
+    my_tasks = Task.query.filter_by(assigned_to=user.id).all()
+    
+    # 2. Data for the Dropdown (Principal sees all, HOD sees Faculty)
+    all_staff = User.query.all()
     faculty_members = User.query.filter_by(role='Faculty').all()
-    # If Principal, also fetch HODs to assign tasks to them individually
-    hod_members = User.query.filter_by(role='HOD').all() if user_role == 'Principal' else []
-
-    # --- 3. UPDATED LOGIC: Growth Chart (Real DB Data) ---
-    growth_data = []
-    labels = []
     
-    # Logic to get the last 7 days of completed tasks
-    for i in range(6, -1, -1):
-        day_date = (datetime.now() - timedelta(days=i)).date()
-        labels.append(day_date.strftime('%a')) # 'Mon', 'Tue', etc.
-        
-        # Count tasks completed by the user on this specific day
-        count = Task.query.filter(
-            Task.assigned_to == user_id,
-            Task.is_done == True,
-            func.date(Task.completed_at) == day_date
-        ).count()
-        growth_data.append(count)
-        Notification.query.filter_by(user_id=session['user_id'], is_read=False).update({"is_read": True})
-    # --- 4. RETURN: All existing and new variables ---
-    return render_template('activity.html', 
-                           my_tasks=my_tasks, 
-                           assigned_by_me=assigned_by_me,
-                           growth_data=growth_data,
-                           labels=labels,
+    # 3. Mock data for the Growth Chart (Labels and Data)
+    labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    growth_data = [2, 5, 3, 8, 4, 10, 7] # Replace with real counts if desired
+
+    return render_template('activity_room.html',
+                           my_tasks=my_tasks,
+                           all_staff=all_staff,
                            faculty_members=faculty_members,
-                           hod_members=hod_members)
+                           labels=labels,
+                           growth_data=growth_data)
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
@@ -1377,6 +1358,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
