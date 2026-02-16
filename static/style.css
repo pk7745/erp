@@ -375,3 +375,54 @@ input:focus, select:focus {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* --- SATIN-SMOOTH SKELETON SYSTEM --- */
+
+/* The Master Animation */
+@keyframes satinShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Base Skeleton Class */
+.skeleton {
+    background: linear-gradient(90deg, 
+        rgba(0, 0, 0, 0.04) 25%, 
+        rgba(0, 0, 0, 0.09) 50%, 
+        rgba(0, 0, 0, 0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: satinShimmer 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    display: inline-block;
+    border: none !important;
+    color: transparent !important;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Dark Mode Compatibility */
+[data-theme='dark'] .skeleton {
+    background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.03) 25%, 
+        rgba(255, 255, 255, 0.08) 50%, 
+        rgba(255, 255, 255, 0.03) 75%
+    );
+}
+
+/* Skeleton Shapes */
+.skeleton-text { height: 14px; width: 100%; margin-bottom: 8px; border-radius: 4px; }
+.skeleton-title { height: 28px; width: 60%; margin-bottom: 20px; }
+.skeleton-avatar { height: 45px; width: 45px; border-radius: 50%; }
+.skeleton-btn { height: 40px; width: 120px; border-radius: 12px; }
+
+/* Table Row Skeleton */
+.skeleton-row td {
+    padding: 22px 25px;
+}
+.skeleton-row .line {
+    height: 12px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    width: 80%;
+}
