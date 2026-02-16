@@ -501,4 +501,27 @@ body {
     height: 100%;
     object-fit: cover;
 }
+/* --- HOLOGRAPHIC EFFECTS --- */
+.card[style*="rotateX"] {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* The "Glint" that moves when you hover */
+.card[style*="rotateX"]::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    transition: 0.8s;
+}
+
+.card[style*="rotateX"]:hover::after {
+    left: 100%;
+}
 
