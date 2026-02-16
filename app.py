@@ -169,18 +169,15 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     
-    # This specific name is required by your relationship logic
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # These three columns MUST exist to satisfy your User relationships
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))      # Owner
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))  # Recipient
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # Sender
     
     status = db.Column(db.String(20), default='Pending')
     is_done = db.Column(db.Boolean, default=False)
-    reply_content = db.Column(db.Text) # For the reply block
+    reply_content = db.Column(db.Text)                             # The Reply Block
     completed_at = db.Column(db.DateTime)
-
-    # Relationships to make the names show up in your HTML
-    task_receiver = db.relationship('User', foreign_keys=[user_id], backref='received_tasks')
-    task_sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tasks')
 
 
 class Notification(db.Model):
@@ -1357,6 +1354,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
