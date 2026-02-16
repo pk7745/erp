@@ -350,28 +350,25 @@ def activity_room():
 
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
-    role = session.get('role')
-    target_user_id = request.form.get('target_user')
-    target_user = User.query.get(target_user_id)
-
-    # Simple Hierarchy Logic
-    allowed = False
-    if role == 'Principal':
-        allowed = True  # Principal can assign to anyone
-    elif role == 'HOD' and target_user.role == 'Faculty':
-        allowed = True  # HOD can only assign to Faculty
+    title = request.form.get('title')
+    target_id = request.form.get('staff_id')
+    sender_role = session.get('role')
     
-    if allowed:
-        new_task = Task(
-            description=request.form.get('task_text'),
-            assigned_to=target_user_id,
-            assigned_by=session.get('name')
-        )
-        db.session.add(new_task)
-        db.session.commit()
-        return redirect(url_for('activity_room'))
-    else:
-        return "Permission Denied", 403
+    # Hierarchy Check
+    target_user = User.query.get(target_id)
+    if sender_role == 'HOD' and target_user.role != 'Faculty':
+        return "Unauthorized: HOD can only assign to Faculty", 403
+
+    new_task = Task(
+        title=title,
+        assigned_to=target_id,
+        sender_id=session['user_id'],
+        status='Pending',
+        is_done=False
+    )
+    db.session.add(new_task)
+    db.session.commit()
+    return redirect(url_for('activity_room'))
     
 @app.route('/leave_calendar')
 def leave_calendar():
@@ -1185,13 +1182,15 @@ def generate_payslip_historical(uid, month):
     # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
     return generate_payslip(uid) # Temporary redirect to main logic for now
 
-@app.route('/reply_task/<int:task_id>', methods=['POST'])
-def reply_task(task_id):
-    task = Task.query.get(task_id)
-    if task and task.assigned_to == session['user_id']:
-        task.reply_content = request.form.get('reply_text')
-        task.status = 'Replied'
-        db.session.commit()
+@app.route('/complete_task/<int:id>', methods=['POST'])
+def complete_task(id):
+    task = Task.query.get_or_404(id)
+    # Save the reply content from the form
+    task.reply_content = request.form.get('reply')
+    task.is_done = True
+    task.status = 'Completed'
+    task.completed_at = datetime.utcnow()
+    db.session.commit()
     return redirect(url_for('activity_room'))
     
 @app.route('/delete_meeting/<room_name>')
@@ -1347,6 +1346,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
