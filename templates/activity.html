@@ -1,78 +1,188 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-    .growth-card { background: linear-gradient(135deg, #2b3674 0%, #4318ff 100%); color: white; }
-    .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-    .pending { background: #fff7ed; color: #c2410c; }
-    .completed { background: #f0fdf4; color: #15803d; }
+    /* Premium Look Overrides */
+    :root {
+        --glass: rgba(255, 255, 255, 0.95);
+        --shadow: 0 8px 30px rgba(0,0,0,0.05);
+    }
+
+    .growth-card { 
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%); 
+        color: white; 
+        border: none;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .bms-card {
+        background: var(--glass);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: var(--shadow);
+        margin-bottom: 25px;
+        transition: transform 0.2s ease;
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Modern Task Items */
+    .task-bubble {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 15px;
+        border-left: 4px solid var(--primary);
+    }
+
+    .task-meta {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .reply-area {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+        width: 100%;
+        margin-top: 12px;
+        font-family: inherit;
+        resize: none;
+        transition: border-color 0.2s;
+    }
+
+    .reply-area:focus {
+        border-color: var(--primary);
+        outline: none;
+    }
+
+    .submit-btn {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 10px;
+        transition: opacity 0.2s;
+    }
+
+    .submit-btn:hover { opacity: 0.9; }
+
+    .history-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .check-icon { color: #10b981; font-weight: bold; }
 </style>
 
-<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px;">
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 30px 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 30px;">
         
-        <div>
+        <div class="animate__animated animate__fadeInLeft">
+            
             {% if session['role'] in ['Principal', 'HOD'] %}
             <div class="bms-card">
-                <h3 style="color: var(--secondary);">📤 Delegate New Task</h3>
+                <div class="section-title" style="color: var(--primary);">
+                    <span>📤</span> Delegate New Task
+                </div>
                 <form action="{{ url_for('assign_task') }}" method="POST">
-                    <input type="text" name="title" class="premium-input" placeholder="Task Description..." required>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #475569;">Task Title</label>
+                    <input type="text" name="title" class="premium-input" placeholder="What needs to be done?" required style="margin-bottom: 15px;">
                     
-                    <select name="staff_id" class="premium-input" required>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #475569;">Assign To</label>
+                    <select name="staff_id" class="premium-input" required style="margin-bottom: 20px;">
                         <option value="" disabled selected>Select Staff Member...</option>
                         
                         {% if session['role'] == 'Principal' %}
-                        <optgroup label="HODs & Staff">
+                        <optgroup label="Hierarchy: HODs & Admins">
                             {% for user in all_staff if user.role in ['HOD', 'Admin', 'Accountant'] %}
                                 <option value="{{ user.id }}">{{ user.full_name }} ({{ user.role }})</option>
                             {% endfor %}
                         </optgroup>
                         {% endif %}
 
-                        <optgroup label="Faculty Members">
+                        <optgroup label="Hierarchy: Faculty Members">
                             {% for faculty in faculty_members %}
                                 <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
                             {% endfor %}
                         </optgroup>
                     </select>
-                    <button type="submit" class="action-btn" style="background: var(--primary); color: white; width: 100%;">Assign Task</button>
+                    
+                    <button type="submit" class="action-btn" style="background: var(--primary); color: white; width: 100%; border-radius: 8px; height: 45px;">
+                        Confirm Assignment
+                    </button>
                 </form>
             </div>
             {% endif %}
 
             <div class="bms-card">
-                <h3 style="color: var(--secondary);">📥 My Assignments</h3>
+                <div class="section-title" style="color: var(--secondary);">
+                    <span>📥</span> Assignments for Me
+                </div>
                 {% for task in my_tasks if not task.is_done %}
-                <div style="padding: 15px; border-bottom: 1px solid #eee;">
-                    <strong>{{ task.title }}</strong>
-                    <br><small>From: {{ task.task_sender.full_name if task.task_sender else 'Principal' }}</small>
+                <div class="task-bubble">
+                    <strong style="color: #1e293b; font-size: 0.95rem;">{{ task.title }}</strong>
+                    <span class="task-meta">Assigned by: <strong>{{ task.task_sender.full_name if task.task_sender else 'System' }}</strong></span>
                     
-                    <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="margin-top: 10px;">
-                        <textarea name="reply" class="premium-input" style="height: 50px; font-size: 0.8rem;" placeholder="Write your reply to Principal/HOD..." required></textarea>
-                        <button class="action-btn" style="background: var(--success); color: white; padding: 5px 15px; width: 100%;">Send Reply & Complete</button>
+                    <form action="{{ url_for('complete_task', id=task.id) }}" method="POST">
+                        <textarea name="reply" class="reply-area" rows="2" placeholder="Write your completion report..." required></textarea>
+                        <button type="submit" class="submit-btn">Mark as Completed</button>
                     </form>
                 </div>
                 {% else %}
-                <p style="padding: 15px; text-align: center; color: #999;">No pending tasks.</p>
+                <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                    <p style="font-size: 2rem; margin-bottom: 10px;">☕</p>
+                    <p>All caught up! No pending tasks.</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
 
-        <div>
+        <div class="animate__animated animate__fadeInRight">
             <div class="bms-card growth-card">
-                <h3>📈 Performance Growth</h3>
-                <canvas id="growthChart" style="max-height: 300px;"></canvas>
+                <div class="section-title">
+                    <span>📈</span> Growth Performance
+                </div>
+                <canvas id="growthChart" style="max-height: 280px; width: 100%;"></canvas>
             </div>
             
             <div class="bms-card">
-                <h3 style="color: var(--secondary);">📋 Task History</h3>
-                {% for task in my_tasks if task.is_done %}
-                <div style="padding: 10px; border-bottom: 1px solid #f5f5f5;">
-                    <span style="color: var(--success);">✔</span> {{ task.title }}
-                    {% if task.reply_content %}
-                        <div style="font-size: 0.8rem; color: #666; margin-left: 20px;">Replying: {{ task.reply_content }}</div>
-                    {% endif %}
+                <div class="section-title" style="color: var(--success);">
+                    <span>📋</span> Task History
                 </div>
-                {% endfor %}
+                <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                    {% for task in my_tasks if task.is_done %}
+                    <div class="history-item">
+                        <span class="check-icon">✓</span>
+                        <div>
+                            <div style="color: #334155; font-weight: 600; font-size: 0.9rem;">{{ task.title }}</div>
+                            {% if task.reply_content %}
+                                <div style="font-size: 0.8rem; color: #64748b; font-style: italic; margin-top: 4px; background: #f1f5f9; padding: 8px; border-radius: 6px;">
+                                    "{{ task.reply_content }}"
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p style="text-align: center; color: #94a3b8; padding: 20px;">No history records yet.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
@@ -90,12 +200,21 @@
                 label: 'Tasks Completed',
                 data: {{ growth_data|tojson }},
                 borderColor: '#ffffff',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 3,
                 fill: true,
-                tension: 0.4
+                tension: 0.4,
+                pointBackgroundColor: '#ffffff',
+                pointRadius: 4
             }]
         },
         options: { 
-            scales: { y: { beginAtZero: true, ticks: {color: '#fff'} }, x: { ticks: {color: '#fff'} } }
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { 
+                y: { grid: { color: 'rgba(255,255,255,0.1)' }, beginAtZero: true, ticks: {color: '#cbd5e1'} }, 
+                x: { grid: { display: false }, ticks: {color: '#cbd5e1'} } 
+            }
         }
     });
 </script>
