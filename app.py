@@ -334,7 +334,7 @@ def activity_room():
     labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     growth_data = [2, 5, 3, 8, 4, 10, 7] # Replace with real counts if desired
 
-    return render_template('activity_room.html',
+    return render_template('activity.html',
                            my_tasks=my_tasks,
                            all_staff=all_staff,
                            faculty_members=faculty_members,
@@ -1358,6 +1358,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
