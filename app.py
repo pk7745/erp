@@ -427,6 +427,7 @@ def dashboard():
             print(f"Notification Error: {e}")
             notifs = []
 
+    pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
     # Added 'meetings' to the return template
     return render_template('dashboard.html', 
                            user=user, 
@@ -1189,6 +1190,14 @@ def inject_broadcast():
     # This makes the active alert available to all templates (base.html)
     active = Broadcast.query.filter_by(active=True).order_by(Broadcast.id.desc()).first()
     return dict(active_broadcast=active)
+
+@app.context_processor
+def inject_pending_count():
+    if 'user_id' in session:
+        # This makes 'pending_tasks_count' available to ALL templates automatically
+        count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
+        return dict(pending_tasks_count=count)
+    return dict(pending_tasks_count=0)
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -1270,6 +1279,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
