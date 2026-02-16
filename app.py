@@ -10,7 +10,7 @@ import pytz
 import shutil
 import math
 import qrcode  # Ensure you run 'pip install qrcode'
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -89,14 +89,23 @@ class User(db.Model):
     join_date = db.Column(db.String(20), default="2023-01-01")
     caste = db.Column(db.String(50), default='General')
     religion = db.Column(db.String(50), default='Not Specified')
-    profile_pic = db.Column(db.String(200), default='default.png')# NEW FIELD
+    profile_pic = db.Column(db.String(200), default='default.png')
     department = db.Column(db.String(100), nullable=True)
     dept_id = db.Column(db.String(50), nullable=True)
-    tasks_created = db.relationship('Task', backref='creator', foreign_keys='Task.user_id')
-    tasks_assigned_to_me = db.relationship('Task', backref='assignee', foreign_keys='Task.assigned_to')
-    tasks_delegated_by_me = db.relationship('Task', backref='delegator', foreign_keys='Task.assigned_by')
+
+    # --- RELATIONSHIPS (Fixed & Non-Conflicting) ---
+
+    # 1. Personal Tasks (Tasks the user created for themselves)
+    # We removed the duplicate 'tasks' line and kept this one.
+    tasks = db.relationship('Task', backref='task_owner', foreign_keys='Task.user_id')
+
+    # 2. Tasks Assigned TO this user (The Inbox)
+    tasks_assigned_to_me = db.relationship('Task', backref='task_recipient', foreign_keys='Task.assigned_to')
+
+    # 3. Tasks Delegated BY this user (The Outbox)
+    tasks_delegated_by_me = db.relationship('Task', backref='task_sender', foreign_keys='Task.assigned_by')
     
-    tasks = db.relationship('Task', backref='owner', foreign_keys='Task.user_id')
+    # 4. Other system relationships
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
     claims = db.relationship('ExpenseClaim', backref='rel_user', lazy=True)
@@ -156,25 +165,14 @@ class PerformanceKPI(db.Model):
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     title = db.Column(db.String(100))
     is_done = db.Column(db.Boolean, default=False)
-    status = db.Column(db.String(50), default="Pending")
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id')) 
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id')) 
+    status = db.Column(db.String(50), default="Pending")         
     reply = db.Column(db.Text)
-
-    # 1. The original creator (for personal tasks)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
-    # 2. The staff member receiving the task
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
-    # 3. The Principal/HOD who sent the task
-    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    # Explicit Relationships (Optional but highly recommended for cleaner code)
-    # These let you do things like: task.recipient.username
-    recipient = db.relationship('User', foreign_keys=[assigned_to], backref='received_tasks')
-    sender = db.relationship('User', foreign_keys=[assigned_by], backref='sent_tasks')
-    creator = db.relationship('User', foreign_keys=[user_id], backref='personal_tasks')
+    completed_at = db.Column(db.DateTime)
     
 
 class Notification(db.Model):
@@ -1318,6 +1316,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
