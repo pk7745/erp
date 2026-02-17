@@ -19,29 +19,41 @@
         color: white;
     }
 
+    /* Fixed Dropdown Visibility */
     .search-input-dark {
+        background: #ffffff; /* White background for maximum legibility in dropdown */
+        border: 2px solid var(--royal-blue);
+        color: #0b1437 !important; /* Deep navy text for the menu */
+        padding: 12px;
+        border-radius: 12px;
+        width: 100%;
+        font-weight: 700;
+    }
+
+    /* Input fields for text/number */
+    .input-field-dark {
         background: var(--dark-navy);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
         padding: 12px;
         border-radius: 12px;
         width: 100%;
     }
 
-    .search-input-dark::placeholder { color: var(--text-muted); }
-
     .btn-royal {
         background: var(--royal-blue);
         color: white;
-        font-weight: 700;
+        font-weight: 900;
         border: none;
-        padding: 12px 24px;
+        padding: 15px 24px;
         border-radius: 12px;
         cursor: pointer;
         transition: 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
-    .btn-royal:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-royal:hover { background: #3311cc; transform: translateY(-2px); }
 
     .staff-table-dark {
         width: 100%;
@@ -49,80 +61,79 @@
         margin-top: 20px;
     }
 
-    .staff-table-dark th { color: var(--text-muted); text-align: left; padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-    .staff-table-dark td { padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    .staff-table-dark th { color: #ffffff; text-align: left; padding: 15px; border-bottom: 2px solid var(--royal-blue); font-weight: 800; }
+    .staff-table-dark td { padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0; }
 
     .rating-badge {
-        padding: 4px 12px;
-        border-radius: 50px;
-        font-weight: bold;
-        background: rgba(67, 24, 255, 0.2);
-        color: #707eff;
-        border: 1px solid var(--royal-blue);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 900;
+        background: #05cd99;
+        color: #ffffff;
     }
 </style>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 25px;">
     <div class="card-royal">
         <h3 style="margin-top: 0; color: white; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-chart-line" style="color: var(--royal-blue);"></i> Performance Trends
+            <span style="background: var(--royal-blue); padding: 8px; border-radius: 8px;">📈</span> Performance Analytics
         </h3>
-        <canvas id="perfChart" style="max-height: 220px;"></canvas>
+        <div style="background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px;">
+            <canvas id="perfChart" style="max-height: 250px;"></canvas>
+        </div>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 20px;">
-        <div class="card-royal" style="background: linear-gradient(135deg, #4318ff, #b233ff); border: none; text-align: center;">
-            <h4 style="margin:0; opacity: 0.8;">Current Average</h4>
-            <h2 style="font-size: 3rem; margin: 10px 0; font-weight: 900;">
+        <div class="card-royal" style="background: linear-gradient(135deg, #4318ff, #707eff); border: none; text-align: center; box-shadow: 0 10px 20px rgba(67, 24, 255, 0.3);">
+            <h4 style="margin:0; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">Mean Score</h4>
+            <h2 style="font-size: 3.5rem; margin: 10px 0; font-weight: 900;">
                 {% set total = namespace(val=0) %}
                 {% for r in ratings %}{% set total.val = total.val + r.rating|int %}{% endfor %}
                 {% if ratings|length > 0 %}{{ (total.val / ratings|length)|round(1) }}{% else %}0.0{% endif %}
             </h2>
-            <p style="margin:0; font-size: 0.8rem; opacity: 0.8;">Calculated from last {{ ratings|length }} reviews</p>
+            <div style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; display: inline-block; font-size: 0.8rem;">
+                Based on {{ ratings|length }} Entries
+            </div>
         </div>
         
-        <div class="card-royal">
-            <h4 style="margin:0; color: var(--text-muted);">Evaluation Status</h4>
-            <p style="font-weight: bold; color: #05cd99; font-size: 1.2rem; margin: 10px 0;">
-                <i class="fas fa-check-circle"></i> Active / Eligible
-            </p>
+        <div class="card-royal" style="text-align: center; border-bottom: 4px solid #05cd99;">
+            <h4 style="margin:0; color: var(--text-muted);">Current Status</h4>
+            <p style="font-weight: 900; color: #ffffff; font-size: 1.4rem; margin: 10px 0;">QUALIFIED</p>
         </div>
     </div>
 </div>
 
 {% if users %}
-<div class="card-royal" style="margin-bottom: 25px; border-left: 4px solid var(--royal-blue);">
-    <h3 style="margin-top: 0; color: white;">📝 Submit KPI Review</h3>
-    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: -10px;">Logged in as: <b>{{ session['role'] }}</b></p>
-    
-    <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">Select Staff</label>
+<div class="card-royal" style="margin-bottom: 25px; border-left: 6px solid var(--royal-blue);">
+    <h3 style="margin-top: 0; color: white;">📝 Create Performance KPI</h3>
+    <form method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        <div>
+            <label style="display:block; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">Employee Name</label>
             <select name="u_id" class="search-input-dark" required>
                 {% for u in users %}
                 <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role }})</option>
                 {% endfor %}
             </select>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">Review Month</label>
-            <input type="text" name="month" placeholder="e.g. Feb 2026" class="search-input-dark" required>
+        <div>
+            <label style="display:block; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">Review Period</label>
+            <input type="text" name="month" placeholder="Jan 2026" class="input-field-dark" required>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">Rating (1-10)</label>
-            <input type="number" name="rating" min="1" max="10" placeholder="Rating" class="search-input-dark" required>
+        <div>
+            <label style="display:block; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">Rating (1-10)</label>
+            <input type="number" name="rating" min="1" max="10" placeholder="10" class="input-field-dark" required>
         </div>
-        <div style="grid-column: span 3; display: flex; flex-direction: column; gap: 5px;">
-            <label style="font-size: 0.8rem; color: var(--text-muted);">Qualitative Feedback</label>
-            <textarea name="feedback" placeholder="Describe performance details..." rows="3" class="search-input-dark" style="font-family: inherit;"></textarea>
+        <div style="grid-column: span 3;">
+            <label style="display:block; color: var(--text-muted); margin-bottom: 8px; font-weight: bold;">Observations & Feedback</label>
+            <textarea name="feedback" rows="3" class="input-field-dark" placeholder="Enter detailed feedback here..." style="font-family: inherit;"></textarea>
         </div>
-        <button type="submit" class="btn-royal" style="grid-column: span 3;">🚀 UPLOAD REVIEW TO LEDGER</button>
+        <button type="submit" class="btn-royal" style="grid-column: span 3;">✅ Authorize & Save KPI</button>
     </form>
 </div>
 {% endif %}
 
 <div class="card-royal">
-    <h3 style="margin-top: 0; color: white;">📊 Performance Ledger</h3>
+    <h3 style="margin-top: 0; color: white; margin-bottom: 20px;">📜 Performance History</h3>
     <table class="staff-table-dark">
         <thead>
             <tr>
@@ -136,11 +147,11 @@
             {% for r in ratings %}
             <tr>
                 {% if session['role'] in ['Principal', 'HOD'] %}
-                <td style="font-weight: bold;">{{ r.user.full_name }}</td>
+                <td style="font-weight: 900; color: #ffffff;">{{ r.user.full_name }}</td>
                 {% endif %}
-                <td style="color: var(--text-muted);">{{ r.month }}</td>
+                <td>{{ r.month }}</td>
                 <td><span class="rating-badge">{{ r.rating }}/10</span></td>
-                <td style="font-size: 0.9rem; color: #e2e8f0;">{{ r.feedback }}</td>
+                <td style="color: #cbd5e0;">{{ r.feedback }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -151,29 +162,26 @@
 <script>
     const ctx = document.getElementById('perfChart').getContext('2d');
     
-    // Gradient for the chart
-    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(67, 24, 255, 0.4)');
-    gradient.addColorStop(1, 'rgba(67, 24, 255, 0)');
-
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: [{% for r in ratings %}'{{ r.month }}',{% endfor %}].reverse(),
             datasets: [{
-                label: 'Performance Score',
+                label: 'Performance',
                 data: [{% for r in ratings %}{{ r.rating }},{% endfor %}].reverse(),
                 borderColor: '#4318ff',
-                backgroundColor: gradient,
+                backgroundColor: 'rgba(67, 24, 255, 0.2)',
                 fill: true,
-                borderWidth: 3,
-                tension: 0.4,
-                pointBackgroundColor: '#4318ff',
-                pointBorderColor: '#ffffff',
-                pointHoverRadius: 6
+                borderWidth: 4,
+                tension: 0.3,
+                pointRadius: 6,
+                pointBackgroundColor: '#ffffff',
+                pointBorderWidth: 3
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false }
             },
@@ -181,12 +189,12 @@
                 y: {
                     beginAtZero: true,
                     max: 10,
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#a3aed0' }
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#ffffff', font: { weight: 'bold' } }
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: '#a3aed0' }
+                    ticks: { color: '#ffffff', font: { weight: 'bold' } }
                 }
             }
         }
