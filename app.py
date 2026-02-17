@@ -385,26 +385,49 @@ def assign_task():
     
     return redirect(url_for('activity_room'))
     
+from datetime import datetime, date
+
 @app.route('/leave_calendar')
 def leave_calendar():
-    if session.get('role') not in ['Principal', 'HR']:
+    # 1. Strict Access Control: Only Principal allowed (Removed HR per your instruction)
+    if session.get('role') != 'Principal':
         return redirect(url_for('dashboard'))
     
+    today_date = date.today()
     approved_leaves = Leave.query.filter_by(status='Approved').all()
     
-    # SAFETY CHECK: Ensure every leave object has a 'day' and a 'role'
+    # SAFETY CHECK & DATE OBJECT CONVERSION
     for leave in approved_leaves:
-        # 1. Convert string dates to Python date objects if necessary
         if isinstance(leave.start_date, str):
-            leave.start_date = datetime.strptime(leave.start_date, '%Y-%m-%d')
+            leave.start_date = datetime.strptime(leave.start_date, '%Y-%m-%d').date()
         if isinstance(leave.end_date, str):
-            leave.end_date = datetime.strptime(leave.end_date, '%Y-%m-%d')
+            leave.end_date = datetime.strptime(leave.end_date, '%Y-%m-%d').date()
         
-        # 2. Add a default 'role' if your database table doesn't have one
         if not hasattr(leave, 'role') or leave.role is None:
-            leave.role = "Faculty"  # Defaulting to Faculty to prevent crash
+            leave.role = "Faculty"
 
-    return render_template('leave_calendar.html', leaves=approved_leaves)
+    # 2. IDENTIFY ABSENT & PRESENT FACULTIES
+    # Logic: Get all approved leaves where today falls between start and end date
+    absent_records = [
+        l for l in approved_leaves 
+        if l.start_date <= today_date <= l.end_date
+    ]
+    
+    # Get IDs of people who are absent
+    absent_user_ids = [l.user_id for l in absent_records]
+    absent_faculties = [l.user for l in absent_records] # Assuming 'user' relationship exists
+
+    # Get all Faculty members who are NOT in the absent list
+    present_faculties = User.query.filter(
+        User.role == 'Faculty',
+        User.id.notin_(absent_user_ids) if absent_user_ids else True
+    ).all()
+
+    return render_template('leave_calendar.html', 
+                           leaves=approved_leaves, 
+                           present=present_faculties, 
+                           absent=absent_faculties,
+                           today=today_date)
 
 @app.route('/digital_vault')
 def digital_vault():
@@ -1401,6 +1424,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
