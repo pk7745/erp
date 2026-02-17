@@ -5,7 +5,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="toast-msg {{ category }} animate-enter" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 18px 28px; border-radius: 16px; box-shadow: var(--shadow-card); border-left: 6px solid {% if category == 'success' %}var(--success){% else %}var(--danger){% endif %}; font-weight: 700; min-width: 300px; color: var(--bg);">
+          <div class="toast-msg {{ category }} animate-enter" style="background: white; border: 1px solid #e2e8f0; padding: 18px 28px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border-left: 6px solid {% if category == 'success' %}var(--success){% else %}var(--danger){% endif %}; font-weight: 800; min-width: 300px; color: #1a202c;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span>{% if category == 'success' %}✅{% else %}⚠️{% endif %}</span>
                 {{ message }}
@@ -17,14 +17,13 @@
 </div>
 
 <style>
-    /* ROYAL DASHBOARD OVERRIDES */
     .dashboard-wrapper { max-width: 1400px; margin: 0 auto; animation: fadeIn 0.8s ease-out; }
     
     .royal-stat-card {
         background: white;
         border-radius: 24px;
         padding: 24px;
-        border: 1px solid rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.08); /* Darker border for definition */
         box-shadow: var(--shadow-sm);
         transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
         position: relative;
@@ -33,7 +32,12 @@
 
     .royal-stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: var(--shadow-card);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    /* DARK FONT OVERRIDES */
+    h1, h2, h3, h4, strong, span, p, label {
+        color: #1a202c !important; /* Deep Onyx/Charcoal for clarity */
     }
 
     .stat-icon-box {
@@ -43,31 +47,33 @@
     }
 
     .glass-input {
-        background: #f8fafc; border: 1.5px solid #e2e8f0;
-        border-radius: 12px; padding: 14px 18px; font-weight: 600;
-        color: var(--bg); width: 100%; transition: 0.3s;
+        background: #ffffff; border: 2px solid #cbd5e0; /* Darker border */
+        border-radius: 12px; padding: 14px 18px; font-weight: 700;
+        color: #1a202c !important; width: 100%; transition: 0.3s;
         margin-bottom: 12px;
     }
 
+    .glass-input::placeholder { color: #718096 !important; font-weight: 500; }
+
     .glass-input:focus { 
         border-color: var(--p); 
-        background: white; 
         box-shadow: 0 0 0 4px var(--p-light);
         outline: none; 
     }
 
     .btn-royal {
-        border-radius: 12px; padding: 12px 24px; font-weight: 800;
+        border-radius: 12px; padding: 12px 24px; font-weight: 900;
         transition: 0.3s; border: none; cursor: pointer;
         display: flex; align-items: center; justify-content: center; gap: 10px;
         text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.85rem;
     }
 
     .marquee-royal {
-        background: var(--bg); color: white; padding: 10px 0;
+        background: #1a202c; /* Deepest dark for contrast */
+        color: #ffd700; /* Gold text on dark background */
+        padding: 10px 0;
         border-radius: 14px; margin-bottom: 35px; display: flex;
         align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.05);
     }
 </style>
 
@@ -75,38 +81,38 @@
     
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
         <div class="delay-1">
-            <span style="color: var(--p); font-weight: 800; text-transform: uppercase; letter-spacing: 2.5px; font-size: 0.75rem; display: block; margin-bottom: 8px;">Institutional Command Center</span>
-            <h1 id="greeting-text" style="color: var(--bg); font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1.5px;">Welcome back, {{ session['name'] }}</h1>
+            <span style="color: var(--p) !important; font-weight: 900; text-transform: uppercase; letter-spacing: 2.5px; font-size: 0.75rem; display: block; margin-bottom: 8px;">Institutional Command Center</span>
+            <h1 id="greeting-text" style="font-size: 2.8rem; font-weight: 900; margin: 0; letter-spacing: -1.5px;">Welcome back, {{ session['name'] }}</h1>
         </div>
         <div style="display: flex; gap: 15px; align-items: center;" class="delay-2">
-            <a href="{{ url_for('chat') }}" class="btn-royal" style="background: var(--p); color: white; position: relative; text-decoration: none; box-shadow: 0 10px 20px rgba(128, 0, 0, 0.2);">
-                <span>💬 BMS CONNECT</span>
+            <a href="{{ url_for('chat') }}" class="btn-royal" style="background: var(--p); color: white !important; position: relative; text-decoration: none; box-shadow: 0 10px 20px rgba(128, 0, 0, 0.2);">
+                <span style="color: white !important;">💬 BMS CONNECT</span>
                 {% if unread_chats and unread_chats > 0 %}
-                    <span style="position: absolute; top: -8px; right: -8px; background: var(--danger); width: 24px; height: 24px; border-radius: 50%; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">{{ unread_chats }}</span>
+                    <span style="position: absolute; top: -8px; right: -8px; background: var(--danger); color: white !important; width: 24px; height: 24px; border-radius: 50%; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); font-weight: 900;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
-            <div style="background: white; border-radius: 12px; padding: 12px 22px; box-shadow: var(--shadow-sm); font-weight: 800; color: var(--bg); border: 1px solid rgba(0,0,0,0.05); font-size: 0.9rem;">
+            <div style="background: white; border-radius: 12px; padding: 12px 22px; box-shadow: var(--shadow-sm); font-weight: 900; border: 2px solid #1a202c; font-size: 0.9rem;">
                 <span style="color: var(--gold); margin-right: 8px;">🛡️</span> {{ user.role }}
             </div>
         </div>
     </div>
 
     <div class="marquee-royal delay-2">
-        <div style="background: var(--danger); padding: 4px 14px; border-radius: 8px; font-size: 0.65rem; font-weight: 900; margin-left: 15px; z-index: 2; letter-spacing: 1px;">SYSTEM</div>
-        <marquee behavior="scroll" direction="left" scrollamount="7" style="font-weight: 600; font-size: 0.9rem; opacity: 0.9;">
+        <div style="background: var(--danger); color: white !important; padding: 4px 14px; border-radius: 8px; font-size: 0.65rem; font-weight: 900; margin-left: 15px; z-index: 2; letter-spacing: 1px;">SYSTEM</div>
+        <marquee behavior="scroll" direction="left" scrollamount="7" style="font-weight: 800; font-size: 0.9rem; color: white !important;">
             🚀 BMSCCM v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🏆 Recognition: {{ user.full_name }} is active in the portal!
         </marquee>
     </div>
 
     {% if request.args.get('join_meet') %}
-    <div class="royal-stat-card animate-enter" style="border: 2px solid var(--p); margin-bottom: 35px; padding: 0;">
-        <div style="background: #f8fafc; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7;">
-            <h3 style="margin:0; color: var(--bg); font-weight: 800; display: flex; align-items: center; gap: 12px;">
-                <span style="color: var(--p);">🎥</span> Live Briefing: {{ request.args.get('join_meet') }}
+    <div class="royal-stat-card animate-enter" style="border: 3px solid var(--p); margin-bottom: 35px; padding: 0;">
+        <div style="background: #f8fafc; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e0;">
+            <h3 style="margin:0; font-weight: 900; display: flex; align-items: center; gap: 12px;">
+                <span style="color: var(--p) !important;">🎥</span> Live Briefing: {{ request.args.get('join_meet') }}
             </h3>
             <div style="display: flex; gap: 12px;">
-                <span id="meet-timer" style="background: var(--bg); color: var(--gold); padding: 10px 20px; border-radius: 12px; font-family: 'Courier New', monospace; font-weight: 900; letter-spacing: 1px; font-size: 1.1rem;">00:00:00</span>
-                <button onclick="endMeeting()" class="btn-royal" style="background: var(--danger); color: white;">Leave & Close</button>
+                <span id="meet-timer" style="background: #1a202c; color: var(--gold) !important; padding: 10px 20px; border-radius: 12px; font-family: 'Courier New', monospace; font-weight: 900; letter-spacing: 1px; font-size: 1.1rem;">00:00:00</span>
+                <button onclick="endMeeting()" class="btn-royal" style="background: var(--danger); color: white !important;">Leave & Close</button>
             </div>
         </div>
         <div id="jitsi-container" style="height: 650px; background: #000;"></div>
@@ -126,30 +132,30 @@
     {% endif %}
 
     {% if is_birthday or is_anniversary %}
-    <div style="background: linear-gradient(135deg, var(--p) 0%, #b23af9 100%); border-radius: 24px; padding: 35px; color: white; margin-bottom: 35px; display: flex; align-items: center; gap: 25px; box-shadow: 0 15px 35px rgba(128, 0, 0, 0.2);" class="animate-enter">
-        <div style="font-size: 3.5rem; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));">🎉</div>
+    <div style="background: linear-gradient(135deg, var(--p) 0%, #4a0000 100%); border-radius: 24px; padding: 35px; color: white !important; margin-bottom: 35px; display: flex; align-items: center; gap: 25px; box-shadow: 0 15px 35px rgba(128, 0, 0, 0.3);" class="animate-enter">
+        <div style="font-size: 3.5rem;">🎉</div>
         <div>
-            <h2 style="margin: 0; font-weight: 800; font-size: 1.8rem;">It's a Special Day!</h2>
-            <p style="margin: 8px 0 0; font-weight: 600; font-size: 1.1rem; opacity: 0.9;">Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!</p>
+            <h2 style="margin: 0; font-weight: 900; font-size: 2rem; color: white !important;">It's a Special Day!</h2>
+            <p style="margin: 8px 0 0; font-weight: 700; font-size: 1.2rem; color: white !important; opacity: 0.95;">Happy {% if is_birthday %}Birthday{% else %}Work Anniversary{% endif %}, {{ user.full_name }}!</p>
         </div>
     </div>
     {% endif %}
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 45px;">
         <div class="royal-stat-card delay-1">
-            <div class="stat-icon-box" style="background: var(--p-light); color: var(--p);">🏢</div>
-            <h4 style="margin: 0; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Campus Attendance</h4>
-            <h2 style="margin: 8px 0; color: var(--bg); font-size: 2.2rem; font-weight: 800;">{{ office_days or 0 }} <span style="font-size: 1rem; color: #94a3b8;">Days</span></h2>
+            <div class="stat-icon-box" style="background: #f1f5f9; color: var(--p);">🏢</div>
+            <h4 style="margin: 0; color: #4a5568 !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Campus Attendance</h4>
+            <h2 style="margin: 8px 0; font-size: 2.4rem; font-weight: 900;">{{ office_days or 0 }} <span style="font-size: 1rem; color: #718096 !important;">Days</span></h2>
         </div>
         <div class="royal-stat-card delay-2">
-            <div class="stat-icon-box" style="background: var(--success-bg); color: var(--success);">🏠</div>
-            <h4 style="margin: 0; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Remote Sessions</h4>
-            <h2 style="margin: 8px 0; color: var(--bg); font-size: 2.2rem; font-weight: 800;">{{ wfh_days or 0 }} <span style="font-size: 1rem; color: #94a3b8;">Days</span></h2>
+            <div class="stat-icon-box" style="background: #f1f5f9; color: var(--success);">🏠</div>
+            <h4 style="margin: 0; color: #4a5568 !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Remote Sessions</h4>
+            <h2 style="margin: 8px 0; font-size: 2.4rem; font-weight: 900;">{{ wfh_days or 0 }} <span style="font-size: 1rem; color: #718096 !important;">Days</span></h2>
         </div>
-        <div class="royal-stat-card delay-3" style="background: var(--bg); border: none;">
+        <div class="royal-stat-card delay-3" style="background: #1a202c; border: none;">
             <div class="stat-icon-box" style="background: rgba(255,255,255,0.1); color: var(--gold);">🎯</div>
-            <h4 style="margin: 0; color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Open Objectives</h4>
-            <h2 style="margin: 8px 0; color: white; font-size: 2.2rem; font-weight: 800;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1rem; opacity: 0.5;">Pending</span></h2>
+            <h4 style="margin: 0; color: rgba(255,255,255,0.7) !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 900; letter-spacing: 1px;">Open Objectives</h4>
+            <h2 style="margin: 8px 0; color: white !important; font-size: 2.4rem; font-weight: 900;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1rem; opacity: 0.6; color: white !important;">Pending</span></h2>
         </div>
     </div>
 
@@ -157,8 +163,8 @@
         
         <div style="display: flex; flex-direction: column; gap: 35px;">
             
-            <div class="royal-stat-card delay-1" style="border-top: 6px solid var(--success);">
-                <h3 style="color: var(--bg); margin-bottom: 25px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+            <div class="royal-stat-card delay-1" style="border-top: 8px solid var(--success);">
+                <h3 style="margin-bottom: 25px; font-weight: 900; display: flex; align-items: center; gap: 10px;">
                     <span>📝</span> Daily Activity Report
                 </h3>
                 <form action="{{ url_for('submit_report') }}" method="POST">
@@ -171,50 +177,47 @@
                         <input type="text" name="report_topic" class="glass-input" placeholder="Main Topic/Project" required>
                     </div>
                     <textarea name="report_content" class="glass-input" style="height: 120px; resize: none;" placeholder="What did you achieve today?" required></textarea>
-                    <button type="submit" class="btn-royal" style="background: var(--success); color: white; width: 100%; height: 50px;">Finalize & Submit Report</button>
+                    <button type="submit" class="btn-royal" style="background: var(--success); color: white !important; width: 100%; height: 50px;">Finalize & Submit Report</button>
                 </form>
             </div>
 
             <div class="royal-stat-card delay-2">
-                <h3 style="color: var(--bg); margin-bottom: 25px; font-weight: 800;">🎥 Video Conference Hub</h3>
+                <h3 style="margin-bottom: 25px; font-weight: 900;">🎥 Video Conference Hub</h3>
                 <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 30px;">
                     <input type="text" name="room_name" class="glass-input" style="margin-bottom: 0;" placeholder="Initiate Room Name..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--p); color: white; white-space: nowrap; padding: 0 30px;">Start Session</button>
+                    <button type="submit" class="btn-royal" style="background: var(--p); color: white !important; white-space: nowrap; padding: 0 30px;">Start Session</button>
                 </form>
-                <div>
-                    <h5 style="color: #94a3b8; text-transform: uppercase; font-size: 0.7rem; font-weight: 800; margin-bottom: 18px; letter-spacing: 1px;">Live Conference Rooms</h5>
-                    <div style="display: grid; gap: 12px;">
-                        {% for meet in meetings %}
-                        <div style="background: #f8fafc; padding: 18px 24px; border-radius: 18px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #edf2f7;">
-                            <div>
-                                <strong style="color: var(--bg); font-size: 1rem;">{{ meet.room_name }}</strong>
-                                <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px; font-weight: 600;">Moderator: {{ meet.created_by }}</div>
-                            </div>
-                            <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-royal" style="background: white; color: var(--success); border: 2px solid var(--success); padding: 8px 20px; font-size: 0.8rem; text-decoration: none;">Join Meeting</a>
+                <div style="display: grid; gap: 12px;">
+                    {% for meet in meetings %}
+                    <div style="background: #f8fafc; padding: 18px 24px; border-radius: 18px; display: flex; justify-content: space-between; align-items: center; border: 2px solid #e2e8f0;">
+                        <div>
+                            <strong style="font-size: 1.1rem;">{{ meet.room_name }}</strong>
+                            <div style="color: #4a5568 !important; font-size: 0.85rem; margin-top: 4px; font-weight: 700;">Moderator: {{ meet.created_by }}</div>
                         </div>
-                        {% else %}
-                            <div style="text-align: center; padding: 30px; background: #f8fafc; border-radius: 18px; border: 1.5px dashed #e2e8f0; color: #94a3b8; font-weight: 600;">No sessions active currently.</div>
-                        {% endfor %}
+                        <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-royal" style="background: white; color: var(--success) !important; border: 2px solid var(--success); padding: 8px 20px; font-size: 0.8rem; text-decoration: none;">Join Meeting</a>
                     </div>
+                    {% else %}
+                        <div style="text-align: center; padding: 30px; background: #f8fafc; border-radius: 18px; border: 2px dashed #cbd5e0; font-weight: 700;">No sessions active currently.</div>
+                    {% endfor %}
                 </div>
             </div>
 
             <div class="royal-stat-card delay-3">
-                <h3 style="color: var(--bg); margin-bottom: 25px; font-weight: 800;">🎯 Critical Objectives</h3>
+                <h3 style="margin-bottom: 25px; font-weight: 900;">🎯 Critical Objectives</h3>
                 <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
                     <input type="text" name="title" class="glass-input" style="margin-bottom: 0;" placeholder="New task requirement..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--bg); color: white;">Assign</button>
+                    <button type="submit" class="btn-royal" style="background: #1a202c; color: white !important;">Assign</button>
                 </form>
-                <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
                     {% for task in tasks %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 12px; transition: 0.2s; {% if task.is_done %}background: rgba(5, 205, 153, 0.03);{% endif %}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-radius: 12px; border: 1px solid #edf2f7; {% if task.is_done %}background: #f0fff4; opacity: 0.7;{% endif %}">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none;">
-                                <div style="width: 24px; height: 24px; border-radius: 8px; border: 2.5px solid {% if task.is_done %}var(--success){% else %}#cbd5e0{% endif %}; display: flex; align-items: center; justify-content: center; transition: 0.3s;">
-                                    {% if task.is_done %}<div style="width: 12px; height: 12px; background: var(--success); border-radius: 3px;"></div>{% endif %}
+                                <div style="width: 26px; height: 26px; border-radius: 8px; border: 3px solid {% if task.is_done %}var(--success){% else %}#1a202c{% endif %}; display: flex; align-items: center; justify-content: center;">
+                                    {% if task.is_done %}<div style="width: 12px; height: 12px; background: var(--success); border-radius: 2px;"></div>{% endif %}
                                 </div>
                             </a>
-                            <span style="font-weight: 700; color: var(--bg); font-size: 0.95rem; {% if task.is_done %}text-decoration: line-through; opacity: 0.4;{% endif %}">{{ task.title }}</span>
+                            <span style="font-weight: 800; font-size: 1rem; {% if task.is_done %}text-decoration: line-through; color: #718096 !important;{% endif %}">{{ task.title }}</span>
                         </div>
                     </div>
                     {% endfor %}
@@ -225,17 +228,17 @@
         <div style="display: flex; flex-direction: column; gap: 35px;">
             
             {% if session['role'] in ['HR', 'Principal'] %}
-            <div class="royal-stat-card delay-1" style="background: #fffcfc; border: 1.5px solid #fee2e2;">
-                <h3 style="color: var(--danger); margin-bottom: 12px; font-weight: 800;">🚀 Imperial Broadcast</h3>
+            <div class="royal-stat-card delay-1" style="background: #fffafa; border: 2px solid #feb2b2;">
+                <h3 style="color: var(--danger) !important; margin-bottom: 12px; font-weight: 900;">🚀 Imperial Broadcast</h3>
                 <form action="{{ url_for('send_broadcast') }}" method="POST">
-                    <input type="text" name="message" class="glass-input" style="border-color: #fecaca; background: white;" placeholder="Message to the entire staff..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--danger); color: white; width: 100%;">Deploy Broadcast</button>
+                    <input type="text" name="message" class="glass-input" style="border-color: #fc8181; background: white;" placeholder="Message to the entire staff..." required>
+                    <button type="submit" class="btn-royal" style="background: var(--danger); color: white !important; width: 100%;">Deploy Broadcast</button>
                 </form>
             </div>
             {% endif %}
 
             <div class="royal-stat-card delay-2">
-                <h3 style="color: var(--bg); margin-bottom: 25px; text-align: center; font-weight: 800; font-size: 1rem;">📊 Efficiency Matrix</h3>
+                <h3 style="margin-bottom: 25px; text-align: center; font-weight: 900; font-size: 1rem; text-transform: uppercase;">📊 Efficiency Matrix</h3>
                 <div style="height: 250px; position: relative;">
                     <canvas id="modeChart"></canvas>
                 </div>
@@ -243,27 +246,27 @@
 
             <div class="royal-stat-card delay-3">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="color: var(--bg); margin:0; font-size: 0.95rem; font-weight: 800;">🔔 Live Intelligence</h3>
-                    <button onclick="clearAllNotifs()" style="background: var(--danger-bg); border: none; color: var(--danger); cursor: pointer; font-size: 0.65rem; font-weight: 900; padding: 4px 10px; border-radius: 6px;">PURGE FEED</button>
+                    <h3 style="margin:0; font-size: 1rem; font-weight: 900;">🔔 Live Intelligence</h3>
+                    <button onclick="clearAllNotifs()" style="background: #fff5f5; border: 2px solid #feb2b2; color: var(--danger) !important; cursor: pointer; font-size: 0.65rem; font-weight: 900; padding: 6px 12px; border-radius: 8px;">PURGE FEED</button>
                 </div>
-                <div id="notification-list" style="max-height: 280px; overflow-y: auto; font-size: 0.85rem; padding-right: 5px;">
+                <div id="notification-list" style="max-height: 280px; overflow-y: auto; padding-right: 5px;">
                     </div>
             </div>
 
             {% if session['role'] in ['HOD', 'Principal'] %}
-            <div class="royal-stat-card delay-3" style="border-top: 6px solid var(--p);">
-                <h3 style="color: var(--bg); margin-bottom: 20px; font-size: 0.95rem; font-weight: 800;">📑 Reporting Queue (Today)</h3>
+            <div class="royal-stat-card delay-3" style="border-top: 8px solid var(--p);">
+                <h3 style="margin-bottom: 20px; font-size: 1rem; font-weight: 900;">📑 Reporting Queue (Today)</h3>
                 <div style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
                     {% for r in reports %}
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 14px; border-left: 4px solid var(--p);">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                            <span style="color: var(--p); font-weight: 800; font-size: 0.8rem;">{{ r.staff_name }}</span>
-                            <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 700;">JUST NOW</span>
+                    <div style="background: #f8fafc; padding: 18px; border-radius: 14px; border: 2px solid #edf2f7; border-left: 6px solid var(--p);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="color: var(--p) !important; font-weight: 900; font-size: 0.85rem;">{{ r.staff_name }}</span>
+                            <span style="font-size: 0.65rem; color: #718096 !important; font-weight: 800;">JUST NOW</span>
                         </div>
-                        <p style="margin: 0; font-size: 0.85rem; font-weight: 600; line-height: 1.5; color: var(--bg);">{{ r.content }}</p>
+                        <p style="margin: 0; font-size: 0.9rem; font-weight: 700; line-height: 1.5;">{{ r.content }}</p>
                     </div>
                     {% else %}
-                        <p style="text-align: center; color: #94a3b8; font-size: 0.85rem; font-weight: 600; padding: 20px;">No incoming reports today.</p>
+                        <p style="text-align: center; color: #718096 !important; font-size: 0.9rem; font-weight: 700; padding: 20px;">No incoming reports today.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -282,8 +285,8 @@
             labels: ['Office', 'WFH', 'Tasks', 'Updates', 'Activity'],
             datasets: [{
                 data: [{{ office_days or 0 }}, {{ wfh_days or 0 }}, {{ tasks|length }}, 5, 7],
-                backgroundColor: 'rgba(128, 0, 0, 0.1)',
-                borderColor: '#800000',
+                backgroundColor: 'rgba(128, 0, 0, 0.15)',
+                borderColor: '#1a202c',
                 borderWidth: 3,
                 pointBackgroundColor: '#800000'
             }]
@@ -292,7 +295,7 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: { legend: { display: false } }, 
-            scales: { r: { grid: { color: '#e2e8f0' }, ticks: { display: false }, angleLines: { color: '#e2e8f0' } } } 
+            scales: { r: { grid: { color: '#cbd5e0' }, ticks: { display: false }, angleLines: { color: '#cbd5e0' }, pointLabels: { font: { weight: 'bold', size: 10 }, color: '#1a202c' } } } 
         }
     });
 
@@ -302,17 +305,16 @@
             const list = document.getElementById('notification-list');
             if (list) {
                 if (data.length === 0) {
-                    list.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 40px; font-weight: 600;">System clear. No active alerts.</div>';
+                    list.innerHTML = '<div style="text-align: center; color: #718096; padding: 40px; font-weight: 800;">System clear. No active alerts.</div>';
                     return;
                 }
                 list.innerHTML = data.map(n => `
-                    <div style="padding:15px; border-bottom:1px solid #f1f5f9; color:var(--bg); display:flex; gap:12px; align-items:flex-start; transition:0.3s;">
+                    <div style="padding:15px; border-bottom:2px solid #f1f5f9; display:flex; gap:12px; align-items:flex-start;">
                         <span style="color:var(--p); font-weight:900;">•</span>
-                        <div style="font-weight:600; line-height:1.4;">${n.msg}</div>
+                        <div style="font-weight:700; line-height:1.4; color: #1a202c;">${n.msg}</div>
                     </div>
                 `).join('');
             }
-            // Trigger Toasts for Broadcasts
             data.forEach(n => { if(n.is_broadcast && !sessionStorage.getItem('seen_'+n.id)) { 
                 showToast(n.msg); sessionStorage.setItem('seen_'+n.id, '1'); 
             }});
@@ -322,8 +324,8 @@
     function showToast(msg) {
         const t = document.createElement('div');
         t.className = 'toast-msg animate-enter';
-        t.style = "background:var(--bg); color:white; padding:18px 25px; border-radius:16px; box-shadow:0 15px 35px rgba(0,0,0,0.3); margin-top:12px; border-left:6px solid var(--gold);";
-        t.innerHTML = `<div style="display:flex; align-items:center; gap:12px;"><strong style="color:var(--gold);">📢</strong> <div style="font-weight:700;">${msg}</div></div>`;
+        t.style = "background:#1a202c; color:white; padding:18px 25px; border-radius:16px; box-shadow:0 15px 35px rgba(0,0,0,0.3); margin-top:12px; border-left:6px solid var(--gold);";
+        t.innerHTML = `<div style="display:flex; align-items:center; gap:12px;"><strong style="color:var(--gold);">📢</strong> <div style="font-weight:800; color:white !important;">${msg}</div></div>`;
         document.getElementById('toast-container').appendChild(t);
         setTimeout(() => {
             t.style.opacity = '0';
@@ -337,7 +339,7 @@
             fetch('/api/clear_notifications', {method: 'POST'})
             .then(res => {
                 if(res.ok) {
-                    document.getElementById('notification-list').innerHTML = '<div style="text-align: center; color: #05cd99; padding: 40px; font-weight: 800;">Purge Complete.</div>';
+                    document.getElementById('notification-list').innerHTML = '<div style="text-align: center; color: var(--success); padding: 40px; font-weight: 900;">Purge Complete.</div>';
                 }
             });
         }
