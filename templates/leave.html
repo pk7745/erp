@@ -1,34 +1,98 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px;">
-    <div class="card">
-        <h3>📅 Apply for Leave</h3>
-        <div style="background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+
+<style>
+    /* High-Contrast Dark Text Overrides */
+    .leave-container { animation: fadeIn 0.8s ease-out; }
+    h3, h4, strong, span, p, label, td, th { color: #1a202c !important; }
+    
+    .royal-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: var(--shadow-sm);
+        height: fit-content;
+    }
+
+    .stat-badge-container {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 25px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        border: 2px solid #edf2f7;
+    }
+
+    .glass-input {
+        background: #ffffff; border: 2px solid #cbd5e0;
+        border-radius: 12px; padding: 12px 15px; font-weight: 700;
+        color: #1a202c !important; width: 100%; transition: 0.3s;
+        margin-bottom: 15px; display: block;
+    }
+
+    .btn-submit {
+        background: var(--p); color: white !important;
+        width: 100%; padding: 14px; border-radius: 12px;
+        font-weight: 900; border: none; cursor: pointer;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* Table Styling */
+    .royal-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .royal-table th { padding: 15px; text-align: left; font-weight: 900; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; border-bottom: 2px solid #1a202c; }
+    .royal-table tr { transition: 0.3s; }
+    .royal-table td { background: #f8fafc; padding: 18px 15px; border-top: 1px solid #edf2f7; border-bottom: 1px solid #edf2f7; }
+    .royal-table td:first-child { border-left: 1px solid #edf2f7; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    .royal-table td:last-child { border-right: 1px solid #edf2f7; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+    .status-badge {
+        padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase;
+    }
+    .bg-pending { background: #fffaf0; color: #9c4221 !important; border: 1px solid #fbd38d; }
+    .bg-approved { background: #f0fff4; color: #22543d !important; border: 1px solid #9ae6b4; }
+    .bg-rejected { background: #fff5f5; color: #822727 !important; border: 1px solid #feb2b2; }
+</style>
+
+<div class="leave-container" style="display: grid; grid-template-columns: 380px 1fr; gap: 30px;">
+    
+    <div class="royal-card">
+        <h3 style="margin-top: 0; margin-bottom: 20px; font-weight: 900; display: flex; align-items: center; gap: 10px;">
+            <span>📅</span> Apply for Leave
+        </h3>
+        
+        <div class="stat-badge-container">
             <div style="text-align: center;">
-                <small style="color: var(--text-light);">Taken</small>
-                <div style="font-weight: bold; color: var(--danger);">{{ leaves_taken }}</div>
+                <small style="font-weight: 800; text-transform: uppercase; color: #718096 !important;">Taken</small>
+                <div style="font-size: 1.5rem; font-weight: 900; color: var(--danger) !important;">{{ leaves_taken }}</div>
             </div>
-            <div style="text-align: center; border-left: 1px solid #ddd;">
-                <small style="color: var(--text-light);">Balance</small>
-                <div style="font-weight: bold; color: var(--success);">{{ leaves_left }} / {{ leave_limit }}</div>
+            <div style="text-align: center; border-left: 2px solid #cbd5e0;">
+                <small style="font-weight: 800; text-transform: uppercase; color: #718096 !important;">Balance</small>
+                <div style="font-size: 1.5rem; font-weight: 900; color: var(--success) !important;">{{ leaves_left }}<span style="font-size: 0.8rem; color: #718096 !important;">/{{ leave_limit }}</span></div>
             </div>
         </div>
 
         <form method="POST">
-            <label style="font-size: 0.8rem; color: var(--text-light);">Select Date</label>
-            <input type="date" name="date" required>
-            <textarea name="reason" placeholder="Reason for leave..." required style="margin-top: 10px; height: 100px;"></textarea>
+            <label style="font-weight: 800; font-size: 0.85rem; margin-bottom: 8px; display: block;">Select Effective Date</label>
+            <input type="date" name="date" class="glass-input" required>
+            
+            <label style="font-weight: 800; font-size: 0.85rem; margin-bottom: 8px; display: block;">Reason for Absence</label>
+            <textarea name="reason" class="glass-input" placeholder="Please provide specific details..." required style="height: 120px; resize: none;"></textarea>
+            
             {% if leaves_left > 0 %}
-                <button type="submit" class="btn" style="width:100%; margin-top: 10px;">Submit Application</button>
+                <button type="submit" class="btn-submit">Submit Application</button>
             {% else %}
-                <button class="btn" style="width:100%; margin-top: 10px; background: #ccc; cursor: not-allowed;" disabled>Quota Exceeded</button>
+                <button class="btn-submit" style="background: #cbd5e0; color: #718096 !important; cursor: not-allowed;" disabled>Quota Exceeded</button>
             {% endif %}
         </form>
     </div>
 
-    <div class="card">
-        <h3>📋 Request History</h3>
-        <table>
+    <div class="royal-card">
+        <h3 style="margin-top: 0; margin-bottom: 20px; font-weight: 900;">📋 Request History</h3>
+        
+        <table class="royal-table">
             <thead>
                 <tr>
                     <th>Employee</th>
@@ -36,62 +100,68 @@
                     <th>Reason</th>
                     <th style="text-align:center">HOD Status</th>
                     <th style="text-align:center">Principal Status</th>
-                    <th>Action</th>
+                    <th style="text-align:right">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for l in leaves %}
                 <tr>
                     <td>
-                        <strong>{{ l.user.full_name }}</strong><br>
-                        <small style="color:gray">{{ l.user.role }}</small>
+                        <strong style="font-size: 1rem;">{{ l.user.full_name }}</strong><br>
+                        <small style="color:#718096 !important; font-weight: 700;">{{ l.user.role }}</small>
                     </td>
-                    <td>{{ l.date }}</td>
-                    <td style="font-size: 0.85rem; color: #666;">
-                        {{ l.reason }}
+                    <td style="font-weight: 800;">{{ l.date }}</td>
+                    <td style="font-size: 0.85rem; max-width: 250px;">
+                        <span style="font-weight: 600;">{{ l.reason }}</span>
                         {% if l.status == 'Rejected' and l.rejection_reason %}
-                            <div style="color: var(--danger); margin-top: 5px; font-style: italic;">
-                                <strong>Reason:</strong> {{ l.rejection_reason }}
+                            <div style="color: #c53030 !important; margin-top: 8px; font-style: italic; background: #fff5f5; padding: 5px 10px; border-radius: 6px; border-left: 3px solid #c53030;">
+                                <strong>Rejection:</strong> {{ l.rejection_reason }}
                             </div>
                         {% endif %}
                     </td>
 
                     {% if l.user.role == 'Principal' %}
                         <td colspan="2" style="text-align:center">
-                            <span class="badge badge-wfh" style="background:#e8f5e9; color:#2e7d32; border: 1px solid #2e7d32;">✨ Self Approved</span>
+                            <span class="status-badge bg-approved">✨ Self Approved</span>
                         </td>
+                    
                     {% elif l.user.role == 'Faculty' %}
                         <td style="text-align:center">
-                            <span class="badge {% if l.status == 'Pending HOD' %}badge-office{% elif l.status == 'Rejected' and not l.rejection_reason %}badge-danger{% else %}badge-wfh{% endif %}">
+                            <span class="status-badge {% if l.status == 'Pending HOD' %}bg-pending{% elif l.status == 'Rejected' and not l.rejection_reason %}bg-rejected{% else %}bg-approved{% endif %}">
                                 {% if l.status == 'Pending HOD' %}Pending{% else %}Approved{% endif %}
                             </span>
                         </td>
                         <td style="text-align:center">
                             {% if l.status == 'Pending HOD' %}
-                                <small style="color:#ccc">Waiting...</small>
+                                <small style="color:#a0aec0 !important; font-weight: 800;">Waiting for HOD...</small>
                             {% else %}
-                                <span class="badge {% if l.status == 'Pending Principal' %}badge-office{% elif l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% endif %}">
+                                <span class="status-badge {% if l.status == 'Pending Principal' %}bg-pending{% elif l.status == 'Approved' %}bg-approved{% elif l.status == 'Rejected' %}bg-rejected{% endif %}">
                                     {{ 'Pending' if l.status == 'Pending Principal' else l.status }}
                                 </span>
                             {% endif %}
                         </td>
+                    
                     {% else %}
                         <td colspan="2" style="text-align:center">
-                            <span class="badge {% if l.status == 'Approved' %}badge-wfh{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-office{% endif %}">
+                            <span class="status-badge {% if l.status == 'Approved' %}bg-approved{% elif l.status == 'Rejected' %}bg-rejected{% else %}bg-pending{% endif %}">
                                 {{ l.status }}
                             </span>
                         </td>
                     {% endif %}
 
-                    <td>
+                    <td style="text-align:right">
                         {% if session['role'] == 'HOD - BCA Dept' and l.status == 'Pending HOD' %}
-                             <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
-                             <a href="#" onclick="rejectLeave({{ l.id }})" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                             <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: #2f855a !important; font-weight: 900; text-decoration: none; border: 2px solid #2f855a; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem;">APPROVE</a>
+                                <a href="#" onclick="rejectLeave({{ l.id }})" style="color: #c53030 !important; font-weight: 900; text-decoration: none; border: 2px solid #c53030; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem;">REJECT</a>
+                             </div>
                         {% elif session['role'] == 'Principal' and l.status == 'Pending Principal' %}
-                             <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: var(--success); font-weight: bold; text-decoration: none;">Approve</a> |
-                             <a href="#" onclick="rejectLeave({{ l.id }})" style="color: var(--danger); font-weight: bold; text-decoration: none;">Reject</a>
+                             <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" style="color: #2f855a !important; font-weight: 900; text-decoration: none; border: 2px solid #2f855a; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem;">APPROVE</a>
+                                <a href="#" onclick="rejectLeave({{ l.id }})" style="color: #c53030 !important; font-weight: 900; text-decoration: none; border: 2px solid #c53030; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem;">REJECT</a>
+                             </div>
                         {% else %}
-                             <span style="color: var(--text-light); font-size: 0.8rem;">Processed</span>
+                             <span style="color: #cbd5e0 !important; font-weight: 900; font-size: 0.7rem; text-transform: uppercase;">Closed</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -102,8 +172,9 @@
 </div>
 
 <script>
+// Logic Retained Exactly
 function rejectLeave(id) {
-    let reason = prompt("Enter rejection reason:");
+    let reason = prompt("Enter official rejection reason:");
     if (reason != null && reason != "") {
         window.location.href = "/approve_leave/" + id + "/reject?reason=" + encodeURIComponent(reason);
     }
