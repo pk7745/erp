@@ -1,35 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
+
 <style>
-    /* Premium Color Palette & Glassmorphism */
-    :root {
-        --primary-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        --accent-blue: #3b82f6;
-        --success-emerald: #10b981;
-        --glass-bg: rgba(255, 255, 255, 0.98);
-        --text-main: #1e293b;
-        --text-muted: #64748b;
-        --feed-row-hover: #f8fafc;
-    }
-
-    body { background-color: #f1f5f9; font-family: 'Inter', -apple-system, sans-serif; color: var(--text-main); }
-
-    .bms-card {
-        background: var(--glass-bg);
-        border-radius: 20px;
-        padding: 28px;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-        margin-bottom: 25px;
-        transition: all 0.3s ease;
-    }
-
-    .growth-card {
-        background: var(--primary-gradient);
-        color: white;
-        border: none;
-    }
-
+    /* Removing redundant old styles to let the Master CSS take over */
     .section-title {
         font-size: 1.25rem;
         font-weight: 800;
@@ -38,21 +11,20 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: var(--text-main);
     }
 
-    .growth-card .section-title { color: white; }
-
-    /* Task Bubbles & Submission Box */
+    /* Task Bubbles - Refined for Royal Glass */
     .task-bubble {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(0,0,0,0.05);
         border-radius: 16px;
         padding: 20px;
         margin-bottom: 16px;
-        border-left: 6px solid var(--accent-blue);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        border-left: 6px solid var(--p);
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s ease;
     }
+    .task-bubble:hover { transform: translateX(5px); }
 
     .task-meta {
         font-size: 0.85rem;
@@ -62,85 +34,48 @@
         font-weight: 500;
     }
 
-    .reply-area {
-        background: #f8fafc;
-        border: 2px solid #f1f5f9;
-        border-radius: 12px;
-        padding: 14px;
-        width: 100%;
-        margin-top: 15px;
-        font-size: 0.9rem;
-        color: var(--text-main);
-        resize: none;
-        transition: all 0.2s;
-    }
-
-    .reply-area:focus {
-        background: #ffffff;
-        border-color: var(--accent-blue);
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        outline: none;
-    }
-
-    .submit-btn {
-        background: var(--success-emerald);
-        color: white;
-        border: none;
-        padding: 12px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: 700;
-        width: 100%;
-        margin-top: 12px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s;
-    }
-
-    .submit-btn:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
-
-    /* Delegation Form Styles */
     .premium-label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: block; }
-    .premium-input {
-        height: 48px; border-radius: 10px; border: 2px solid #f1f5f9; padding: 0 16px;
-        font-weight: 500; margin-bottom: 18px; width: 100%; font-family: inherit;
+
+    /* History & Feed Specifics */
+    .feed-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .history-item { 
+        padding: 16px; 
+        border-radius: 12px; 
+        background: rgba(255,255,255,0.5); 
+        margin-bottom: 12px; 
+        border: 1px solid rgba(0,0,0,0.03); 
     }
-    .premium-input:focus { border-color: var(--accent-blue); outline: none; }
-
-    /* Live Feed Table Styles */
-    .feed-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .feed-table th { text-align: left; padding: 12px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #f1f5f9; }
-    .feed-table td { padding: 16px 12px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
-    .feed-row:hover { background-color: var(--feed-row-hover); }
-
-    .status-badge { padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.7rem; }
-    .status-done { background: #dcfce7; color: #166534; }
-    .status-wait { background: #fef9c3; color: #854d0e; }
-
-    /* History Timeline */
-    .history-item { padding: 16px; border-radius: 12px; background: #fdfdfd; margin-bottom: 12px; border: 1px solid #f1f5f9; }
-    .history-reply { font-size: 0.85rem; color: #475569; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #cbd5e1; }
+    .history-reply { 
+        font-size: 0.85rem; 
+        color: #475569; 
+        background: var(--p-light); 
+        padding: 10px 14px; 
+        border-radius: 8px; 
+        margin-top: 10px; 
+        border-left: 3px solid var(--p); 
+    }
+    
+    /* Scrollbar for long lists */
+    .scroll-container { max-height: 450px; overflow-y: auto; padding-right: 8px; }
 </style>
 
 <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
+    
     <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 35px;">
         
-        <div>
+        <div class="animate-enter delay-1">
             {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-            <div class="bms-card animate__animated animate__fadeInUp">
-                <div class="section-title" style="color: var(--accent-blue);">
+            <div class="card" style="border-top: 4px solid var(--p);">
+                <div class="section-title" style="color: var(--p);">
                     <i class="fas fa-paper-plane"></i> 📤 Delegate Task
                 </div>
                 <form action="{{ url_for('assign_task') }}" method="POST">
                     <span class="premium-label">OBJECTIVE</span>
-                    <input type="text" name="title" class="premium-input" placeholder="Enter task instructions..." required>
+                    <input type="text" name="title" placeholder="Enter task instructions..." required>
                     
                     <span class="premium-label">ASSIGN TO</span>
-                    <select name="staff_id" class="premium-input" required>
+                    <select name="staff_id" required>
                         <option value="" disabled selected>Select Staff Member...</option>
-                        
                         {% if session['role'] == 'Principal' %}
                         <optgroup label="Management & Administration">
                             {% for u in all_staff if u.role != 'Principal' %}
@@ -158,25 +93,25 @@
                         {% endif %}
                     </select>
                     
-                    <button type="submit" class="submit-btn" style="background: var(--accent-blue); height: 50px; font-size: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 1rem;">
                         Issue Command
                     </button>
                 </form>
             </div>
             {% endif %}
 
-            <div class="bms-card animate__animated animate__fadeInUp" style="animation-delay: 0.1s;">
-                <div class="section-title" style="color: #6366f1;">
+            <div class="card">
+                <div class="section-title" style="color: var(--info);">
                     <i class="fas fa-inbox"></i> 📥 My Assignments
                 </div>
                 {% for task in my_tasks if not task.is_done %}
                 <div class="task-bubble">
                     <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">{{ task.title }}</div>
-                    <span class="task-meta">From: <span style="color: var(--accent-blue);">{{ task.task_sender.full_name if task.task_sender else 'Principal' }}</span></span>
+                    <span class="task-meta">From: <span style="color: var(--p);">{{ task.task_sender.full_name if task.task_sender else 'Principal' }}</span></span>
                     
                     <form action="{{ url_for('complete_task', id=task.id) }}" method="POST">
-                        <textarea name="reply" class="reply-area" rows="3" placeholder="Type your work report or reply here..." required></textarea>
-                        <button type="submit" class="submit-btn">
+                        <textarea name="reply" rows="3" placeholder="Type your work report or reply here..." required></textarea>
+                        <button type="submit" class="btn" style="background: var(--success); width: 100%; margin-top: 10px;">
                              Submit Work & Complete
                         </button>
                     </form>
@@ -190,24 +125,24 @@
             </div>
         </div>
 
-        <div>
-            <div class="bms-card growth-card animate__animated animate__fadeInRight">
-                <div class="section-title">
+        <div class="animate-enter delay-2">
+            <div class="card stat-office">
+                <div class="section-title" style="color: white;">
                     <i class="fas fa-chart-line"></i> Performance Metrics
                 </div>
-                <canvas id="growthChart" style="max-height: 280px;"></canvas>
+                <canvas id="growthChart" style="max-height: 280px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));"></canvas>
             </div>
 
-            <div class="bms-card animate__animated animate__fadeInRight" style="animation-delay: 0.1s;">
-                <div class="section-title" style="color: var(--success-emerald);">
+            <div class="card">
+                <div class="section-title" style="color: var(--success);">
                     <i class="fas fa-history"></i> Completed & Replied
                 </div>
-                <div style="max-height: 450px; overflow-y: auto; padding-right: 8px;">
+                <div class="scroll-container">
                     {% for task in my_tasks if task.is_done %}
                     <div class="history-item">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">{{ task.title }}</span>
-                            <span style="font-size: 0.75rem; background: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 6px; font-weight: 700;">DONE</span>
+                            <span class="badge badge-wfh">DONE</span>
                         </div>
                         {% if task.reply_content %}
                         <div class="history-reply">
@@ -225,58 +160,58 @@
     </div>
 
     {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-    <div class="bms-card animate__animated animate__fadeInUp" style="margin-top: 10px; border-top: 4px solid var(--accent-blue);">
-        <div class="section-title">
-            <i class="fas fa-broadcast-tower" style="color: #ef4444;"></i> Live Staff Submissions Feed
-        </div>
-        <div style="overflow-x: auto;">
-            <table class="feed-table">
-                <thead>
-                    <tr>
-                        <th>Recipient</th>
-                        <th>Task Objective</th>
-                        <th>Status</th>
-                        <th>Submission / Reply</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in global_feed %}
-                    <tr class="feed-row">
-                        <td>
-                            <div style="font-weight: 700; color: var(--text-main);">{{ task.task_receiver.full_name }}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">{{ task.task_receiver.role }}</div>
-                        </td>
-                        <td style="color: #475569; font-weight: 500;">{{ task.title }}</td>
-                        <td>
-                            {% if task.is_done %}
-                                <span class="status-badge status-done">COMPLETED</span>
-                            {% else %}
-                                <span class="status-badge status-wait">WAITING</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if task.reply_content %}
-                                <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; font-size: 0.85rem; border-left: 3px solid var(--accent-blue); color: var(--text-main);">
-                                    "{{ task.reply_content }}"
-                                </div>
-                            {% else %}
-                                <span style="color: #cbd5e1; font-style: italic; font-size: 0.8rem;">Pending reply...</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">No system-wide activity found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="animate-enter delay-3">
+        <div class="card" style="margin-top: 10px; border-top: 4px solid var(--gold);">
+            <div class="section-title">
+                <i class="fas fa-broadcast-tower" style="color: var(--danger);"></i> Live Staff Submissions Feed
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="feed-table">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Task Objective</th>
+                            <th>Status</th>
+                            <th>Submission / Reply</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in global_feed %}
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text-main);">{{ task.task_receiver.full_name }}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">{{ task.task_receiver.role }}</div>
+                            </td>
+                            <td style="color: #475569; font-weight: 500;">{{ task.title }}</td>
+                            <td>
+                                {% if task.is_done %}
+                                    <span class="badge badge-wfh">COMPLETED</span>
+                                {% else %}
+                                    <span class="badge badge-office">WAITING</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.reply_content %}
+                                    <div class="history-reply" style="margin: 0;">
+                                        "{{ task.reply_content }}"
+                                    </div>
+                                {% else %}
+                                    <span style="color: #cbd5e1; font-style: italic; font-size: 0.8rem;">Pending reply...</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">No system-wide activity found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endif %}
 </div>
-
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -288,11 +223,11 @@
             datasets: [{
                 label: 'Tasks Completed',
                 data: {{ growth_data|tojson }},
-                borderColor: '#60a5fa',
-                backgroundColor: 'rgba(96, 165, 250, 0.2)',
+                borderColor: '#D4AF37', /* Gold line for Royal look */
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
                 borderWidth: 4,
                 pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#60a5fa',
+                pointBorderColor: '#800000',
                 pointRadius: 6,
                 fill: true,
                 tension: 0.4
@@ -302,8 +237,8 @@
             responsive: true,
             plugins: { legend: { display: false } },
             scales: { 
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true, ticks: {color: '#94a3b8', font: { weight: '600' }} }, 
-                x: { grid: { display: false }, ticks: {color: '#94a3b8', font: { weight: '600' }} } 
+                y: { grid: { color: 'rgba(255,255,255,0.1)' }, beginAtZero: true, ticks: {color: '#ffffff'} }, 
+                x: { grid: { display: false }, ticks: {color: '#ffffff'} } 
             }
         }
     });
