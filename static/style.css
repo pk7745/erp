@@ -1,6 +1,6 @@
 /* BMSCCM ENTERPRISE PORTAL - MASTER CLASS EDITION 
-   "Royal Glass" Design System v2.0
-   Designed for High-Performance Visuals & User Delight
+   "Royal Glass" Design System v3.0 (Ultra-Premium)
+   Includes: Physics, 3D Spatial, Living Aurora & Cinematic Motion
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
@@ -36,28 +36,43 @@
     --shadow-card: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
     --shadow-hover: 0 25px 50px -12px rgba(128, 0, 0, 0.15); /* Maroon tinted shadow */
     --glow: 0 0 15px rgba(212, 175, 55, 0.3); /* Gold Glow */
+    
+    /* --- 3D Spatial Engine Variables --- */
+    --perspective: 1200px;
 }
 
 /* --- Global Reset & Animations --- */
 * { box-sizing: border-box; }
 
+/* WOW FACTOR 1: THE LIVING AURORA BACKGROUND */
+@keyframes royalGradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 body {
     font-family: 'Manrope', sans-serif;
+    /* Dynamic Living Background */
     background: 
-        radial-gradient(circle at 0% 0%, rgba(128, 0, 0, 0.03), transparent 40%),
-        radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.05), transparent 40%),
-        var(--bg);
+        radial-gradient(circle at 15% 50%, rgba(212, 175, 55, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(128, 0, 0, 0.08), transparent 25%),
+        linear-gradient(135deg, #F3F4F6 0%, #eef2f6 100%);
+    background-size: 200% 200%; /* Allows movement */
+    animation: royalGradientFlow 15s ease infinite; /* Slow, luxurious breathing */
+    
     color: var(--text-main);
     margin: 0;
     display: flex;
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
+    perspective: var(--perspective); /* Enables 3D space */
 }
 
 /* --- The Glass Sidebar --- */
 .sidebar {
-    width: 280px; /* Slightly wider for elegance */
+    width: 280px;
     position: fixed;
     height: 100vh;
     background: var(--glass-sidebar);
@@ -128,6 +143,7 @@ body {
     overflow: hidden; /* For shine effects */
 }
 
+/* HOLOGRAPHIC GLINT EFFECT ON HOVER */
 .card:hover {
     transform: translateY(-5px) scale(1.002);
     box-shadow: var(--shadow-hover);
@@ -144,7 +160,7 @@ h2, h3 {
 
 h2 { font-size: 1.8rem; background: linear-gradient(90deg, var(--p), #2c0000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-/* --- Requirement 1: Stats Container (Dashboard) --- */
+/* --- Stats Container --- */
 .stats-container { 
     display: grid; 
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
@@ -178,7 +194,7 @@ h2 { font-size: 1.8rem; background: linear-gradient(90deg, var(--p), #2c0000); -
 .stat-office { background: linear-gradient(135deg, var(--p) 0%, #3d0000 100%); border-top: 1px solid rgba(255,255,255,0.2); }
 .stat-wfh { background: linear-gradient(135deg, var(--success) 0%, #064e3b 100%); border-top: 1px solid rgba(255,255,255,0.2); }
 
-/* --- Requirement 5 & 7: The "Floating Row" Table --- */
+/* --- The "Floating Row" Table --- */
 table {
     width: 100%;
     border-collapse: separate;
@@ -216,7 +232,7 @@ td {
     padding: 22px 25px;
     font-size: 0.95rem;
     color: var(--text-main);
-    border: none; /* Removed ugly borders */
+    border: none;
 }
 
 /* Rounding the row corners */
@@ -236,12 +252,17 @@ td:last-child { border-radius: 0 16px 16px 0; }
     text-transform: uppercase;
 }
 
-/* Dynamic Badge Styling */
 .badge-office { background: var(--p-light); color: var(--p); border: 1px solid rgba(128, 0, 0, 0.1); }
 .badge-wfh { background: var(--success-bg); color: var(--success); border: 1px solid rgba(5, 150, 105, 0.1); }
 .badge-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.1); }
 
-/* --- The "Executive" Button --- */
+/* --- The "Executive" Button (with Liquid Sheen) --- */
+@keyframes goldenSheen {
+    0% { left: -100%; opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { left: 100%; opacity: 0; }
+}
+
 .btn {
     background: linear-gradient(135deg, var(--p) 0%, var(--p-dark) 100%);
     color: white;
@@ -262,23 +283,26 @@ td:last-child { border-radius: 0 16px 16px 0; }
     overflow: hidden;
 }
 
-/* Shine effect on hover */
+/* WOW FACTOR 4: JELLY CLICK & SHEEN */
 .btn::after {
     content: '';
     position: absolute;
     top: 0; left: -100%;
     width: 100%; height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: 0.5s;
+    animation: goldenSheen 3s infinite; /* Continuous luxury sheen */
 }
 
-.btn:hover::after { left: 100%; }
+.btn:active {
+    transform: scale(0.95); /* Organic "Jelly" press */
+}
+
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(128, 0, 0, 0.35);
 }
 
-/* Secondary Button (Cancel/Back) */
+/* Secondary Button */
 .btn[style*="background: #666"] {
     background: white !important;
     color: var(--text-muted) !important;
@@ -291,7 +315,7 @@ td:last-child { border-radius: 0 16px 16px 0; }
     background: #f9fafb !important;
 }
 
-/* --- Notification Panel (The "Pulse") --- */
+/* --- Notification Panel --- */
 .notif-panel { 
     background: rgba(255,255,255,0.8);
     backdrop-filter: blur(12px);
@@ -328,7 +352,7 @@ td:last-child { border-radius: 0 16px 16px 0; }
     100% { background-color: #fff5f5; }
 }
 
-/* --- Forms: Precision Inputs --- */
+/* --- Forms: Precision Inputs (WOW FACTOR 3: GOLD LEAF FOCUS) --- */
 input, select, textarea {
     width: 100%;
     padding: 14px 18px;
@@ -339,15 +363,18 @@ input, select, textarea {
     outline: none;
     font-family: 'Manrope', sans-serif;
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     color: var(--text-main);
 }
 
-input:focus, select:focus {
-    border-color: var(--p);
-    background: white;
-    box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.08);
-    transform: translateY(-1px);
+input:focus, select:focus, textarea:focus {
+    border-color: var(--gold) !important;
+    background: white !important;
+    /* The Gold Leaf Glow */
+    box-shadow: 
+        0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+        0 0 0 4px rgba(212, 175, 55, 0.2) !important;
+    transform: translateY(-2px) scale(1.01);
 }
 
 /* --- Login & Modal Overlays --- */
@@ -356,7 +383,6 @@ input:focus, select:focus {
     backdrop-filter: blur(5px);
 }
 
-/* Flash Messages */
 .flash {
     padding: 18px;
     border-radius: 12px;
@@ -370,21 +396,18 @@ input:focus, select:focus {
 .success { background: var(--success-bg); color: var(--success); border-color: var(--success); }
 .error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 
-/* Custom Scrollbar for a polished finish */
+/* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* --- SATIN-SMOOTH SKELETON SYSTEM --- */
-
-/* The Master Animation */
 @keyframes satinShimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
 }
 
-/* Base Skeleton Class */
 .skeleton {
     background: linear-gradient(90deg, 
         rgba(0, 0, 0, 0.04) 25%, 
@@ -401,7 +424,6 @@ input:focus, select:focus {
     user-select: none;
 }
 
-/* Dark Mode Compatibility */
 [data-theme='dark'] .skeleton {
     background: linear-gradient(90deg, 
         rgba(255, 255, 255, 0.03) 25%, 
@@ -410,48 +432,23 @@ input:focus, select:focus {
     );
 }
 
-/* Skeleton Shapes */
 .skeleton-text { height: 14px; width: 100%; margin-bottom: 8px; border-radius: 4px; }
 .skeleton-title { height: 28px; width: 60%; margin-bottom: 20px; }
 .skeleton-avatar { height: 45px; width: 45px; border-radius: 50%; }
 .skeleton-btn { height: 40px; width: 120px; border-radius: 12px; }
 
-/* Table Row Skeleton */
-.skeleton-row td {
-    padding: 22px 25px;
-}
-.skeleton-row .line {
-    height: 12px;
-    background: rgba(0,0,0,0.05);
-    border-radius: 10px;
-    width: 80%;
-}
-.content-hidden {
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.content-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-/* --- 3D SPATIAL ENGINE --- */
-:root {
-    --perspective: 1200px;
-    --rotation-x: 10deg;
-    --rotation-y: -10deg;
-}
+.skeleton-row td { padding: 22px 25px; }
+.skeleton-row .line { height: 12px; background: rgba(0,0,0,0.05); border-radius: 10px; width: 80%; }
 
-body {
-    perspective: var(--perspective);
-    background-attachment: fixed;
-}
+.content-hidden { opacity: 0; transform: translateY(10px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.content-visible { opacity: 1; transform: translateY(0); }
+
 /* --- THE 3D FLIP THEATER --- */
 .flip-card {
     background-color: transparent;
     width: 60px;
     height: 60px;
-    perspective: 1000px; /* High perspective for dramatic flip */
+    perspective: 1000px;
     cursor: pointer;
 }
 
@@ -464,15 +461,13 @@ body {
     transform-style: preserve-3d;
 }
 
-.flip-card:hover .flip-card-inner {
-    transform: rotateY(180deg);
-}
+.flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
 
 .flip-front, .flip-back {
     position: absolute;
     width: 100%;
     height: 100%;
-    -webkit-backface-visibility: hidden; /* Fix for Safari */
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     border-radius: 50%;
     display: flex;
@@ -481,10 +476,7 @@ body {
     overflow: hidden;
 }
 
-.flip-front {
-    background: var(--p-light);
-}
-
+.flip-front { background: var(--p-light); }
 .flip-back {
     background: var(--p);
     color: white;
@@ -496,38 +488,12 @@ body {
     text-align: center;
 }
 
-.staff-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-/* --- HOLOGRAPHIC EFFECTS --- */
-.card[style*="rotateX"] {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+.staff-img { width: 100%; height: 100%; object-fit: cover; }
 
-/* The "Glint" that moves when you hover */
-.card[style*="rotateX"]::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-    transform: rotate(45deg);
-    transition: 0.8s;
-}
-
-.card[style*="rotateX"]:hover::after {
-    left: 100%;
-}
 /* --- THE PULSE ENGINE --- */
 .pulse-active {
     position: relative;
-    background: #c6f6d5 !important; /* Soft Green */
+    background: #c6f6d5 !important;
     color: #22543d !important;
     font-weight: bold;
     animation: pulse-animation 2s infinite;
@@ -535,17 +501,32 @@ body {
 }
 
 @keyframes pulse-animation {
-    0% {
-        transform: scale(0.98);
-        box-shadow: 0 0 0 0 rgba(34, 84, 61, 0.4);
+    0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(34, 84, 61, 0.4); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 84, 61, 0); }
+    100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(34, 84, 61, 0); }
+}
+
+/* WOW FACTOR 2: CINEMATIC ENTRANCE UTILITIES */
+@keyframes fadeInUpLuxury {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.98);
+        filter: blur(10px);
     }
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(34, 84, 61, 0);
-    }
-    100% {
-        transform: scale(0.98);
-        box-shadow: 0 0 0 0 rgba(34, 84, 61, 0);
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
     }
 }
 
+.animate-enter {
+    opacity: 0;
+    animation: fadeInUpLuxury 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
