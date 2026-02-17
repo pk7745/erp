@@ -21,7 +21,7 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
 
-    /* Fixed Dropdown Visibility - Dark Background with White Text for modern feel */
+    /* Fixed Dropdown Visibility */
     .search-input-dark {
         background: #ffffff; 
         border: 2px solid var(--royal-blue);
@@ -33,7 +33,6 @@
         outline: none;
     }
 
-    /* Input fields for text/number */
     .input-field-dark {
         background: var(--dark-navy);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -135,7 +134,7 @@
     </div>
 </div>
 
-{% if users %}
+{% if users and (session['role'] == 'Principal' or 'HOD' in session['role']) %}
 <div class="card-royal" style="margin-bottom: 25px; border-left: 6px solid var(--royal-blue); background: linear-gradient(to right, var(--secondary-navy), var(--dark-navy));">
     <h3 style="margin-top: 0; color: white; display: flex; align-items: center; gap: 10px;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--royal-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -175,7 +174,7 @@
     <table class="staff-table-dark">
         <thead>
             <tr>
-                {% if session['role'] in ['Principal', 'HOD'] %}
+                {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
                 <th>Staff Member</th>
                 {% endif %}
                 <th>Month</th>
@@ -186,7 +185,7 @@
         <tbody>
             {% for r in ratings %}
             <tr>
-                {% if session['role'] in ['Principal', 'HOD'] %}
+                {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
                 <td style="font-weight: 900; color: #ffffff;">{{ r.user.full_name }}</td>
                 {% endif %}
                 <td style="font-weight: 600;">{{ r.month }}</td>
@@ -201,8 +200,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('perfChart').getContext('2d');
-    
-    // Creating a gradient for the line area
     let lineGradient = ctx.createLinearGradient(0, 0, 0, 250);
     lineGradient.addColorStop(0, 'rgba(67, 24, 255, 0.4)');
     lineGradient.addColorStop(1, 'rgba(67, 24, 255, 0)');
@@ -229,27 +226,17 @@
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 y: {
                     beginAtZero: true,
                     max: 10,
                     grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { 
-                        color: '#ffffff', 
-                        font: { weight: 'bold', size: 12 },
-                        padding: 10
-                    }
+                    ticks: { color: '#ffffff', font: { weight: 'bold', size: 12 }, padding: 10 }
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { 
-                        color: '#ffffff', 
-                        font: { weight: 'bold', size: 11 },
-                        padding: 10
-                    }
+                    ticks: { color: '#ffffff', font: { weight: 'bold', size: 11 }, padding: 10 }
                 }
             }
         }
