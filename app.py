@@ -788,13 +788,59 @@ def send_lounge_msg():
 @app.route('/performance', methods=['GET', 'POST'])
 def performance():
     if 'user_id' not in session: return redirect(url_for('login'))
-    if request.method == 'POST' and session['role'] == 'HR':
-        db.session.add(PerformanceKPI(user_id=request.form['u_id'], month=request.form['month'], rating=request.form['rating'], feedback=request.form['feedback']))
-        db.session.commit()
-    ratings = PerformanceKPI.query.all() if session['role'] == 'HR' else PerformanceKPI.query.filter_by(user_id=session['user_id']).all()
-    users = User.query.all() if session['role'] == 'HR' else []
-    return render_template('performance.html', ratings=ratings, users=users)
+    
+    user_role = session.get('role')
+    user_id = session.get('user_id')
 
+    # --- POST: HANDLE RATING SUBMISSION ---
+    if request.method == 'POST':
+        target_id = request.form['u_id']
+        
+        # Security Check: Who is allowed to rate whom?
+        allowed = False
+        if user_role == 'Principal':
+            allowed = True # Principal can rate anyone
+        elif user_role == 'HOD':
+            # HOD can ONLY rate Faculty. Check the target's role.
+            target_user = User.query.get(target_id)
+            if target_user and target_user.role == 'Faculty':
+                allowed = True
+        
+        if allowed:
+            # Create the KPI Record
+            new_kpi = PerformanceKPI(
+                user_id=target_id,
+                month=request.form['month'],
+                rating=request.form['rating'],
+                feedback=request.form['feedback']
+            )
+            db.session.add(new_kpi)
+            db.session.commit()
+            flash('Performance review submitted successfully.', 'success')
+        else:
+            flash('You are not authorized to rate this employee.', 'error')
+
+    # --- GET: PREPARE DATA FOR UI ---
+    
+    # 1. Logic for the Dropdown (Who can the logged-in user rate?)
+    users_to_rate = []
+    if user_role == 'Principal':
+        users_to_rate = User.query.all() # Principal sees Admin, Accountant, HOD, Faculty
+    elif user_role == 'HOD':
+        users_to_rate = User.query.filter_by(role='Faculty').all() # HOD sees Faculty only
+
+    # 2. Logic for the Table (What history can they see?)
+    if user_role == 'Principal':
+        ratings = PerformanceKPI.query.all()
+    elif user_role == 'HOD':
+        # HOD sees reviews for Faculties (using a Join to filter by role)
+        ratings = db.session.query(PerformanceKPI).join(User).filter(User.role == 'Faculty').all()
+    else:
+        # Everyone else sees only their own
+        ratings = PerformanceKPI.query.filter_by(user_id=user_id).all()
+
+    return render_template('performance.html', ratings=ratings, users=users_to_rate)
+    
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -1361,6 +1407,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
