@@ -1,94 +1,108 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div style="display: flex; gap: 20px; margin-bottom: 30px; perspective: 1000px; flex-wrap: wrap;">
+<div style="display: flex; gap: 25px; margin-bottom: 35px; flex-wrap: wrap; animation: fadeIn 0.8s ease-out;">
     
-    <div class="card" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #4318ff, #707eff); color: white; transform: rotateX(5deg); transition: 0.5s;">
-        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">Life-time</small>
-        <h2 style="margin: 5px 0; font-size: 2rem;">{{ history|length }}</h2>
-        <div style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; display: inline-block;">Total Check-ins</div>
+    <div class="royal-stat-card" style="flex: 1; min-width: 240px; background: linear-gradient(135deg, var(--p), #5a1111); color: white; border: none;">
+        <small style="opacity: 0.7; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.7rem;">Life-time Presence</small>
+        <h2 style="margin: 10px 0; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;">{{ history|length }}</h2>
+        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; display: inline-block; font-weight: 600; backdrop-filter: blur(5px);">Total Check-ins</div>
     </div>
 
-    <div class="card" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #ee5d50, #ff7875); color: white; transform: rotateX(5deg); transition: 0.5s;">
-        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">Current Month</small>
-        <h2 id="absent-stat-count" style="margin: 5px 0; font-size: 2rem;">0</h2>
-        <div style="font-size: 0.7rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 20px; display: inline-block;">Days Absent</div>
+    <div class="royal-stat-card" style="flex: 1; min-width: 240px; background: linear-gradient(135deg, var(--danger), #a83a32); color: white; border: none;">
+        <small style="opacity: 0.7; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.7rem;">Current Month Analytics</small>
+        <h2 id="absent-stat-count" style="margin: 10px 0; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;">0</h2>
+        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; display: inline-block; font-weight: 600; backdrop-filter: blur(5px);">Days Absent</div>
     </div>
 
-    <div class="card" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #1b2559, #2b3674); color: white; transform: rotateX(5deg); transition: 0.5s;">
-        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 1px;">Current Status</small>
-        <h2 style="margin: 5px 0; font-size: 2rem;">Online</h2>
-        <div class="pulse-active" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 20px; display: inline-block;">Verified Session</div>
+    <div class="royal-stat-card" style="flex: 1; min-width: 240px; background: var(--bg); color: white; border: 1px solid rgba(255,255,255,0.1);">
+        <small style="opacity: 0.6; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.7rem;">Current Status</small>
+        <h2 style="margin: 10px 0; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; color: var(--gold);">Online</h2>
+        <div class="pulse-active" style="font-size: 0.75rem; padding: 6px 14px; border-radius: 20px; display: inline-block; font-weight: 700; background: var(--success);">Verified Session</div>
     </div>
 
 </div>
 
-<div class="card" style="margin-bottom: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin:0;">📊 Last 7 Days Performance</h3>
-        <small style="color: #718096;">Orange bars indicate missed days</small>
+<div class="royal-stat-card" style="margin-bottom: 30px; padding: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h3 style="margin:0; color: var(--bg); font-weight: 800; letter-spacing: -0.5px;">📊 Last 7 Days Performance Matrix</h3>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: #64748b;">
+                <div style="width: 10px; height: 10px; background: var(--p); border-radius: 2px;"></div> Present
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: #64748b;">
+                <div style="width: 10px; height: 10px; background: var(--danger); border-radius: 2px;"></div> Missed
+            </span>
+        </div>
     </div>
-    <div style="height: 200px; width: 100%;">
+    <div style="height: 220px; width: 100%;">
         <canvas id="weeklyChart"></canvas>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0;">Attendance History</h3>
+<div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; align-items: start;">
+    
+    <div class="royal-stat-card" style="padding: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 35px; border-bottom: 1px solid #f1f5f9; padding-bottom: 25px;">
+            <div>
+                <h2 style="margin:0; color: var(--bg); font-weight: 800; font-size: 1.8rem; letter-spacing: -1px;">Attendance Tracking</h2>
+                <small id="location-indicator" style="color: var(--danger); font-weight: 800; margin-top: 8px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;">📍 Location verification required for Office mode</small>
+            </div>
             {% if session['role'] == 'HR' %}
-                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn" style="text-decoration: none;">
-                    📥 Export Attendance CSV
+                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn-royal" style="background: var(--bg); color: white; text-decoration: none; font-size: 0.75rem; padding: 10px 20px;">
+                    📥 EXPORT DATA
                 </a>
             {% endif %}
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div style="display: flex; flex-direction: column;">
-                <h2 style="margin:0;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #ee5d50; font-weight: bold; margin-top: 5px;">📍 Location verification required for Office mode</small>
-            </div>
-            <form id="attendanceForm" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
-                <input type="hidden" name="lat" id="lat">
-                <input type="hidden" name="lon" id="lon">
-                
-                <select name="work_mode" id="work_mode" style="width: 150px; margin: 0; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
-                    <option value="Office">🏢 Office</option>
-                    <option value="WFH">🏠 WFH</option>
+        <form id="attendanceForm" method="POST" style="background: #f8fafc; padding: 25px; border-radius: 20px; border: 1px solid #edf2f7; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 35px;">
+            <input type="hidden" name="lat" id="lat">
+            <input type="hidden" name="lon" id="lon">
+            
+            <div style="flex: 1; min-width: 180px;">
+                <select name="work_mode" id="work_mode" class="glass-input" style="margin-bottom: 0;">
+                    <option value="Office">🏢 OFFICE CAMPUS</option>
+                    <option value="WFH">🏠 REMOTE WORK (WFH)</option>
                 </select>
-                <button type="button" onclick="getLocation()" class="btn" style="background: #05cd99;">Verify Location</button>
-                <button type="submit" id="submitBtn" class="btn" style="opacity: 0.6; cursor: not-allowed;" disabled>Clock In / Out</button>
-            </form>
-        </div>
+            </div>
+            
+            <button type="button" onclick="getLocation()" class="btn-royal" style="background: white; color: var(--bg); border: 2.5px solid var(--bg); font-weight: 900;">1. VERIFY GPS</button>
+            <button type="submit" id="submitBtn" class="btn-royal" style="background: var(--success); color: white; opacity: 0.5; cursor: not-allowed; min-width: 160px;" disabled>2. CLOCK SESSION</button>
+        </form>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Employee</th>
-                    <th>Mode</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in history %}
-                <tr>
-                    <td>{{ row.date }}</td>
-                    <td><strong>{{ row.user.full_name }}</strong></td>
-                    <td><span class="badge {% if row.work_mode == 'WFH' %}badge-wfh{% else %}badge-office{% endif %}">{{ row.work_mode }}</span></td>
-                    <td style="color: #05cd99; font-weight: bold;">{{ row.check_in }}</td>
-                    <td style="color: #4318ff; font-weight: bold;">{{ row.check_out or '--:--' }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0 10px;">
+                <thead>
+                    <tr style="text-align: left;">
+                        <th style="padding: 10px 20px; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Date</th>
+                        <th style="padding: 10px 20px; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Employee</th>
+                        <th style="padding: 10px 20px; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Mode</th>
+                        <th style="padding: 10px 20px; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">In</th>
+                        <th style="padding: 10px 20px; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Out</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in history %}
+                    <tr style="background: white; transition: 0.3s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                        <td style="padding: 18px 20px; font-weight: 700; color: #64748b; font-size: 0.9rem; border-radius: 12px 0 0 12px; border-bottom: 1px solid #f1f5f9;">{{ row.date }}</td>
+                        <td style="padding: 18px 20px; font-weight: 800; color: var(--bg); border-bottom: 1px solid #f1f5f9;">{{ row.user.full_name }}</td>
+                        <td style="padding: 18px 20px; border-bottom: 1px solid #f1f5f9;">
+                            <span class="badge" style="background: {% if row.work_mode == 'WFH' %}var(--success-bg){% else %}var(--p-light){% endif %}; color: {% if row.work_mode == 'WFH' %}var(--success){% else %}var(--p){% endif %}; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 0.7rem;">{{ row.work_mode }}</span>
+                        </td>
+                        <td style="padding: 18px 20px; color: var(--success); font-weight: 900; font-family: monospace; font-size: 1rem; border-bottom: 1px solid #f1f5f9;">{{ row.check_in }}</td>
+                        <td style="padding: 18px 20px; color: var(--p); font-weight: 900; font-family: monospace; font-size: 1rem; border-radius: 0 12px 12px 0; border-bottom: 1px solid #f1f5f9;">{{ row.check_out or '--:--' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>📅 Visual Monthly Calendar</h3>
-        <div id='calendar' style="height: 450px;"></div>
+    <div class="royal-stat-card" style="padding: 30px;">
+        <h3 style="color: var(--bg); font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+            <span>📅</span> Visual Monthly Calendar
+        </h3>
+        <div id='calendar' style="background: white; border-radius: 15px; padding: 10px;"></div>
     </div>
 </div>
 
@@ -96,29 +110,29 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
 <script>
-// --- GEOLOCATION LOGIC (STRICTLY PRESERVED) ---
+// --- GEOLOCATION LOGIC (RETAINED & STRICT) ---
 function getLocation() {
     const indicator = document.getElementById('location-indicator');
     const btn = document.getElementById('submitBtn');
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ Verifying GPS...";
+        indicator.innerText = "🛰️ INITIATING SATELLITE LOCK...";
         navigator.geolocation.getCurrentPosition((pos) => {
             document.getElementById('lat').value = pos.coords.latitude;
             document.getElementById('lon').value = pos.coords.longitude;
-            indicator.innerText = "✅ Location Locked: " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4);
-            indicator.style.color = "#05cd99";
+            indicator.innerText = "✅ POSITION SECURED: " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4);
+            indicator.style.color = "var(--success)";
             btn.disabled = false;
             btn.style.opacity = "1";
             btn.style.cursor = "pointer";
         }, (err) => {
-            indicator.innerText = "❌ Error: Please enable Location Access";
-            indicator.style.color = "#ee5d50";
+            indicator.innerText = "❌ ERROR: GEOLOCATION ACCESS DENIED";
+            indicator.style.color = "var(--danger)";
         });
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- 1. WEEKLY CHART LOGIC (WITH ORANGE WARNINGS) ---
+    // --- 1. WEEKLY CHART LOGIC (RETAINED) ---
     const ctx = document.getElementById('weeklyChart').getContext('2d');
     const labels = [];
     const dataValues = [];
@@ -138,24 +152,25 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endfor %}
 
         dataValues.push(1); 
-        backgroundColors.push(found ? 'rgba(67, 24, 255, 0.8)' : 'rgba(238, 93, 80, 0.8)'); 
+        backgroundColors.push(found ? '#800000' : '#ee5d50'); 
     }
 
     new Chart(ctx, {
         type: 'bar',
-        data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10 }] },
+        data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 8, barThickness: 40 }] },
         options: { 
             responsive: true, 
             maintainAspectRatio: false, 
-            scales: { y: { display: false, max: 1.2 }, x: { grid: { display: false } } },
+            scales: { y: { display: false, max: 1.2 }, x: { grid: { display: false }, border: { display: false } } },
             plugins: { legend: { display: false } }
         }
     });
 
-    // --- 2. FULLCALENDAR LOGIC (WITH ABSENCE MARKING & STAT SYNC) ---
+    // --- 2. FULLCALENDAR LOGIC (RETAINED) ---
     var calendarEl = document.getElementById('calendar');
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev', center: 'title', right: 'next' },
         dayCellDidMount: function(info) {
             let cellDate = info.date.toISOString().split('T')[0];
             let today = new Date().toISOString().split('T')[0];
@@ -168,13 +183,12 @@ document.addEventListener('DOMContentLoaded', function() {
             {% endfor %}
 
             if (!isPresent && !isWeekend && cellDate < today) {
-                // Style the cell
-                info.el.style.backgroundColor = 'rgba(238, 93, 80, 0.1)'; 
+                info.el.style.backgroundColor = 'rgba(238, 93, 80, 0.05)'; 
                 let mark = document.createElement('div');
-                mark.innerHTML = '<span style="background:#ee5d50; color:white; font-size:0.6rem; padding:2px 5px; border-radius:4px; margin-top:5px; display:block; text-align:center;">ABSENT</span>';
-                info.el.appendChild(mark);
+                mark.innerHTML = '<span style="background:var(--danger); color:white; font-size:0.55rem; padding:2px 6px; border-radius:4px; margin-top:5px; display:inline-block; font-weight:900;">ABSENT</span>';
+                mark.style.textAlign = 'center';
+                info.el.querySelector('.fc-daygrid-day-frame').appendChild(mark);
 
-                // Update the Red Stat Card (Monthly Absence)
                 let statCounter = document.getElementById('absent-stat-count');
                 let currentCount = parseInt(statCounter.innerText);
                 let currentMonth = new Date().getMonth();
@@ -188,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             {
                 title: '{{ row.work_mode }}',
                 start: '{{ row.date }}',
-                color: '{% if row.work_mode == "WFH" %}#05cd99{% else %}#4318ff{% endif %}'
+                color: '{% if row.work_mode == "WFH" %}#05cd99{% else %}#800000{% endif %}'
             },
             {% endfor %}
         ]
@@ -198,24 +212,18 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-/* 3D Pulse Effect for Status */
-.pulse-active {
-    background: #05cd99;
-    color: white;
-    animation: pulse-sm 2s infinite;
-}
+/* PRESERVED ANIMATIONS & CALENDAR STYLE */
+.pulse-active { animation: pulse-sm 2s infinite; }
 @keyframes pulse-sm {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 205, 153, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(5, 205, 153, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 205, 153, 0); }
+    0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(5, 205, 153, 0.4); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(5, 205, 153, 0); }
+    100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(5, 205, 153, 0); }
 }
 
-/* Calendar Badge Layout */
-.fc-daygrid-day-frame {
-    display: flex;
-    flex-direction: column;
-    min-height: 80px;
-}
+.fc .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800; color: var(--bg); text-transform: uppercase; letter-spacing: 1px; }
+.fc .fc-button-primary { background-color: var(--bg) !important; border: none !important; text-transform: uppercase; font-size: 0.7rem !important; font-weight: 800 !important; }
+.fc-daygrid-event { border-radius: 4px !important; padding: 2px 5px !important; font-size: 0.65rem !important; font-weight: 800 !important; }
+.fc-daygrid-day-frame { min-height: 70px !important; padding: 5px !important; }
 </style>
 
 {% endblock %}
