@@ -789,7 +789,7 @@ def send_lounge_msg():
 def performance():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    user_role = session.get('role')
+    user_role = session.get('role', '')
     user_id = session.get('user_id')
 
     # --- POST: HANDLE RATING SUBMISSION ---
@@ -799,9 +799,8 @@ def performance():
         
         if user_role == 'Principal':
             allowed = True 
-        elif user_role == 'HOD':
+        elif 'HOD' in user_role: # Updated to catch "HOD - BCA Dept"
             target_user = User.query.get(target_id)
-            # HOD strict check: target must be Faculty
             if target_user and target_user.role == 'Faculty':
                 allowed = True
         
@@ -820,23 +819,18 @@ def performance():
 
     # --- GET: PREPARE DATA FOR UI ---
     
-    # Dropdown Logic
     users_to_rate = []
     if user_role == 'Principal':
-        # Principal sees everyone EXCEPT themselves
         users_to_rate = User.query.filter(User.id != user_id).all() 
-    elif user_role == 'HOD':
-        # HOD strictly sees ONLY Faculty
+    elif 'HOD' in user_role: # Updated logic
         users_to_rate = User.query.filter_by(role='Faculty').all()
 
     # Table View Logic
     if user_role == 'Principal':
         ratings = PerformanceKPI.query.all()
-    elif user_role == 'HOD':
-        # HOD sees history for Faculty only
+    elif 'HOD' in user_role: # Updated logic
         ratings = db.session.query(PerformanceKPI).join(User).filter(User.role == 'Faculty').all()
     else:
-        # Others see only their own data
         ratings = PerformanceKPI.query.filter_by(user_id=user_id).all()
 
     return render_template('performance.html', ratings=ratings, users=users_to_rate)
@@ -1407,6 +1401,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
