@@ -389,7 +389,7 @@ from datetime import datetime, date
 
 @app.route('/leave_calendar')
 def leave_calendar():
-    # 1. Strict Access Control: Only Principal allowed (Removed HR per your instruction)
+    # 1. Strict Access Control: Only Principal allowed
     if session.get('role') != 'Principal':
         return redirect(url_for('dashboard'))
     
@@ -403,32 +403,33 @@ def leave_calendar():
         if isinstance(leave.end_date, str):
             leave.end_date = datetime.strptime(leave.end_date, '%Y-%m-%d').date()
         
+        # Pull the actual role from the user relationship if leave.role is missing
         if not hasattr(leave, 'role') or leave.role is None:
-            leave.role = "Faculty"
+            leave.role = leave.user.role if leave.user else "Staff"
 
-    # 2. IDENTIFY ABSENT & PRESENT FACULTIES
-    # Logic: Get all approved leaves where today falls between start and end date
+    # 2. IDENTIFY ABSENT & PRESENT STAFF (All Roles)
     absent_records = [
         l for l in approved_leaves 
         if l.start_date <= today_date <= l.end_date
     ]
     
-    # Get IDs of people who are absent
     absent_user_ids = [l.user_id for l in absent_records]
-    absent_faculties = [l.user for l in absent_records] # Assuming 'user' relationship exists
+    # Filter out the Principal from the absent list just in case
+    absent_staff = [l.user for l in absent_records if l.user.role != 'Principal']
 
-    # Get all Faculty members who are NOT in the absent list
-    present_faculties = User.query.filter(
-        User.role == 'Faculty',
+    # Get ALL staff (HOD, Faculty, Accountant, Admin) NOT in the absent list
+    # We exclude 'Principal' so the Principal doesn't track themselves
+    present_staff = User.query.filter(
+        User.role != 'Principal',
         User.id.notin_(absent_user_ids) if absent_user_ids else True
     ).all()
 
     return render_template('leave_calendar.html', 
                            leaves=approved_leaves, 
-                           present=present_faculties, 
-                           absent=absent_faculties,
+                           present=present_staff, 
+                           absent=absent_staff,
                            today=today_date)
-
+    
 @app.route('/digital_vault')
 def digital_vault():
     if session.get('role') not in ['HR', 'Principal']:
@@ -1424,6 +1425,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
