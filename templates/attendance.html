@@ -25,7 +25,7 @@
 
 <div class="royal-stat-card" style="margin-bottom: 30px; padding: 30px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-        <h3 style="margin:0; color: var(--bg); font-weight: 800; letter-spacing: -0.5px;">📊 Last 7 Days Performance Matrix</h3>
+        <h3 style="margin:0; color: #4318ff; font-weight: 800; letter-spacing: -0.5px;">📊 Last 7 Days Performance Matrix</h3>
         <div style="display: flex; gap: 15px; align-items: center;">
             <span style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: #64748b;">
                 <div style="width: 10px; height: 10px; background: var(--p); border-radius: 2px;"></div> Present
@@ -49,7 +49,7 @@
                 <small id="location-indicator" style="color: var(--danger); font-weight: 800; margin-top: 8px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;">📍 Location verification required for Office mode</small>
             </div>
             {% if session['role'] == 'HR' %}
-                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn-royal" style="background: var(--bg); color: white; text-decoration: none; font-size: 0.75rem; padding: 10px 20px;">
+                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn-royal" style="background: var(--bg); color: #05cd99; text-decoration: none; font-size: 0.75rem; padding: 10px 20px;">
                     📥 EXPORT DATA
                 </a>
             {% endif %}
@@ -99,7 +99,7 @@
     </div>
 
     <div class="royal-stat-card" style="padding: 30px;">
-        <h3 style="color: var(--bg); font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+        <h3 style="color: #4318ff; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
             <span>📅</span> Visual Monthly Calendar
         </h3>
         <div id='calendar' style="background: white; border-radius: 15px; padding: 10px;"></div>
