@@ -795,19 +795,17 @@ def performance():
     # --- POST: HANDLE RATING SUBMISSION ---
     if request.method == 'POST':
         target_id = request.form['u_id']
-        
-        # Security Check: Who is allowed to rate whom?
         allowed = False
+        
         if user_role == 'Principal':
-            allowed = True # Principal can rate anyone
+            allowed = True 
         elif user_role == 'HOD':
-            # HOD can ONLY rate Faculty. Check the target's role.
             target_user = User.query.get(target_id)
+            # HOD strict check: target must be Faculty
             if target_user and target_user.role == 'Faculty':
                 allowed = True
         
         if allowed:
-            # Create the KPI Record
             new_kpi = PerformanceKPI(
                 user_id=target_id,
                 month=request.form['month'],
@@ -818,25 +816,27 @@ def performance():
             db.session.commit()
             flash('Performance review submitted successfully.', 'success')
         else:
-            flash('You are not authorized to rate this employee.', 'error')
+            flash('Unauthorized: You can only rate Faculty members.', 'error')
 
     # --- GET: PREPARE DATA FOR UI ---
     
-    # 1. Logic for the Dropdown (Who can the logged-in user rate?)
+    # Dropdown Logic
     users_to_rate = []
     if user_role == 'Principal':
-        users_to_rate = User.query.all() # Principal sees Admin, Accountant, HOD, Faculty
+        # Principal sees everyone EXCEPT themselves
+        users_to_rate = User.query.filter(User.id != user_id).all() 
     elif user_role == 'HOD':
-        users_to_rate = User.query.filter_by(role='Faculty').all() # HOD sees Faculty only
+        # HOD strictly sees ONLY Faculty
+        users_to_rate = User.query.filter_by(role='Faculty').all()
 
-    # 2. Logic for the Table (What history can they see?)
+    # Table View Logic
     if user_role == 'Principal':
         ratings = PerformanceKPI.query.all()
     elif user_role == 'HOD':
-        # HOD sees reviews for Faculties (using a Join to filter by role)
+        # HOD sees history for Faculty only
         ratings = db.session.query(PerformanceKPI).join(User).filter(User.role == 'Faculty').all()
     else:
-        # Everyone else sees only their own
+        # Others see only their own data
         ratings = PerformanceKPI.query.filter_by(user_id=user_id).all()
 
     return render_template('performance.html', ratings=ratings, users=users_to_rate)
@@ -1407,6 +1407,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
