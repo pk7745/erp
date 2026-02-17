@@ -116,6 +116,10 @@
                 </select>
             </div>
             <div><label style="font-weight: 800; font-size: 0.8rem;">Department ID</label><input type="text" name="dept_id" class="search-input" style="width:100%;"></div>
+            
+            <div><label style="font-weight: 800; font-size: 0.8rem;">Religion</label><input type="text" name="religion" class="search-input" style="width:100%;"></div>
+            <div><label style="font-weight: 800; font-size: 0.8rem;">Caste</label><input type="text" name="caste" class="search-input" style="width:100%;"></div>
+            
             <div>
                 <label style="font-weight: 800; font-size: 0.8rem;">Monthly Salary (INR)</label>
                 <input type="number" name="salary" id="salaryInput_NEW" class="search-input" style="width:100%;" required oninput="calculateLiveNet('NEW')">
@@ -260,7 +264,7 @@
 </div>
 
 <script>
-/* SKELETON TRANSITION (Preserved) */
+/* SKELETON TRANSITION */
 document.addEventListener("DOMContentLoaded", () => {
     const skeleton = document.getElementById('skeleton-container');
     const content = document.getElementById('real-content');
@@ -278,7 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-/* MODAL LOGIC (Preserved) */
+/* MODAL LOGIC */
 function openPayrollModal(uid, name, salary) {
     document.getElementById('modal_uid').value = uid;
     document.getElementById('modal_salary').value = salary;
@@ -286,7 +290,7 @@ function openPayrollModal(uid, name, salary) {
     document.getElementById('payrollModal').style.display = 'flex';
 }
 
-/* CALCULATION LOGIC (Preserved Exactly) */
+/* CALCULATION LOGIC */
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
@@ -319,12 +323,12 @@ function calculateLiveNet(empId) {
     }
 }
 
-/* INITIALIZE CALCS (Preserved) */
+/* INITIALIZE CALCS */
 document.addEventListener('DOMContentLoaded', () => {
     {% for emp in employees %} calculateLiveNet({{ emp.id }}); {% endfor %}
 });
 
-/* SEARCH LOGIC (Preserved) */
+/* SEARCH LOGIC */
 document.getElementById('directorySearch').addEventListener('keyup', function() {
     let filter = this.value.toLowerCase();
     document.querySelectorAll('#directoryTable tr').forEach(row => {
