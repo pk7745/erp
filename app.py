@@ -322,22 +322,35 @@ def activity_room():
     
     user = User.query.get(session['user_id'])
     
-    # Inbox: Tasks assigned to the logged-in user
+    # --- 1. EXISTING: Inbox (Tasks assigned to me) ---
     my_tasks = Task.query.filter_by(assigned_to=user.id).all()
     
-    # Dropdown Categories
-    # Everyone except the Principal themselves
+    # --- 2. EXISTING: Dropdown Categories ---
     all_staff = User.query.filter(User.role != 'Principal').all()
-    
-    # Only those with role 'Faculty'
     faculty_members = User.query.filter_by(role='Faculty').all()
 
+    # --- 3. NEW: Live Monitoring Feed (Principal & HODs) ---
+    # Principal sees all tasks in the system. 
+    # HOD sees tasks they have issued.
+    global_feed = []
+    if user.role == 'Principal':
+        global_feed = Task.query.order_by(Task.id.desc()).all()
+    elif 'HOD' in user.role:
+        global_feed = Task.query.filter_by(assigned_by=user.id).order_by(Task.id.desc()).all()
+
+    # --- 4. EXISTING: Performance Data ---
+    labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    growth_data = [0]*7
+
+    # Strictly maintaining your render_template call with added global_feed
     return render_template('activity.html', 
+                           user=user,
                            my_tasks=my_tasks, 
+                           global_feed=global_feed,
                            all_staff=all_staff, 
                            faculty_members=faculty_members,
-                           labels=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                           growth_data=[0]*7)
+                           labels=labels,
+                           growth_data=growth_data)
     
 @app.route('/assign_task', methods=['POST'])
 def assign_task():
@@ -1348,6 +1361,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
