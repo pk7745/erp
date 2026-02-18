@@ -440,7 +440,7 @@ def view_timetable():
         view_id = selected_faculty_id if selected_faculty_id else user.id
     elif 'HOD' in user.role:
         # HOD sees himself and his department faculty
-        staff_list = User.query.filter_by(department=user.department, role='Faculty').all()
+        staff_list = User.query.filter_by(role='Faculty').all()
         view_id = selected_faculty_id if selected_faculty_id else user.id
     else:
         # Regular Faculty only sees themselves
@@ -1649,6 +1649,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
