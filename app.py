@@ -13,6 +13,7 @@ import qrcode  # Ensure you run 'pip install qrcode'
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1598,6 +1599,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
