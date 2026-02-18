@@ -322,27 +322,26 @@ def activity_room():
     
     user = User.query.get(session['user_id'])
     
-    # --- 1. EXISTING: Inbox (Tasks assigned to me) ---
-    my_tasks = Task.query.filter_by(assigned_to=user.id).all()
+    # 1. Inbox: Tasks assigned TO the logged-in user (HR/Admin will see their commands here)
+    my_tasks = Task.query.filter_by(assigned_to=user.id).order_by(Task.id.desc()).all()
     
-    # --- 2. EXISTING: Dropdown Categories ---
+    # 2. Dropdown Data
     all_staff = User.query.filter(User.role != 'Principal').all()
     faculty_members = User.query.filter_by(role='Faculty').all()
 
-    # --- 3. NEW: Live Monitoring Feed (Principal & HODs) ---
-    # Principal sees all tasks in the system. 
-    # HOD sees tasks they have issued.
+    # 3. Live Monitoring Feed
     global_feed = []
     if user.role == 'Principal':
+        # Principal sees everything
         global_feed = Task.query.order_by(Task.id.desc()).all()
-    elif 'HOD' in user.role:
+    elif user.role and 'HOD' in user.role:
+        # HOD sees only what they issued
         global_feed = Task.query.filter_by(assigned_by=user.id).order_by(Task.id.desc()).all()
+    # Note: HR/Admin will have global_feed = [] as they don't monitor others
 
-    # --- 4. EXISTING: Performance Data ---
     labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     growth_data = [0]*7
 
-    # Strictly maintaining your render_template call with added global_feed
     return render_template('activity.html', 
                            user=user,
                            my_tasks=my_tasks, 
@@ -358,30 +357,44 @@ def assign_task():
     
     sender = User.query.get(session['user_id'])
     target_id = request.form.get('staff_id')
-    target_user = User.query.get(target_id)
     title = request.form.get('title')
 
-    # THE LOGIC RULES:
+    # SAFETY CHECK: If no staff selected, don't crash
+    if not target_id:
+        # flash("Please select a staff member", "error")
+        return redirect(url_for('activity_room'))
+
+    target_user = User.query.get(target_id)
+    if not target_user:
+        return redirect(url_for('activity_room'))
+
     can_assign = False
     
-    # 1. Principal can command EVERYONE (Admin, Accountant, HOD, Faculty)
+    # 1. Principal can command EVERYONE
     if sender.role == 'Principal':
         can_assign = True
     
-    # 2. HOD can command ONLY Faculty
-    elif 'HOD' in sender.role and target_user.role == 'Faculty':
-        can_assign = True
+    # 2. HOD can command ONLY Faculty (Safely check role)
+    elif sender.role and 'HOD' in sender.role:
+        if target_user.role == 'Faculty':
+            can_assign = True
 
     if can_assign:
-        new_task = Task(
-            title=title,
-            assigned_to=target_id,  # The staff receiving the task
-            assigned_by=sender.id,   # The Principal or HOD
-            user_id=target_id,       # So it shows on the staff's dashboard
-            status='Pending'
-        )
-        db.session.add(new_task)
-        db.session.commit()
+        try:
+            new_task = Task(
+                title=title,
+                assigned_to=target_id,
+                assigned_by=sender.id,
+                user_id=target_id, # Linking to the receiver
+                status='Pending',
+                is_done=False # Ensure default value
+            )
+            db.session.add(new_task)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Database Error: {e}") # This will show in your terminal
+            return "Database Error", 500
     
     return redirect(url_for('activity_room'))
     
@@ -1425,6 +1438,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
