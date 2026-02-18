@@ -411,6 +411,68 @@ def view_audit_logs():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
 
+@app.route('/timetable', methods=['GET'])
+@login_required
+def view_timetable():
+    user = User.query.get(session['user_id'])
+    selected_faculty_id = request.args.get('faculty_id', type=int)
+    
+    # 1. PERMISSION LOGIC
+    if user.role == 'Principal':
+        # Principal sees everyone (HOD + Faculty)
+        staff_list = User.query.filter(User.role.in_(['Faculty', 'HOD - BCA Dept'])).all()
+        view_id = selected_faculty_id if selected_faculty_id else user.id
+    elif 'HOD' in user.role:
+        # HOD sees himself and his department faculty
+        staff_list = User.query.filter_by(department=user.department, role='Faculty').all()
+        view_id = selected_faculty_id if selected_faculty_id else user.id
+    else:
+        # Regular Faculty only sees themselves
+        staff_list = []
+        view_id = user.id
+
+    # 2. FETCH DATA & CHART LOGIC
+    target_user = User.query.get(view_id)
+    timetable_entries = Timetable.query.filter_by(user_id=view_id).order_by(Timetable.day).all()
+    
+    # Chart Data: Held vs Missed
+    held_count = Timetable.query.filter_by(user_id=view_id, status='held').count()
+    missed_count = Timetable.query.filter_by(user_id=view_id, status='missed').count()
+    pending_count = Timetable.query.filter_by(user_id=view_id, status='pending').count()
+
+    # 3. FREE HOUR LOGIC (Simplified)
+    # Define standard slots
+    all_slots = ['09:00 AM-10:00 AM', '10:30 AM-11:30 AM', '11:30 AM-12:30 PM', '12:30 PM-01:30 PM', '02:00 PM-03:00 PM']
+    busy_slots = [t.time_slot for t in timetable_entries]
+    free_slots = [slot for slot in all_slots if slot not in busy_slots]
+
+    return render_template('timetable.html', 
+                           user=user,
+                           target_user=target_user,
+                           timetable=timetable_entries, 
+                           staff_list=staff_list,
+                           free_slots=free_slots,
+                           chart_data=[held_count, missed_count, pending_count])
+
+@app.route('/timetable/manage', methods=['POST'])
+def manage_timetable():
+    if request.form.get('action') == 'add':
+        new_class = Timetable(
+            day=request.form.get('day'),
+            time_slot=request.form.get('time'),
+            subject=request.form.get('subject'),
+            semester=request.form.get('semester'),
+            user_id=request.form.get('faculty_id') # Can be self or assigned by HOD
+        )
+        db.session.add(new_class)
+    
+    elif request.form.get('action') == 'delete':
+        class_id = request.form.get('class_id')
+        Timetable.query.filter_by(id=class_id).delete()
+        
+    db.session.commit()
+    return redirect(url_for('view_timetable'))
+    
 @app.route('/activity_room')
 def activity_room():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -1536,6 +1598,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
