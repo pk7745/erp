@@ -2,157 +2,212 @@
 {% block content %}
 
 <style>
-    /* Removing redundant old styles to let the Master CSS take over */
+    :root {
+        --royal-maroon: #4a0404;
+        --deep-wine: #2d0202;
+        --gold-primary: #d4af37;
+        --gold-glow: #ffdf00;
+        --text-bright: #ffffff;
+        --text-muted: #e0cc9d;
+    }
+
+    /* Royal Dark Container Styles */
+    .activity-container {
+        background: var(--deep-wine);
+        border-radius: 24px;
+        padding: 30px;
+        border: 1px solid var(--gold-primary);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        color: white;
+    }
+
     .section-title {
-        font-size: 1.25rem;
-        font-weight: 800;
-        letter-spacing: -0.025em;
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: -0.5px;
         margin-bottom: 24px;
         display: flex;
         align-items: center;
         gap: 12px;
+        color: var(--gold-primary);
+        text-transform: uppercase;
     }
 
-    /* Task Bubbles - Refined for Royal Glass */
+    /* Task Bubbles - Royal Dark */
     .task-bubble {
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(0,0,0,0.05);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(212, 175, 55, 0.3);
         border-radius: 16px;
         padding: 20px;
         margin-bottom: 16px;
-        border-left: 6px solid var(--p);
-        box-shadow: var(--shadow-sm);
-        transition: transform 0.3s ease;
+        border-left: 5px solid var(--gold-primary);
+        transition: 0.3s;
     }
-    .task-bubble:hover { transform: translateX(5px); }
+    .task-bubble:hover { 
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+        border-color: var(--gold-glow);
+    }
 
     .task-meta {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: var(--text-muted);
         margin-top: 8px;
         display: block;
-        font-weight: 500;
+        font-weight: 600;
     }
 
-    .premium-label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: block; }
+    /* Forms & Inputs */
+    input, select, textarea {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid var(--gold-primary) !important;
+        color: white !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        margin-bottom: 15px !important;
+    }
 
-    /* History & Feed Specifics */
-    .feed-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+    .premium-label { 
+        font-size: 0.75rem; 
+        font-weight: 900; 
+        color: var(--gold-primary); 
+        margin-bottom: 8px; 
+        display: block; 
+        text-transform: uppercase;
+    }
+
+    /* History & Feed */
+    .feed-table { width: 100%; border-collapse: collapse; }
+    .feed-table th { 
+        text-align: left; 
+        color: var(--gold-primary); 
+        padding: 15px; 
+        font-size: 0.8rem; 
+        text-transform: uppercase;
+        border-bottom: 2px solid var(--gold-primary);
+    }
+    .feed-table td { padding: 15px; border-bottom: 1px solid rgba(212, 175, 55, 0.1); }
+
     .history-item { 
         padding: 16px; 
         border-radius: 12px; 
-        background: rgba(255,255,255,0.5); 
+        background: rgba(255, 255, 255, 0.03); 
         margin-bottom: 12px; 
-        border: 1px solid rgba(0,0,0,0.03); 
+        border: 1px solid rgba(212, 175, 55, 0.2); 
     }
+
     .history-reply { 
         font-size: 0.85rem; 
-        color: #475569; 
-        background: var(--p-light); 
-        padding: 10px 14px; 
+        color: white; 
+        background: var(--royal-maroon); 
+        padding: 12px; 
         border-radius: 8px; 
         margin-top: 10px; 
-        border-left: 3px solid var(--p); 
+        border-left: 3px solid var(--gold-primary);
+        font-style: italic;
     }
     
-    /* Scrollbar for long lists */
-    .scroll-container { max-height: 450px; overflow-y: auto; padding-right: 8px; }
+    .scroll-container { max-height: 480px; overflow-y: auto; padding-right: 8px; }
+    .scroll-container::-webkit-scrollbar { width: 5px; }
+    .scroll-container::-webkit-scrollbar-thumb { background: var(--gold-primary); border-radius: 10px; }
+
+    .btn-royal {
+        background: var(--gold-primary);
+        color: var(--royal-maroon);
+        font-weight: 900;
+        text-transform: uppercase;
+        border: none;
+        transition: 0.3s;
+    }
+    .btn-royal:hover { background: var(--gold-glow); transform: translateY(-2px); }
 </style>
 
-<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 40px 20px;">
-    
+<div class="activity-container">
     <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 35px;">
         
-        <div class="animate-enter delay-1">
+        <div class="animate-enter">
             {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-            <div class="card" style="border-top: 4px solid var(--p);">
-                <div class="section-title" style="color: var(--p);">
-                    <i class="fas fa-paper-plane"></i> 📤 Delegate Task
+            <div class="task-bubble" style="border-top: 4px solid var(--gold-primary); background: var(--royal-maroon);">
+                <div class="section-title">
+                    <i class="fas fa-paper-plane"></i> 📤 Issue Command
                 </div>
                 <form action="{{ url_for('assign_task') }}" method="POST">
-                    <span class="premium-label">OBJECTIVE</span>
-                    <input type="text" name="title" placeholder="Enter task instructions..." required>
+                    <span class="premium-label">Strategic Objective</span>
+                    <input type="text" name="title" style="width: 100%;" placeholder="Describe the required action..." required>
                     
-                    <span class="premium-label">ASSIGN TO</span>
-                    <select name="staff_id" required>
-                        <option value="" disabled selected>Select Staff Member...</option>
+                    <span class="premium-label">Assign To Personnel</span>
+                    <select name="staff_id" style="width: 100%;" required>
+                        <option value="" disabled selected>Search Staff...</option>
                         {% if session['role'] == 'Principal' %}
-                        <optgroup label="Management & Administration">
-                            {% for u in all_staff if u.role != 'Principal' %}
+                            {% for u in all_staff %}
                                 <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role }})</option>
                             {% endfor %}
-                        </optgroup>
-                        {% endif %}
-
-                        {% if 'HOD' in session['role'] %}
-                        <optgroup label="Your Department Faculty">
+                        {% elif 'HOD' in session['role'] %}
                             {% for faculty in faculty_members %}
                                 <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
                             {% endfor %}
-                        </optgroup>
                         {% endif %}
                     </select>
                     
-                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 50px; font-size: 1rem;">
-                        Issue Command
+                    <button type="submit" class="btn btn-royal" style="width: 100%; padding: 15px; margin-top: 10px;">
+                        Execute Dispatch
                     </button>
                 </form>
             </div>
             {% endif %}
 
-            <div class="card">
-                <div class="section-title" style="color: var(--info);">
-                    <i class="fas fa-inbox"></i> 📥 My Assignments
+            <div class="task-bubble" style="background: rgba(0,0,0,0.2);">
+                <div class="section-title" style="color: #00ffcc;">
+                    <i class="fas fa-inbox"></i> 📥 Assigned to Me
                 </div>
-                {% for task in my_tasks if not task.is_done %}
-                <div class="task-bubble">
-                    <div style="font-weight: 700; font-size: 1rem; color: var(--text-main);">{{ task.title }}</div>
-                    <span class="task-meta">From: <span style="color: var(--p);">{{ task.task_sender.full_name if task.task_sender else 'Principal' }}</span></span>
-                    
-                    <form action="{{ url_for('complete_task', id=task.id) }}" method="POST">
-                        <textarea name="reply" rows="3" placeholder="Type your work report or reply here..." required></textarea>
-                        <button type="submit" class="btn" style="background: var(--success); width: 100%; margin-top: 10px;">
-                             Submit Work & Complete
-                        </button>
-                    </form>
+                <div class="scroll-container">
+                    {% for task in my_tasks if not task.is_done %}
+                    <div class="history-item" style="border-left: 4px solid #00ffcc;">
+                        <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 5px;">{{ task.title }}</div>
+                        <span class="task-meta">Origin: <span style="color: var(--gold-primary);">{{ task.task_sender.full_name if task.task_sender else 'System/Principal' }}</span></span>
+                        
+                        <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="margin-top: 15px;">
+                            <textarea name="reply" rows="2" style="width: 100%;" placeholder="Provide execution report..." required></textarea>
+                            <button type="submit" class="btn" style="background: #00ffcc; color: black; font-weight: 800; width: 100%;">
+                                Mark as Accomplished
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 30px 0; color: var(--text-muted);">
+                        <i class="fas fa-check-circle" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
+                        All objectives met.
+                    </div>
+                    {% endfor %}
                 </div>
-                {% else %}
-                <div style="text-align: center; padding: 40px 0;">
-                    <div style="font-size: 3rem; margin-bottom: 10px;">✨</div>
-                    <p style="color: var(--text-muted); font-weight: 500;">No pending assignments.</p>
-                </div>
-                {% endfor %}
             </div>
         </div>
 
-        <div class="animate-enter delay-2">
-            <div class="card stat-office">
-                <div class="section-title" style="color: white;">
-                    <i class="fas fa-chart-line"></i> Performance Metrics
+        <div class="animate-enter">
+            <div class="task-bubble" style="background: var(--royal-maroon);">
+                <div class="section-title" style="color: white; margin-bottom: 15px;">
+                    <i class="fas fa-chart-line"></i> Efficiency Metrics
                 </div>
-                <canvas id="growthChart" style="max-height: 280px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));"></canvas>
+                <canvas id="growthChart" style="max-height: 200px;"></canvas>
             </div>
 
-            <div class="card">
-                <div class="section-title" style="color: var(--success);">
-                    <i class="fas fa-history"></i> Completed & Replied
+            <div class="task-bubble" style="background: rgba(0,0,0,0.2);">
+                <div class="section-title" style="color: var(--gold-primary);">
+                    <i class="fas fa-history"></i> Command History
                 </div>
                 <div class="scroll-container">
                     {% for task in my_tasks if task.is_done %}
                     <div class="history-item">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">{{ task.title }}</span>
-                            <span class="badge badge-wfh">DONE</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; font-size: 0.95rem;">{{ task.title }}</span>
+                            <span style="color: #00ffcc; font-size: 0.7rem; font-weight: 900;">✓ SECURED</span>
                         </div>
                         {% if task.reply_content %}
-                        <div class="history-reply">
-                            <strong>Your Submission:</strong><br>
-                            {{ task.reply_content }}
-                        </div>
+                        <div class="history-reply">{{ task.reply_content }}</div>
                         {% endif %}
                     </div>
-                    {% else %}
-                    <p style="text-align: center; color: var(--text-muted); padding: 20px;">No completed tasks in history.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -160,54 +215,46 @@
     </div>
 
     {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-    <div class="animate-enter delay-3">
-        <div class="card" style="margin-top: 10px; border-top: 4px solid var(--gold);">
-            <div class="section-title">
-                <i class="fas fa-broadcast-tower" style="color: var(--danger);"></i> Live Staff Submissions Feed
-            </div>
-            <div style="overflow-x: auto;">
-                <table class="feed-table">
-                    <thead>
-                        <tr>
-                            <th>Recipient</th>
-                            <th>Task Objective</th>
-                            <th>Status</th>
-                            <th>Submission / Reply</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for task in global_feed %}
-                        <tr>
-                            <td>
-                                <div style="font-weight: 700; color: var(--text-main);">{{ task.task_receiver.full_name }}</div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">{{ task.task_receiver.role }}</div>
-                            </td>
-                            <td style="color: #475569; font-weight: 500;">{{ task.title }}</td>
-                            <td>
-                                {% if task.is_done %}
-                                    <span class="badge badge-wfh">COMPLETED</span>
-                                {% else %}
-                                    <span class="badge badge-office">WAITING</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if task.reply_content %}
-                                    <div class="history-reply" style="margin: 0;">
-                                        "{{ task.reply_content }}"
-                                    </div>
-                                {% else %}
-                                    <span style="color: #cbd5e1; font-style: italic; font-size: 0.8rem;">Pending reply...</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted);">No system-wide activity found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <div class="task-bubble" style="margin-top: 25px; background: rgba(0,0,0,0.3); border: 1px solid var(--gold-primary);">
+        <div class="section-title">
+            <i class="fas fa-broadcast-tower" style="color: #ff4d4d;"></i> Live Command Monitoring
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="feed-table">
+                <thead>
+                    <tr>
+                        <th>Personnel</th>
+                        <th>Objective</th>
+                        <th>Status</th>
+                        <th>Latest Report</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in global_feed %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 800; color: white;">{{ task.task_recipient.full_name if task.task_recipient else 'Staff member' }}</div>
+                            <div style="font-size: 0.65rem; color: var(--gold-primary); font-weight: 800;">{{ task.task_recipient.role if task.task_recipient else 'STAFF' }}</div>
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ task.title }}</td>
+                        <td>
+                            {% if task.is_done %}
+                                <span style="color: #00ffcc; font-weight: 900; font-size: 0.7rem;">● COMPLETED</span>
+                            {% else %}
+                                <span style="color: #ff4d4d; font-weight: 900; font-size: 0.7rem;">● IN PROGRESS</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.reply_content %}
+                                <div class="history-reply" style="margin: 0; font-size: 0.75rem;">"{{ task.reply_content }}"</div>
+                            {% else %}
+                                <span style="color: rgba(255,255,255,0.2); font-style: italic; font-size: 0.75rem;">Awaiting report...</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
@@ -221,24 +268,22 @@
         data: {
             labels: {{ labels|tojson }},
             datasets: [{
-                label: 'Tasks Completed',
+                label: 'Efficiency',
                 data: {{ growth_data|tojson }},
-                borderColor: '#D4AF37', /* Gold line for Royal look */
+                borderColor: '#d4af37',
                 backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                borderWidth: 4,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#800000',
-                pointRadius: 6,
-                fill: true,
-                tension: 0.4
+                borderWidth: 3,
+                pointRadius: 4,
+                tension: 0.4,
+                fill: true
             }]
         },
-        options: { 
+        options: {
             responsive: true,
             plugins: { legend: { display: false } },
-            scales: { 
-                y: { grid: { color: 'rgba(255,255,255,0.1)' }, beginAtZero: true, ticks: {color: '#ffffff'} }, 
-                x: { grid: { display: false }, ticks: {color: '#ffffff'} } 
+            scales: {
+                y: { grid: { color: 'rgba(212, 175, 55, 0.1)' }, ticks: { color: '#e0cc9d' } },
+                x: { grid: { display: false }, ticks: { color: '#e0cc9d' } }
             }
         }
     });
