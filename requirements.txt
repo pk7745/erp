@@ -9,6 +9,8 @@ fpdf
 qrcode
 pillow
 pytesseract
+flask-login
+
 
 
 
