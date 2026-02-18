@@ -21,6 +21,7 @@ from fpdf import FPDF
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
 from datetime import datetime
+from flask_login import logout_user
 
 app = Flask(__name__)
 
@@ -61,7 +62,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v26.db'
+db_name = 'bms_college_v27.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -1249,8 +1250,17 @@ def get_stats():
 
 @app.route('/logout')
 def logout():
-    log_action("User Logged Out") # Records the logout
-    session.clear(); return redirect(url_for('login'))
+    # 1. Record the logout action (Your existing logic)
+    log_action("User Logged Out") 
+    
+    # 2. THE FIX: Log out from the Flask-Login system 
+    # This clears current_user and the remember_me cookies
+    logout_user() 
+    
+    # 3. Clear your manual session variables (name, role, user_id)
+    session.clear() 
+    
+    return redirect(url_for('login'))
 
 @app.route('/principal_request_salary/<int:uid>', methods=['POST'])
 def principal_request_salary(uid):
@@ -1626,6 +1636,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
