@@ -471,32 +471,45 @@ def view_timetable():
                            chart_data=[held_count, missed_count, pending_count])
 
 @app.route('/timetable/manage', methods=['POST'])
+@login_required
 def manage_timetable():
     action = request.form.get('action')
-    
+    faculty_id = request.form.get('faculty_id') # For redirection
+
     if action == 'add':
         new_class = Timetable(
             day=request.form.get('day'),
             time_slot=request.form.get('time'),
             subject=request.form.get('subject'),
             semester=request.form.get('semester'),
-            user_id=request.form.get('faculty_id')
+            user_id=faculty_id,
+            status='pending' # Default status
         )
         db.session.add(new_class)
-    
+
+    elif action == 'update_session': # NEW: Edit Logic
+        class_id = request.form.get('class_id')
+        entry = Timetable.query.get(class_id)
+        if entry:
+            entry.day = request.form.get('day')
+            entry.time_slot = request.form.get('time')
+            entry.subject = request.form.get('subject')
+            entry.semester = request.form.get('semester')
+
     elif action == 'update_status':
         class_id = request.form.get('class_id')
         new_status = request.form.get('status')
         entry = Timetable.query.get(class_id)
         if entry:
             entry.status = new_status
-    
+
     elif action == 'delete':
         class_id = request.form.get('class_id')
         Timetable.query.filter_by(id=class_id).delete()
         
     db.session.commit()
-    return redirect(url_for('view_timetable', faculty_id=request.form.get('faculty_id')))
+    # Redirect back to the faculty being viewed
+    return redirect(url_for('view_timetable', faculty_id=faculty_id))
     
 @app.route('/activity_room')
 def activity_room():
@@ -1636,6 +1649,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
