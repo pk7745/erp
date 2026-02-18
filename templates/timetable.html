@@ -3,90 +3,179 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<div class="container-fluid">
+<style>
+    :root {
+        --royal-maroon: #2d000f;
+        --deep-wine: #4a001a;
+        --gold-glow: rgba(212, 175, 55, 0.4);
+    }
+
+    .glass-card {
+        background: rgba(45, 0, 15, 0.95);
+        border: 1px solid var(--gold-primary);
+        border-radius: 15px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), 0 0 15px var(--gold-glow);
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+
+    .premium-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    .premium-table thead tr {
+        background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.15), transparent);
+        color: var(--gold-primary);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .premium-table tbody tr {
+        background: rgba(255, 255, 255, 0.04);
+        transition: all 0.3s ease;
+        border-radius: 10px;
+    }
+
+    .premium-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: scale(1.01);
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .premium-table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-top: 1px solid rgba(212, 175, 55, 0.1);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    }
+
+    .premium-table td:first-child { border-left: 1px solid rgba(212, 175, 55, 0.1); border-radius: 10px 0 0 10px; }
+    .premium-table td:last-child { border-right: 1px solid rgba(212, 175, 55, 0.1); border-radius: 0 10px 10px 0; }
+
+    .status-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+
+    .action-btn {
+        width: 35px;
+        height: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* Input focus glow for Royal look */
+    .form-control:focus {
+        background: #000;
+        border-color: var(--gold-primary);
+        box-shadow: 0 0 10px var(--gold-glow);
+        color: white;
+    }
+</style>
+
+<div class="container-fluid py-4">
     <div class="row">
-        <div class="col-md-4">
-            <div class="card-royal" style="border: 1px solid var(--gold-primary); background: rgba(45, 0, 15, 0.9);">
-                <h4 style="color: var(--gold-primary); text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);">Performance Analytics</h4>
-                <canvas id="performanceChart"></canvas>
+        <div class="col-xl-3 col-lg-4">
+            <div class="glass-card text-center">
+                <h5 style="color: var(--gold-primary); margin-bottom: 20px;">Faculty Performance</h5>
+                <div style="position: relative; height: 250px;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
                 
-                <hr style="border-color: var(--gold-primary); opacity: 0.3;">
+                <hr style="border-color: rgba(212, 175, 55, 0.2);">
                 
                 {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
-                <form method="GET" action="/timetable">
-                    <label style="color: var(--gold-primary); font-weight: bold;">View Faculty Schedule:</label>
-                    <select name="faculty_id" class="form-control mb-3" onchange="this.form.submit()" 
-                            style="background: #1a000a; color: white; border: 1px solid var(--gold-primary);">
-                        <option value="{{ user.id }}">My Own Timetable</option>
-                        {% for staff in staff_list %}
-                        <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>
-                            {{ staff.full_name }} ({{ staff.role }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </form>
+                <div class="text-left">
+                    <label style="color: var(--gold-primary); font-size: 0.9rem;">Select Staff Member</label>
+                    <form method="GET" action="/timetable">
+                        <select name="faculty_id" class="form-control mb-4" onchange="this.form.submit()" 
+                                style="background: #120007; color: white; border: 1px solid var(--gold-primary); border-radius: 8px;">
+                            <option value="{{ user.id }}">-- My Personal Schedule --</option>
+                            {% for staff in staff_list %}
+                                <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>
+                                    {{ staff.full_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
                 {% endif %}
 
-                <div class="alert alert-info" style="background: rgba(212, 175, 55, 0.05); border: 1px solid var(--gold-primary);">
-                    <h6 style="color: var(--gold-primary); font-weight: bold;">✨ Free Hours Today</h6>
-                    <ul class="small" style="color: #e0e0e0; list-style: none; padding-left: 0;">
+                <div style="background: rgba(212, 175, 55, 0.05); border-radius: 12px; padding: 15px; border: 1px dashed var(--gold-primary);">
+                    <h6 style="color: var(--gold-primary); font-size: 0.85rem;"><i class="fas fa-bolt"></i> FREE SLOTS TODAY</h6>
+                    <div class="d-flex flex-wrap justify-content-center">
                         {% for slot in free_slots %}
-                        <li class="mb-1"><i class="fas fa-clock mr-2" style="color: var(--gold-primary);"></i> {{ slot }} - <span class="badge" style="background: var(--gold-primary); color: #000;">Available</span></li>
+                            <span class="badge m-1" style="background: rgba(212, 175, 55, 0.1); color: var(--gold-primary); border: 1px solid var(--gold-primary);">{{ slot.split(' ')[0] }}</span>
                         {% endfor %}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8">
-            <div class="card-royal" style="border: 1px solid var(--gold-primary); background: rgba(45, 0, 15, 0.9);">
+        <div class="col-xl-9 col-lg-8">
+            <div class="glass-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 style="color: white;">Schedule for <span style="color: var(--gold-primary);">{{ target_user.full_name }}</span></h3>
-                    <button class="btn-royal" data-toggle="modal" data-target="#addClassModal" 
-                            style="background: linear-gradient(45deg, var(--deep-wine), #4a001a); border: 1px solid var(--gold-primary);">
-                        <i class="fas fa-plus mr-2"></i>Add/Assign Class
+                    <div>
+                        <h2 style="color: white; margin: 0;">Weekly <span style="color: var(--gold-primary);">Schedule</span></h2>
+                        <p class="text-muted mb-0">Currently viewing: {{ target_user.full_name }}</p>
+                    </div>
+                    <button class="btn-royal px-4 py-2" data-toggle="modal" data-target="#addClassModal">
+                        <i class="fas fa-plus-circle mr-2"></i>New Assignment
                     </button>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="staff-table-dark mt-2" style="width: 100%; border-collapse: separate; border-spacing: 0 8px;">
+                    <table class="premium-table">
                         <thead>
-                            <tr style="background: rgba(212, 175, 55, 0.1); color: var(--gold-primary);">
-                                <th class="p-3">Day</th>
-                                <th class="p-3">Time</th>
-                                <th class="p-3">Subject & Status</th>
-                                <th class="p-3 text-center">Actions</th>
+                            <tr>
+                                <th>Day & Time</th>
+                                <th>Course Details</th>
+                                <th>Status</th>
+                                <th class="text-center">Operations</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in timetable %}
-                            <tr style="background: rgba(255, 255, 255, 0.03); transition: 0.3s;">
-                                <td class="p-3" style="border-left: 3px solid var(--gold-primary);">{{ item.day }}</td>
-                                <td class="p-3">{{ item.time_slot }}</td>
-                                <td class="p-3">
-                                    <div style="font-weight: bold; color: white;">{{ item.subject }} ({{ item.semester }})</div>
+                            <tr>
+                                <td style="width: 200px;">
+                                    <div style="color: var(--gold-primary); font-weight: bold;">{{ item.day }}</div>
+                                    <div class="small text-white-50">{{ item.time_slot }}</div>
+                                </td>
+                                <td>
+                                    <div style="color: white; font-size: 1.1rem;">{{ item.subject }}</div>
+                                    <div class="small" style="color: var(--gold-primary);">{{ item.semester }}</div>
+                                </td>
+                                <td>
                                     {% if item.status == 'held' %}
-                                        <span class="badge" style="background: #28a745; color: white; font-size: 0.7rem;">✓ CLASS HELD</span>
+                                        <span class="status-pill" style="background: rgba(40, 167, 69, 0.2); color: #2ecc71; border: 1px solid #2ecc71;">HELD</span>
                                     {% elif item.status == 'missed' %}
-                                        <span class="badge" style="background: #dc3545; color: white; font-size: 0.7rem;">✗ MISSED</span>
+                                        <span class="status-pill" style="background: rgba(220, 53, 69, 0.2); color: #e74c3c; border: 1px solid #e74c3c;">MISSED</span>
                                     {% else %}
-                                        <span class="badge" style="background: var(--gold-primary); color: #000; font-size: 0.7rem;">PENDING</span>
+                                        <span class="status-pill" style="background: rgba(212, 175, 55, 0.1); color: var(--gold-primary); border: 1px solid var(--gold-primary);">PENDING</span>
                                     {% endif %}
                                 </td>
-                                <td class="p-3">
-                                    <div class="d-flex justify-content-center align-items-center">
-                                        <button class="btn btn-sm mr-1" title="Edit Session" data-toggle="modal" data-target="#editModal{{ item.id }}"
-                                                style="background: rgba(212, 175, 55, 0.2); border: 1px solid var(--gold-primary); color: var(--gold-primary);">
-                                            <i class="fas fa-edit"></i>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center">
+                                        <button class="action-btn mr-2" style="background: rgba(212, 175, 55, 0.1); color: var(--gold-primary); border: 1px solid var(--gold-primary);" data-toggle="modal" data-target="#editModal{{ item.id }}">
+                                            <i class="fas fa-pen-nib"></i>
                                         </button>
-
+                                        
                                         <form action="/timetable/manage" method="POST" class="mr-1">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
-                                            <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
                                             <input type="hidden" name="status" value="held">
-                                            <button type="submit" class="btn btn-sm" title="Mark as Held" 
-                                                    style="background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; color: #28a745;">
+                                            <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
+                                            <button type="submit" class="action-btn" style="background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid #2ecc71;">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
@@ -94,10 +183,9 @@
                                         <form action="/timetable/manage" method="POST" class="mr-1">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
-                                            <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
                                             <input type="hidden" name="status" value="missed">
-                                            <button type="submit" class="btn btn-sm" title="Mark as Missed" 
-                                                    style="background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #dc3545;">
+                                            <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
+                                            <button type="submit" class="action-btn" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c;">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </form>
@@ -106,46 +194,52 @@
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
-                                                    style="border-color: rgba(255, 75, 75, 0.5); font-size: 0.75rem;">
-                                                Remove
+                                            <button type="submit" class="action-btn" style="background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2);" onclick="return confirm('Archive this record?')">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
 
-                            <div class="modal fade" id="editModal{{ item.id }}" tabindex="-1">
+                            <div class="modal fade" id="editModal{{ item.id }}">
                                 <div class="modal-dialog">
-                                    <div class="modal-content" style="background: #1a000a; border: 2px solid var(--gold-primary);">
-                                        <div class="modal-header" style="border-bottom: 1px solid var(--gold-primary);">
-                                            <h5 class="modal-title" style="color: var(--gold-primary); font-weight: bold;">Edit Session</h5>
-                                            <button type="button" class="close" data-dismiss="modal" style="color: white;">&times;</button>
-                                        </div>
+                                    <div class="modal-content" style="background: #1a000a; border: 2px solid var(--gold-primary); border-radius: 15px;">
                                         <form action="/timetable/manage" method="POST">
+                                            <div class="modal-header" style="border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                                                <h5 class="modal-title" style="color: var(--gold-primary);">Refine Session Details</h5>
+                                                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                                            </div>
                                             <div class="modal-body">
                                                 <input type="hidden" name="action" value="update_session">
                                                 <input type="hidden" name="class_id" value="{{ item.id }}">
                                                 <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-
-                                                <label style="color: white;">Day:</label>
-                                                <select name="day" class="form-control mb-2" style="background: #000; color: white; border: 1px solid #444;">
-                                                    {% for d in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
-                                                    <option {% if item.day == d %}selected{% endif %}>{{ d }}</option>
-                                                    {% endfor %}
-                                                </select>
-
-                                                <label style="color: white;">Time Slot:</label>
-                                                <input type="text" name="time" class="form-control mb-2" value="{{ item.time_slot }}" style="background: #000; color: white; border: 1px solid #444;">
-
-                                                <label style="color: white;">Subject Name:</label>
-                                                <input type="text" name="subject" class="form-control mb-2" value="{{ item.subject }}" style="background: #000; color: white; border: 1px solid #444;">
-
-                                                <label style="color: white;">Semester:</label>
-                                                <input type="text" name="semester" class="form-control mb-2" value="{{ item.semester }}" style="background: #000; color: white; border: 1px solid #444;">
+                                                
+                                                <div class="form-group">
+                                                    <label class="text-white-50">Subject</label>
+                                                    <input type="text" name="subject" class="form-control" value="{{ item.subject }}" style="background: #000; border: 1px solid #444; color: white;">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <label class="text-white-50">Day</label>
+                                                        <select name="day" class="form-control" style="background: #000; border: 1px solid #444; color: white;">
+                                                            {% for d in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
+                                                            <option {% if item.day == d %}selected{% endif %}>{{ d }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="text-white-50">Timing</label>
+                                                        <input type="text" name="time" class="form-control" value="{{ item.time_slot }}" style="background: #000; border: 1px solid #444; color: white;">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group mt-3">
+                                                    <label class="text-white-50">Semester</label>
+                                                    <input type="text" name="semester" class="form-control" value="{{ item.semester }}" style="background: #000; border: 1px solid #444; color: white;">
+                                                </div>
                                             </div>
-                                            <div class="modal-footer" style="border-top: 1px solid rgba(212, 175, 55, 0.2);">
-                                                <button type="submit" class="btn-royal" style="background: var(--gold-primary); color: black;">Update Changes</button>
+                                            <div class="modal-footer" style="border-top: none;">
+                                                <button type="submit" class="btn-royal w-100">Commit Changes</button>
                                             </div>
                                         </form>
                                     </div>
@@ -160,6 +254,66 @@
     </div>
 </div>
 
+<div class="modal fade" id="addClassModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: #1a000a; border: 2px solid var(--gold-primary); border-radius: 15px; box-shadow: 0 0 25px var(--gold-glow);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(212, 175, 55, 0.2);">
+                <h5 class="modal-title" style="color: var(--gold-primary); font-weight: bold;">
+                    <i class="fas fa-calendar-plus mr-2"></i>New Session Assignment
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <form action="/timetable/manage" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    
+                    {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
+                    <div class="form-group">
+                        <label style="color: var(--gold-primary);">Assign To Faculty:</label>
+                        <select name="faculty_id" class="form-control" style="background: #000; color: white; border: 1px solid #444;">
+                            <option value="{{ user.id }}">Myself ({{ user.full_name }})</option>
+                            {% for staff in staff_list %}
+                            <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>{{ staff.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% else %}
+                    <input type="hidden" name="faculty_id" value="{{ user.id }}">
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="text-white-50">Day:</label>
+                            <select name="day" class="form-control mb-3" style="background: #000; color: white; border: 1px solid #444;">
+                                <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                                <option>Thursday</option><option>Friday</option><option>Saturday</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-white-50">Time Slot:</label>
+                            <input type="text" name="time" class="form-control mb-3" placeholder="09:00 AM-11:00 AM" style="background: #000; color: white; border: 1px solid #444;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="text-white-50">Subject Name:</label>
+                        <input type="text" name="subject" class="form-control mb-3" placeholder="e.g. Data Structures" style="background: #000; color: white; border: 1px solid #444;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="text-white-50">Semester:</label>
+                        <input type="text" name="semester" class="form-control mb-3" placeholder="e.g. Semester IV" style="background: #000; color: white; border: 1px solid #444;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: none;">
+                    <button type="button" class="btn btn-link text-white-50" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-royal px-4">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     const ctx = document.getElementById('performanceChart').getContext('2d');
     new Chart(ctx, {
@@ -168,76 +322,21 @@
             labels: ['Held', 'Missed', 'Pending'],
             datasets: [{
                 data: {{ chart_data | tojson }},
-                // ROYAL COLORS: Gold, Maroon, and Silver-White
-                backgroundColor: ['#d4af37', '#800020', '#e0e0e0'], 
-                borderWidth: 0,
-                hoverOffset: 10
+                backgroundColor: ['#d4af37', '#800020', 'rgba(212, 175, 55, 0.1)'],
+                borderColor: '#d4af37',
+                borderWidth: 1,
+                hoverOffset: 15
             }]
         },
-        options: { 
-            cutout: '70%',
-            plugins: { 
-                legend: { 
-                    position: 'bottom',
-                    labels: { color: 'white', font: { size: 12 }, padding: 20 } 
-                } 
-            } 
+        options: {
+            cutout: '80%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#d4af37', font: { size: 11 } } }
+            }
         }
     });
 </script>
 
 {% endblock %}
-
-<div class="modal fade" id="addClassModal" tabindex="-1" style="color: #000;">
-    <div class="modal-dialog">
-        <div class="modal-content" style="background: #1a000a; border: 2px solid var(--gold-primary); box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--gold-primary);">
-                <h5 class="modal-title" style="color: var(--gold-primary); font-weight: bold;">
-                    <i class="fas fa-calendar-plus mr-2"></i>Add/Assign New Session
-                </h5>
-                <button type="button" class="close" data-dismiss="modal" style="color: white;">&times;</button>
-            </div>
-            <form action="/timetable/manage" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="add">
-                    
-                    {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
-                    <label style="color: var(--gold-primary);">Assign To Faculty:</label>
-                    <select name="faculty_id" class="form-control mb-3" style="background: #000; color: white; border: 1px solid #444;">
-                        <option value="{{ user.id }}">Myself ({{ user.full_name }})</option>
-                        {% for staff in staff_list %}
-                        <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>{{ staff.full_name }}</option>
-                        {% endfor %}
-                    </select>
-                    {% else %}
-                    <input type="hidden" name="faculty_id" value="{{ user.id }}">
-                    {% endif %}
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label style="color: white;">Day:</label>
-                            <select name="day" class="form-control mb-3" style="background: #000; color: white; border: 1px solid #444;">
-                                <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
-                                <option>Thursday</option><option>Friday</option><option>Saturday</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label style="color: white;">Time Slot:</label>
-                            <input type="text" name="time" class="form-control mb-3" placeholder="09:00 AM-11:00 AM" style="background: #000; color: white; border: 1px solid #444;">
-                        </div>
-                    </div>
-
-                    <label style="color: white;">Subject Name:</label>
-                    <input type="text" name="subject" class="form-control mb-3" placeholder="e.g. Data Structures" style="background: #000; color: white; border: 1px solid #444;">
-                    
-                    <label style="color: white;">Semester:</label>
-                    <input type="text" name="semester" class="form-control mb-3" placeholder="e.g. Semester IV" style="background: #000; color: white; border: 1px solid #444;">
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid rgba(212, 175, 55, 0.2);">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-royal" style="background: var(--gold-primary); color: black; font-weight: bold;">Confirm Assignment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
