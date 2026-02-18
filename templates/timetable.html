@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card-royal">
+                <h4>Performance Analytics</h4>
+                <canvas id="performanceChart"></canvas>
+                
+                <hr style="border-color: var(--gold-primary);">
+                
+                {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
+                <form method="GET" action="/timetable">
+                    <label>View Faculty Schedule:</label>
+                    <select name="faculty_id" class="form-control mb-3" onchange="this.form.submit()">
+                        <option value="{{ user.id }}">My Own Timetable</option>
+                        {% for staff in staff_list %}
+                        <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>
+                            {{ staff.full_name }} ({{ staff.role }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% endif %}
+
+                <div class="alert alert-info" style="background: rgba(0, 245, 180, 0.1); border: 1px solid var(--accent-emerald);">
+                    <h6 style="color: var(--accent-emerald);">✨ Free Hours Today</h6>
+                    <ul class="small">
+                        {% for slot in free_slots %}
+                        <li>{{ slot }} - <span class="badge badge-success">Available</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card-royal">
+                <div class="d-flex justify-content-between">
+                    <h3>Schedule for {{ target_user.full_name }}</h3>
+                    <button class="btn-royal" data-toggle="modal" data-target="#addClassModal">+ Add/Assign Class</button>
+                </div>
+
+                <table class="staff-table-dark mt-4">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Subject</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in timetable %}
+                        <tr>
+                            <td>{{ item.day }}</td>
+                            <td>{{ item.time_slot }}</td>
+                            <td>{{ item.subject }} ({{ item.semester }})</td>
+                            <td>
+                                <form action="/timetable/manage" method="POST">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="class_id" value="{{ item.id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Held', 'Missed', 'Pending'],
+            datasets: [{
+                data: {{ chart_data | tojson }},
+                backgroundColor: ['#00f5b4', '#ff4b4b', '#ffbb00']
+            }]
+        },
+        options: { plugins: { legend: { labels: { color: 'white' } } } }
+    });
+</script>
+
+{% endblock %}
+<div class="modal fade" id="addClassModal" tabindex="-1" style="color: #000;">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--deep-wine); border: 2px solid var(--gold-primary);">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: var(--gold-primary);">Add/Assign New Session</h5>
+            </div>
+            <form action="/timetable/manage" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    
+                    {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
+                    <label style="color: white;">Assign To Faculty:</label>
+                    <select name="faculty_id" class="form-control mb-2">
+                        <option value="{{ user.id }}">Myself</option>
+                        {% for staff in staff_list %}
+                        <option value="{{ staff.id }}">{{ staff.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input type="hidden" name="faculty_id" value="{{ user.id }}">
+                    {% endif %}
+
+                    <label style="color: white;">Day:</label>
+                    <select name="day" class="form-control mb-2">
+                        <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                        <option>Thursday</option><option>Friday</option>
+                    </select>
+
+                    <label style="color: white;">Time (Note Free Hours):</label>
+                    <input type="text" name="time" class="form-control mb-2" placeholder="e.g. 09:00 AM-11:00 AM">
+
+                    <label style="color: white;">Subject & Semester:</label>
+                    <input type="text" name="subject" class="form-control mb-2" placeholder="Subject Name">
+                    <input type="text" name="semester" class="form-control mb-2" placeholder="e.g. Sem IV">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-royal">Confirm Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
