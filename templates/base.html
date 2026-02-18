@@ -72,6 +72,8 @@
                 {% endif %}
             </a>
 
+            <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ Class Timetable</a>
+            
             <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
             <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
             <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
@@ -140,6 +142,7 @@
             <span id="fab-icon" style="transition: 0.3s;">⚡</span>
         </button>
         <div id="fab-options" style="display: none; flex-direction: column; gap: 12px; align-items: flex-end; animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🗓️ My Schedule</a>
             <a href="{{ url_for('chat') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">💬 Quick Message</a>
             <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🕒 Mark Attendance</a>
             <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🌴 Apply Leave</a>
