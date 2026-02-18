@@ -79,8 +79,8 @@ def get_ist_time():
 # ==========================================
 # 2. DATABASE MODELS (ALL 12 MODELS PRESERVED)
 # ==========================================
-
-class User(db.Model):
+from flask_login import UserMixin
+class User(db.Model ,UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -380,17 +380,29 @@ def placements():
 def campus_life():
     return render_template('campus_life.html')
 
+from flask_login import login_user # Make sure this is at the top of app.py
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
+        
         if user and check_password_hash(user.password, password):
+            # 1. Keep your existing manual session logic
             session['user_id'] = user.id
             session['role'] = user.role 
             session['name'] = user.full_name
-            return redirect(url_for('dashboard'))
+            
+            # 2. THE FIX: Register the user with Flask-Login system
+            # This is what @login_required looks for!
+            login_user(user) 
+            
+            # 3. Handle the "next" redirect (so it opens Timetable immediately after login)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+            
         flash('Invalid Username or Password.', 'danger')
     return render_template('login.html')
 
@@ -1614,6 +1626,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
