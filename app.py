@@ -457,22 +457,31 @@ def view_timetable():
 
 @app.route('/timetable/manage', methods=['POST'])
 def manage_timetable():
-    if request.form.get('action') == 'add':
+    action = request.form.get('action')
+    
+    if action == 'add':
         new_class = Timetable(
             day=request.form.get('day'),
             time_slot=request.form.get('time'),
             subject=request.form.get('subject'),
             semester=request.form.get('semester'),
-            user_id=request.form.get('faculty_id') # Can be self or assigned by HOD
+            user_id=request.form.get('faculty_id')
         )
         db.session.add(new_class)
     
-    elif request.form.get('action') == 'delete':
+    elif action == 'update_status':
+        class_id = request.form.get('class_id')
+        new_status = request.form.get('status')
+        entry = Timetable.query.get(class_id)
+        if entry:
+            entry.status = new_status
+    
+    elif action == 'delete':
         class_id = request.form.get('class_id')
         Timetable.query.filter_by(id=class_id).delete()
         
     db.session.commit()
-    return redirect(url_for('view_timetable'))
+    return redirect(url_for('view_timetable', faculty_id=request.form.get('faculty_id')))
     
 @app.route('/activity_room')
 def activity_room():
@@ -1599,6 +1608,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
