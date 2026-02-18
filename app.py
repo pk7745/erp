@@ -34,6 +34,9 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME')
 app.config['UPLOAD_FOLDER'] = 'static/uploads/profiles'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 app.secret_key = "bms_college_ultimate_v200"
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 # Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -58,7 +61,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v25.db'
+db_name = 'bms_college_v26.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -278,9 +281,8 @@ class Task(db.Model):
 
     # Relationships to pull names for your activity room
     # Allows you to use {{ task.task_sender.full_name }} in HTML
-    task_recipient = db.relationship('User', foreign_keys=[assigned_to])
-    task_sender = db.relationship('User', foreign_keys=[assigned_by])
-
+    task_recipient = db.relationship('User', foreign_keys=[assigned_to], overlaps="recipient_link,tasks_assigned_to_me")
+    task_sender = db.relationship('User', foreign_keys=[assigned_by], overlaps="sender_link,tasks_delegated_by_me")
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1524,6 +1526,10 @@ def inject_notifications():
             pending_tasks_count=task_count
         )
     return dict(global_notif_count=0, pending_tasks_count=0)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 # ==========================================
 # 5. FULL SEEDING (INCLUDING ALL FACULTY)
 # ==========================================
@@ -1608,6 +1614,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
