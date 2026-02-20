@@ -12,19 +12,36 @@
         body.dark-mode { --bg: #0b1437; --glass-sidebar: rgba(17, 28, 68, 0.95); --text-main: #ffffff; }
         body.dark-mode .card { background: #111c44; color: white; border: 1px solid #1b2559; }
         body.dark-mode .sidebar { background: var(--glass-sidebar); }
-        body.dark-mode .sidebar-link { color: #a3aed0; }
         
+        /* UPDATED: High-Contrast Sidebar Text */
+        .sidebar-link { 
+            color: #1a000a !important; /* Deepest Maroon/Black for maximum readability */
+            font-weight: 800 !important; 
+            letter-spacing: -0.2px;
+            transition: 0.3s;
+        }
+        
+        body.dark-mode .sidebar-link { 
+            color: #ffffff !important; /* Pure white in dark mode */
+        }
+
+        .sidebar-link:hover {
+            background: rgba(45, 0, 15, 0.1);
+            color: #000 !important;
+            transform: translateX(5px);
+        }
+
         /* High Contrast Notification Styles */
         .flash-msg { font-weight: 700; transition: all 0.3s ease; border-radius: 16px; }
 
         /* Sidebar Footer specific styling */
-        .sidebar-footer { border-top: 1px solid rgba(0,0,0,0.05); padding-top: 20px; margin-top: auto; }
+        .sidebar-footer { border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px; margin-top: auto; }
 
         /* PULSE BADGE STYLES (Royal Edition) */
         .pulse-badge {
             position: absolute;
             right: 15px;
-            background: var(--danger);
+            background: #ff0000; /* Vibrant Red */
             color: white;
             font-size: 0.7rem;
             padding: 2px 8px;
@@ -35,9 +52,15 @@
             pointer-events: none;
         }
 
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
         /* FAB Styles (Liquid Gold) */
         .fab-item { transition: 0.3s; display: flex; align-items: center; justify-content: center; }
-        .fab-item:hover { background: var(--gold) !important; color: white !important; transform: translateX(-5px); border-color: var(--gold) !important; }
+        .fab-item:hover { background: #d4af37 !important; color: white !important; transform: translateX(-5px); border-color: #d4af37 !important; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     </style>
 </head>
@@ -61,7 +84,7 @@
         <div class="sidebar-content">
             <div class="sidebar-brand" style="padding: 0 10px; margin-bottom: 40px;">
                 <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
-                    <h2 style="color: var(--p); margin: 0; cursor: pointer; font-size: 1.1rem; line-height: 1.2; font-weight: 800;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h2>
+                    <h2 style="color: #2d000f; margin: 0; cursor: pointer; font-size: 1.1rem; line-height: 1.2; font-weight: 900;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h2>
                 </a>
             </div>
 
@@ -73,13 +96,12 @@
             </a>
 
             <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ Class Timetable</a>
-            
             <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
             <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
             <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
 
             {% if session['role'] in ['Principal', 'HR'] %}
-                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: var(--p-light); border-left: 4px solid var(--p); color: var(--p);">📅 Leave Calendar</a>
+                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: rgba(45, 0, 15, 0.05); border-left: 4px solid #2d000f; color: #2d000f !important;">📅 Leave Calendar</a>
             {% else %}
                 <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
             {% endif %}
@@ -101,31 +123,31 @@
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
 
             {% if session['role'] == 'Principal' %}
-                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fdf2f2; color: var(--danger); font-weight: bold; border-left: 4px solid var(--danger);">🛡️ Audit Logs</a>
+                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fff5f5; color: #c53030 !important; font-weight: 900; border-left: 4px solid #c53030;">🛡️ Audit Logs</a>
             {% endif %}
             
-            <button onclick="toggleDarkMode()" class="btn" style="width: 100%; margin-top: 20px; background: var(--text-main); color: var(--bg); border: none;">🌙 Toggle Theme</button>
+            <button onclick="toggleDarkMode()" class="btn" style="width: 100%; margin-top: 20px; background: #2d000f; color: #fff; border: none; font-weight: 700;">🌙 Toggle Theme</button>
         </div>
         
         <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: var(--danger); font-weight: 800; border-left: 4px solid var(--danger); background: var(--danger-bg);">🚪 Logout</a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #dc2626 !important; font-weight: 900; border-left: 4px solid #dc2626; background: rgba(220, 38, 38, 0.05);">🚪 Logout</a>
         </div>
     </div>
 
     <div class="main">
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 40px;">
             {% if session['name'] %}
-            <a href="{{ url_for('my_profile') }}" class="profile-link" style="text-decoration: none; color: var(--text-main); font-weight: 700; display: flex; align-items: center; gap: 10px; background: white; padding: 10px 20px; border-radius: 14px; box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.05);">
+            <a href="{{ url_for('my_profile') }}" class="profile-link" style="text-decoration: none; color: #000; font-weight: 800; display: flex; align-items: center; gap: 10px; background: white; padding: 10px 20px; border-radius: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 2px solid #2d000f;">
                 <span style="font-size: 1.2rem;">👤</span> {{ session['name'] }}
             </a>
-            <a href="{{ url_for('logout') }}" title="Logout" style="text-decoration: none; background: var(--danger-bg); color: var(--danger); padding: 10px 18px; border-radius: 12px; font-weight: 800; border: 1px solid rgba(220, 38, 38, 0.1);">🚪 Exit</a>
+            <a href="{{ url_for('logout') }}" title="Logout" style="text-decoration: none; background: #dc2626; color: #fff; padding: 10px 18px; border-radius: 12px; font-weight: 800;">🚪 Exit</a>
             {% endif %}
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash {% if category == 'error' %}error{% else %}success{% endif %} animate-enter">
+                    <div class="flash {% if category == 'error' %}error{% else %}success{% endif %} animate-enter" style="font-weight: 800; color: #000;">
                         <span style="margin-right: 12px; font-size: 1.2rem;">{% if category == 'error' %}⚠️{% else %}✅{% endif %}</span> 
                         {{ message }}
                     </div>
@@ -138,14 +160,14 @@
 
     {% if session['user_id'] %}
     <div id="fab-container" style="position: fixed; bottom: 40px; right: 40px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px;">
-        <button onclick="toggleFab()" id="fab-main" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, var(--p) 0%, #2c0000 100%); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 8px 25px rgba(128, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-            <span id="fab-icon" style="transition: 0.3s;">⚡</span>
+        <button onclick="toggleFab()" id="fab-main" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, #2d000f 0%, #4a001a 100%); color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 8px 25px rgba(45, 0, 15, 0.4); display: flex; align-items: center; justify-content: center; transition: 0.4s;">
+            <span id="fab-icon">⚡</span>
         </button>
-        <div id="fab-options" style="display: none; flex-direction: column; gap: 12px; align-items: flex-end; animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
-            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🗓️ My Schedule</a>
-            <a href="{{ url_for('chat') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">💬 Quick Message</a>
-            <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🕒 Mark Attendance</a>
-            <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: var(--p); padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 800; box-shadow: var(--shadow-card); border: 1px solid var(--p-light); font-size: 0.9rem;">🌴 Apply Leave</a>
+        <div id="fab-options" style="display: none; flex-direction: column; gap: 12px; align-items: flex-end;">
+            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="background: white; color: #2d000f; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #2d000f;">🗓️ My Schedule</a>
+            <a href="{{ url_for('chat') }}" class="fab-item" style="background: white; color: #2d000f; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #2d000f;">💬 Quick Message</a>
+            <a href="{{ url_for('attendance') }}" class="fab-item" style="background: white; color: #2d000f; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #2d000f;">🕒 Mark Attendance</a>
+            <a href="{{ url_for('leave') }}" class="fab-item" style="background: white; color: #2d000f; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: 900; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #2d000f;">🌴 Apply Leave</a>
         </div>
     </div>
     {% endif %}
@@ -160,36 +182,19 @@
         function toggleFab() {
             const options = document.getElementById('fab-options');
             const icon = document.getElementById('fab-icon');
-            const btn = document.getElementById('fab-main');
             if (options.style.display === 'none' || options.style.display === '') {
                 options.style.display = 'flex';
-                icon.style.transform = 'rotate(90deg)';
                 icon.innerText = '✕';
-                btn.style.background = 'var(--text-main)';
             } else {
                 options.style.display = 'none';
-                icon.style.transform = 'rotate(0deg)';
                 icon.innerText = '⚡';
-                btn.style.background = 'linear-gradient(135deg, var(--p) 0%, #2c0000 100%)';
             }
         }
 
         function clearBadge(element) {
             const badge = element.querySelector('.pulse-badge');
-            if (badge) {
-                badge.style.transition = 'all 0.4s ease';
-                badge.style.opacity = '0';
-                badge.style.transform = 'scale(0) rotate(90deg)';
-            }
+            if (badge) { badge.style.display = 'none'; }
         }
-
-        // Integrated Skeleton Transition for all pages
-        document.addEventListener("DOMContentLoaded", () => {
-            const content = document.querySelector('.main');
-            if(content) {
-                content.classList.add('animate-enter');
-            }
-        });
     </script>
 </body>
 </html>
