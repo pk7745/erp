@@ -124,7 +124,7 @@
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="form_{{ emp.id }}">
                             <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none" onchange="document.getElementById('form_{{ emp.id }}').submit()">
-                            <img src="{{ url_for('static', filename='uploads/' + emp.photo) if emp.photo else 'https://ui-avatars.com/api/?background=000&color=fff&name=' + emp.full_name }}" 
+                            <img src="{{ url_for('static', filename='uploads/profiles.gitkeep' + emp.photo) if emp.photo else 'https://ui-avatars.com/api/?background=000&color=fff&name=' + emp.full_name }}" 
                                  class="staff-img" onclick="document.getElementById('file_{{ emp.id }}').click()">
                         </form>
                         <div>
@@ -215,4 +215,5 @@ document.getElementById('directorySearch').addEventListener('keyup', function() 
 });
 </script>
 {% endblock %}
+
 
