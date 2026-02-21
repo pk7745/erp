@@ -50,7 +50,7 @@
         padding: 5px 12px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 0.7rem;
     }
 
-    /* RESTORED: Profile Image Update Styling */
+    /* Profile Image Update Styling */
     .staff-img { border: 3px solid #000 !important; border-radius: 8px; width: 60px; height: 60px; object-fit: cover; cursor: pointer; transition: 0.2s; }
     .staff-img:hover { transform: scale(1.1); border-color: #800000 !important; }
 </style>
@@ -121,7 +121,7 @@
             <tr class="staff-row">
                 <td>
                     <div style="display: flex; align-items: center; gap: 15px;">
-                        <form action="{{ url_for('update_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="form_{{ emp.id }}">
+                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="form_{{ emp.id }}">
                             <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none" onchange="document.getElementById('form_{{ emp.id }}').submit()">
                             <img src="{{ url_for('static', filename='uploads/' + emp.photo) if emp.photo else 'https://ui-avatars.com/api/?background=000&color=fff&name=' + emp.full_name }}" 
                                  class="staff-img" 
@@ -177,7 +177,6 @@
 </div>
 
 <script>
-/* ALL LOGIC RETAINED 100% */
 function openPayrollModal(uid, name, salary) {
     document.getElementById('modal_uid').value = uid;
     document.getElementById('modal_salary').value = salary;
