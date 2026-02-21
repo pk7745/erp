@@ -5,7 +5,6 @@
     /* --- IMPERIAL DIRECTORY UI --- */
     h2, h3, h4, strong, span, p, label, td, th { color: #000000 !important; }
     
-    /* Stats Grid */
     .dashboard-grid { display: flex; gap: 20px; margin-bottom: 30px; }
     .imperial-stat-card {
         flex: 1; padding: 25px; border: 3px solid #000; border-radius: 12px;
@@ -16,16 +15,13 @@
     .imperial-stat-card small { color: #800000 !important; font-weight: 950; text-transform: uppercase; letter-spacing: 1px; }
     .imperial-stat-card h2 { font-size: 2.8rem; font-weight: 950; margin: 10px 0; }
 
-    /* Action Bar */
     .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px; }
     .search-input {
-        padding: 12px 20px; width: 300px; border-radius: 4px;
+        padding: 12px 20px; width: 100%; border-radius: 4px;
         border: 2px solid #000; font-weight: 900; color: #000;
         box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
     }
-    .search-input:focus { border-color: #800000; outline: none; box-shadow: 4px 4px 0px #800000; }
 
-    /* Imperial Table Design */
     .staff-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
     .staff-table th { 
         padding: 15px; text-align: left; font-weight: 950; 
@@ -38,21 +34,12 @@
     .staff-row td:first-child { border-left: 2px solid #000; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
     .staff-row td:last-child { border-right: 2px solid #000; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
 
-    /* Payroll Glass */
     .payroll-glass {
         background: #fdfdfd; border: 2px solid #000;
         padding: 12px; border-radius: 4px; margin-top: 8px;
-        box-shadow: 4px 4px 0px rgba(0,0,0,0.05);
     }
 
-    .pulse-active {
-        background: #000; color: #fff !important;
-        padding: 5px 12px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 0.7rem;
-    }
-
-    /* Profile Image Update Styling */
-    .staff-img { border: 3px solid #000 !important; border-radius: 8px; width: 60px; height: 60px; object-fit: cover; cursor: pointer; transition: 0.2s; }
-    .staff-img:hover { transform: scale(1.1); border-color: #800000 !important; }
+    .staff-img { border: 3px solid #000 !important; border-radius: 8px; width: 60px; height: 60px; object-fit: cover; cursor: pointer; }
 </style>
 
 <div class="dashboard-grid">
@@ -61,7 +48,6 @@
         <h2>{{ employees|length }}</h2>
         <span style="font-weight: 950; font-size: 0.75rem; color: #800000 !important;">ACTIVE PERSONNEL</span>
     </div>
-
     <div class="imperial-stat-card">
         <small>Monthly Payroll</small>
         {% set total_salary = [] %}
@@ -75,9 +61,9 @@
     <div class="action-bar">
         <h2 style="margin: 0; font-weight: 950; text-transform: uppercase;">Staff Directory</h2>
         <div style="display: flex; gap: 12px; align-items: center;">
-            <input type="text" id="directorySearch" class="search-input" placeholder="Search Database...">
+            <input type="text" id="directorySearch" class="search-input" style="width: 300px;" placeholder="Search Database...">
             {% if session['role'] in ['HR', 'Principal'] %}
-                <button class="btn" onclick="document.getElementById('addForm').style.display='block'" style="background: #800000; color: white !important; font-weight: 900; border-radius: 4px;">+ ADD STAFF</button>
+                <button class="btn" onclick="document.getElementById('addForm').style.display='block'" style="background: #800000; color: white !important; font-weight: 900;">+ ADD STAFF</button>
             {% endif %}
         </div>
     </div>
@@ -87,22 +73,35 @@
             <h3 style="margin:0; font-weight: 950; text-transform: uppercase;">Register New Personnel</h3>
             <button class="btn" style="background: #000; color: white !important;" onclick="document.getElementById('addForm').style.display='none'">CLOSE</button>
         </div>
-        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Full Name</label><input type="text" name="full_name" class="search-input" style="width:100%;" required></div>
-            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Email</label><input type="email" name="email" class="search-input" style="width:100%;" required></div>
-            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Username</label><input type="text" name="username" class="search-input" style="width:100%;" required></div>
-            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Password</label><input type="password" name="password" class="search-input" style="width:100%;" required></div>
+        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Full Name</label><input type="text" name="full_name" class="search-input" required></div>
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Email</label><input type="email" name="email" class="search-input" required></div>
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Username</label><input type="text" name="username" class="search-input" required></div>
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Password</label><input type="password" name="password" class="search-input" required></div>
+            
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Religion</label><input type="text" name="religion" class="search-input"></div>
+            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Caste</label><input type="text" name="caste" class="search-input"></div>
+            
             <div>
                 <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Department</label>
-                <select name="department" style="width:100%; padding: 12px; border: 2px solid #000; font-weight: 900; border-radius: 4px;">
+                <select name="department" class="search-input" style="height: 50px;">
                     <option value="Computer Applications">Computer Applications</option>
                     <option value="Commerce">Commerce</option>
                     <option value="Management">Management</option>
                     <option value="Accounts">Accounts</option>
                 </select>
             </div>
-            <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Monthly Salary</label><input type="number" name="salary" class="search-input" style="width:100%;" required></div>
-            <button type="submit" class="btn" style="grid-column: span 2; padding: 15px; background: #800000; color: white !important; font-weight: 950; border: 2px solid #000;">SAVE TO DATABASE</button>
+
+            <div>
+                <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Basic Salary</label>
+                <input type="number" id="new_staff_salary" name="salary" class="search-input" oninput="calculateAddFormNet()" required>
+            </div>
+            <div style="grid-column: span 1; background: #f0f0f0; padding: 10px; border: 2px dashed #000;">
+                <label style="font-weight: 900; font-size: 0.65rem; color: #800000;">ESTIMATED NET TAKE-HOME</label>
+                <div id="new_net_display" style="font-size: 1.5rem; font-weight: 950;">₹0</div>
+            </div>
+
+            <button type="submit" class="btn" style="grid-column: span 3; padding: 15px; background: #800000; color: white !important; font-weight: 950;">SAVE TO DATABASE</button>
         </form>
     </div>
 
@@ -124,9 +123,7 @@
                         <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="form_{{ emp.id }}">
                             <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none" onchange="document.getElementById('form_{{ emp.id }}').submit()">
                             <img src="{{ url_for('static', filename='uploads/' + emp.photo) if emp.photo else 'https://ui-avatars.com/api/?background=000&color=fff&name=' + emp.full_name }}" 
-                                 class="staff-img" 
-                                 onclick="document.getElementById('file_{{ emp.id }}').click()"
-                                 title="Click to update photo">
+                                 class="staff-img" onclick="document.getElementById('file_{{ emp.id }}').click()">
                         </form>
                         <div>
                             <strong style="font-size: 1.1rem; font-weight: 950;">{{ emp.full_name }}</strong><br>
@@ -137,26 +134,23 @@
                 <td style="font-weight: 800; font-size: 0.85rem;">{{ emp.email }}</td>
                 <td>
                     {% if emp.status == 'Pending Accountant Configuration' %}
-                        <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" class="badge" style="background:#800000; color:#fff !important; cursor:pointer; border:none; padding: 5px 10px; border-radius:4px; font-weight:900;">CONFIG PAYROLL</button>
+                        <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" class="btn" style="background:#800000; color:#fff !important; font-size:0.7rem;">CONFIG</button>
                     {% else %}
-                        <span class="pulse-active">ACTIVE</span>
+                        <span style="background: #000; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: 900; font-size: 0.7rem;">ACTIVE</span>
                     {% endif %}
                 </td>
                 <td>
                     <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
                     <div id="fullBreakdown_{{ emp.id }}" class="payroll-glass">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;">
-                            <span style="font-size: 0.65rem; font-weight: 950;">NET TAKE-HOME</span>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px;">
+                            <span style="font-size: 0.65rem; font-weight: 950;">NET</span>
                             <span id="netDisplay_{{ emp.id }}" style="font-weight:950; color:#800000 !important;">₹0</span>
                         </div>
-                        <div id="breakdown_{{ emp.id }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 0.6rem; font-weight: 800;"></div>
                     </div>
                 </td>
                 <td style="text-align: right;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
-                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn" style="background: #000; color: #fff !important; font-size: 0.7rem; width: 90px; font-weight: 900;">ID CARD</a>
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn" style="background: #800000; color: #fff !important; font-size: 0.7rem; width: 90px; font-weight: 900;">PAYSLIP</a>
-                    </div>
+                    <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn" style="background: #000; color: #fff !important; font-size: 0.6rem;">ID</a>
+                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn" style="background: #800000; color: #fff !important; font-size: 0.6rem;">PAYSLIP</a>
                 </td>
             </tr>
             {% endfor %}
@@ -164,30 +158,10 @@
     </table>
 </div>
 
-<div id="payrollModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
-    <div class="card" style="width:400px; background:white; padding:35px; border: 5px solid #000;">
-        <h3 id="modalTitle" style="margin-top:0; font-weight: 950; text-transform: uppercase;">PAYROLL CONFIG</h3>
-        <form action="{{ url_for('finalize_payroll_config') }}" method="POST">
-            <input type="hidden" name="user_id" id="modal_uid">
-            <input type="number" name="new_salary" id="modal_salary" class="search-input" style="width:100%; margin: 20px 0;" readonly>
-            <button type="submit" class="btn" style="width:100%; background: #000; color: white !important; font-weight: 950;">LOCK SYSTEM CONFIG</button>
-            <button type="button" class="btn" style="width:100%; margin-top: 10px; background:#800000; color: white !important;" onclick="document.getElementById('payrollModal').style.display='none'">ABORT</button>
-        </form>
-    </div>
-</div>
-
 <script>
-function openPayrollModal(uid, name, salary) {
-    document.getElementById('modal_uid').value = uid;
-    document.getElementById('modal_salary').value = salary;
-    document.getElementById('modalTitle').innerText = 'LOCK PAYROLL: ' + name;
-    document.getElementById('payrollModal').style.display = 'flex';
-}
-
-function calculateLiveNet(empId) {
-    const input = document.getElementById('salaryInput_' + empId);
-    if (!input) return;
-    let basic = parseFloat(input.value) || 0;
+// RESTORED: Auto-calculator for the Add Staff Form
+function calculateAddFormNet() {
+    let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
     const ta = 2000;
@@ -195,13 +169,23 @@ function calculateLiveNet(empId) {
     let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
     const epf = Math.floor((basic + da) * 0.12);
     const tds = Math.floor(gross * tdsRate);
-    const pt = 200;
-    const net = gross - (epf + tds + pt);
-    
+    const net = gross - (epf + tds + 200);
+    document.getElementById('new_net_display').innerText = '₹' + net.toLocaleString('en-IN');
+}
+
+// Logic for existing table rows
+function calculateLiveNet(empId) {
+    const input = document.getElementById('salaryInput_' + empId);
+    if (!input) return;
+    let basic = parseFloat(input.value) || 0;
+    const hra = Math.floor(basic * 0.40);
+    const da = Math.floor(basic * 0.10);
+    const gross = basic + hra + da + 2000;
+    let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
+    const epf = Math.floor((basic + da) * 0.12);
+    const tds = Math.floor(gross * tdsRate);
+    const net = gross - (epf + tds + 200);
     document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
-    document.getElementById('breakdown_' + empId).innerHTML = `
-        <span>HRA: ₹${hra}</span> <span>DA: ₹${da}</span>
-        <span style="color:#800000">TDS: -₹${tds}</span> <span style="color:#800000">EPF: -₹${epf}</span>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
