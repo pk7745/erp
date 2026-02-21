@@ -3,154 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BMSCCM | Enterprise Portal</title>
+    <title>BMSCCM | Imperial Enterprise Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        /* --- DYNAMIC THEME OVERRIDES (v5.0 Ultra-Premium) --- */
+        /* --- IMPERIAL THEME OVERRIDES --- */
+        :root {
+            --imperial-black: #000000;
+            --imperial-crimson: #800000;
+            --imperial-gold: #d4af37;
+        }
+
+        body { color: var(--imperial-black); }
+
         body.dark-mode { 
-            --bg: #090e17; 
-            --glass-sidebar: rgba(13, 17, 28, 0.85); 
-            --text-main: #f8fafc; 
-            --text-muted: #94a3b8;
-            background: var(--bg-dark); /* Using the Living Aurora Variable from v5.0 */
+            --bg: #05070a; 
+            --text-main: #ffffff; 
+            --text-muted: #cbd5e1;
+            background: #05070a;
         }
 
-        /* LIGHT-PROBE OVERRIDE FOR DARK MODE */
-        body.dark-mode .card, body.dark-mode .notif-panel { 
-            background: rgba(15, 23, 42, 0.7); 
-            color: #f8fafc; 
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            box-shadow: var(--shadow-deep);
-        }
-
-        /* SIDEBAR TEXT & MAGNETIC ANCHORS (RETAINED LOGIC) */
-        .sidebar-link { 
-            color: #1a000a !important; 
-            font-weight: 800 !important; 
-            letter-spacing: 0.3px;
-            transition: var(--trans-bouncy);
+        /* SIDEBAR: HIGH CONTRAST RETAINED LOGIC */
+        .sidebar {
+            background: #ffffff !important;
+            border-right: 3px solid #000 !important;
         }
         
-        body.dark-mode .sidebar-link { color: #e2e8f0 !important; }
-        body.dark-mode .sidebar-link:hover { color: var(--gold) !important; background: rgba(212, 175, 55, 0.08); }
+        body.dark-mode .sidebar {
+            background: #0a0f18 !important;
+            border-right: 3px solid var(--imperial-gold) !important;
+        }
 
-        /* PULSE BADGE (RETAINED LOGIC, UPDATED STYLE) */
+        .sidebar-link { 
+            color: #000000 !important; 
+            font-weight: 900 !important; /* DARKER TEXT */
+            letter-spacing: -0.2px;
+            padding: 14px 20px !important;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-link:hover {
+            background: #f1f5f9 !important;
+            padding-left: 30px !important;
+        }
+
+        body.dark-mode .sidebar-link { color: #ffffff !important; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        /* PULSE BADGE: PRESERVED LOGIC */
         .pulse-badge {
             position: absolute;
             right: 15px;
-            background: linear-gradient(135deg, #ff0044 0%, #cc0000 100%);
-            color: white;
-            font-size: 0.75rem;
-            padding: 3px 10px;
-            border-radius: 12px;
+            background: #ff0000;
+            color: white !important;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 6px;
             font-weight: 900;
-            animation: pulse-alert 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 15px rgba(255, 0, 68, 0.6);
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
         }
 
-        /* FAB GLASSMORPISM (RETAINED LOGIC) */
-        .fab-item { 
-            transition: var(--trans-bouncy); 
-            display: flex; align-items: center; justify-content: center; 
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        /* CAMPUS ALERT: PRESERVED LOGIC */
+        .alert-banner {
+            background: #000 !important;
+            border-bottom: 3px solid var(--imperial-crimson);
+            color: #fff !important;
         }
-        body.dark-mode .fab-item { background: rgba(15, 23, 42, 0.9) !important; color: #fff !important; }
-        
-        .fab-item:hover { 
-            background: var(--gold-gradient) !important; 
-            color: white !important; 
-            transform: translateX(-8px) scale(1.05); 
-            border-color: var(--gold) !important;
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.4);
+
+        /* FAB: PRESERVED LOGIC */
+        .fab-item { 
+            background: #ffffff !important;
+            border: 2px solid #000 !important;
+            color: #000 !important;
+            font-weight: 900 !important;
+            box-shadow: 5px 5px 0px rgba(0,0,0,1) !important;
         }
     </style>
 </head>
 <body>
     {% if active_broadcast %}
-    <div style="background: linear-gradient(90deg, var(--danger) 0%, #990000 100%); color: white; padding: 14px 0; overflow: hidden; position: relative; z-index: 10001; display: flex; align-items: center; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);">
-        <div style="background: linear-gradient(90deg, #990000 0%, var(--danger) 100%); padding: 0 30px; font-weight: 900; position: absolute; z-index: 2; display: flex; align-items: center; gap: 10px; border-right: 2px solid rgba(255,255,255,0.3); height: 100%; box-shadow: 10px 0 20px rgba(0,0,0,0.2);">
-            <i class="fas fa-bullhorn" style="font-size: 1.2rem; color: #ffcccc;"></i> <span style="letter-spacing: 2px; text-transform: uppercase;">Campus Alert</span>
+    <div class="alert-banner" style="padding: 12px 0; overflow: hidden; position: relative; z-index: 10001; display: flex; align-items: center;">
+        <div style="background: var(--imperial-crimson); padding: 0 25px; font-weight: 900; position: absolute; z-index: 2; display: flex; align-items: center; gap: 10px; height: 100%; text-transform: uppercase;">
+            <span style="font-size: 1.2rem;">⚠️</span> ALERT
         </div>
-        <marquee behavior="scroll" direction="left" scrollamount="8" style="font-size: 1.05rem; font-weight: 700; padding-left: 250px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-            {{ active_broadcast.message }} &nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #ffcccc;">•</span> &nbsp;&nbsp;&nbsp;&nbsp; 
-            <span style="opacity: 0.85; font-weight: 500; font-style: italic;">Posted by: {{ active_broadcast.author }} at {{ active_broadcast.timestamp.strftime('%I:%M %p') }}</span>
+        <marquee behavior="scroll" direction="left" scrollamount="7" style="font-size: 1rem; font-weight: 800; padding-left: 200px;">
+            {{ active_broadcast.message }} &nbsp;&nbsp;&nbsp;&nbsp; [ORIGIN: {{ active_broadcast.author }} @ {{ active_broadcast.timestamp.strftime('%I:%M %p') }}]
         </marquee>
         {% if session['role'] in ['HR', 'Principal'] %}
-        <a href="{{ url_for('clear_broadcast') }}" style="color: white; margin-right: 25px; text-decoration: none; font-weight: bold; z-index: 2; background: rgba(255,255,255,0.15); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; backdrop-filter: blur(5px); transition: 0.3s; border: 1px solid rgba(255,255,255,0.3);" title="Dismiss Broadcast">✕</a>
+        <a href="{{ url_for('clear_broadcast') }}" style="color: white; margin-right: 20px; text-decoration: none; font-weight: 900; z-index: 2; background: #ff0000; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" title="Dismiss">✕</a>
         {% endif %}
     </div>
     {% endif %}
 
     <div class="sidebar">
         <div class="sidebar-content">
-            <div class="sidebar-brand" style="padding: 0 10px; margin-bottom: 40px; position: relative;">
+            <div class="sidebar-brand" style="padding: 20px 10px; border-bottom: 3px solid #000; margin-bottom: 25px;">
                 <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
-                    <h2 class="liquid-gold" style="margin: 0; cursor: pointer; font-size: 1.15rem; line-height: 1.3; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px;">BMS College of Commerce and Management</h2>
+                    <h2 style="margin: 0; font-size: 1rem; font-weight: 950; text-transform: uppercase; color: #000;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h2>
                 </a>
             </div>
 
-            <a href="{{ url_for('dashboard') }}" class="sidebar-link" style="position: relative;" onclick="clearBadge(this)">
-                📊 Dashboard
+            <a href="{{ url_for('dashboard') }}" class="sidebar-link" onclick="clearBadge(this)">
+                📊 DASHBOARD
                 {% if global_notif_count and global_notif_count > 0 %}
                     <span class="pulse-badge">{{ global_notif_count }}</span>
                 {% endif %}
             </a>
 
-            <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ Class Timetable</a>
-            <a href="{{ url_for('chat') }}" class="sidebar-link">💬 Group Chat</a> 
-            <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ Attendance</a>
-            <a href="{{ url_for('performance') }}" class="sidebar-link">📈 Performance</a> 
+            <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ TIMETABLE</a>
+            <a href="{{ url_for('chat') }}" class="sidebar-link">💬 GROUP CHAT</a> 
+            <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ ATTENDANCE</a>
+            <a href="{{ url_for('performance') }}" class="sidebar-link">📈 PERFORMANCE</a> 
 
             {% if session['role'] in ['Principal', 'HR'] %}
-                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="background: linear-gradient(90deg, rgba(45, 0, 15, 0.08) 0%, transparent 100%); border-left: 4px solid var(--p); color: var(--p) !important;">📅 Leave Calendar</a>
+                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="color: var(--imperial-crimson) !important;">📅 LEAVE CALENDAR</a>
             {% else %}
-                <a href="{{ url_for('leave') }}" class="sidebar-link">📅 Leave Management</a>
+                <a href="{{ url_for('leave') }}" class="sidebar-link">📅 LEAVE MGMT</a>
             {% endif %}
 
             {% if session.get('role') in ['HR', 'Principal'] %}
-                <a href="{{ url_for('digital_vault') }}" class="sidebar-link">📁 Digital Vault</a>
+                <a href="{{ url_for('digital_vault') }}" class="sidebar-link">📁 DIGITAL VAULT</a>
             {% endif %}
 
-            <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 Expense Claims</a>
-            <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 Staff Directory</a>
+            <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 EXPENSES</a>
+            <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 DIRECTORY</a>
 
-            <a href="{{ url_for('activity_room') }}" class="sidebar-link" style="position: relative;" onclick="clearBadge(this)">
-                📝 Activity Room
+            <a href="{{ url_for('activity_room') }}" class="sidebar-link" onclick="clearBadge(this)">
+                📝 ACTIVITY ROOM
                 {% if pending_tasks_count and pending_tasks_count > 0 %}
                     <span class="pulse-badge">{{ pending_tasks_count }}</span>
                 {% endif %}
             </a>
 
-            <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 My Profile</a>
+            <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 MY PROFILE</a>
 
             {% if session['role'] == 'Principal' %}
-                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: linear-gradient(90deg, #fff0f0 0%, transparent 100%); color: #dc2626 !important; font-weight: 900; border-left: 4px solid #dc2626; text-transform: uppercase; letter-spacing: 0.5px;">🛡️ Audit Logs</a>
+                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fff0f0; color: #ff0000 !important; border-left: 5px solid #ff0000;">🛡️ AUDIT LOGS</a>
             {% endif %}
             
-            <button onclick="toggleDarkMode()" class="btn" style="width: 100%; margin-top: 25px;">🌙 Toggle Theme</button>
+            <button onclick="toggleDarkMode()" class="btn" style="width: 90%; margin: 20px auto; display: block; background: #000; color: #fff; font-weight: 900; border-radius: 8px;">🌙 THEME TOGGLE</button>
         </div>
         
         <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #dc2626 !important; font-weight: 900; border-left: 4px solid #dc2626; background: linear-gradient(90deg, rgba(220, 38, 38, 0.08) 0%, transparent 100%);">🚪 Secure Logout</a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #fff !important; background: #ff0000 !important; text-align: center; border: none;">LOGOUT</a>
         </div>
     </div>
 
     <div class="main">
-        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 40px;" class="animate-enter delay-1">
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 30px;">
             {% if session['name'] %}
-            <div style="display: flex; align-items: center; gap: 15px; background: var(--glass); backdrop-filter: blur(16px); padding: 8px 12px 8px 20px; border-radius: 50px; box-shadow: var(--shadow-sm); border: 1px solid rgba(255,255,255,0.5);">
-                <a href="{{ url_for('my_profile') }}" style="text-decoration: none; color: var(--text-main); font-weight: 800; display: flex; align-items: center; gap: 10px; font-size: 0.95rem;">
-                    <span class="liquid-gold" style="font-size: 1.2rem;">👤</span> 
-                    {{ session['name'] }}
+            <div style="display: flex; align-items: center; gap: 15px; background: #fff; padding: 10px 25px; border-radius: 12px; border: 2px solid #000; box-shadow: 4px 4px 0px #000;">
+                <a href="{{ url_for('my_profile') }}" style="text-decoration: none; color: #000; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+                    <span>👤</span> {{ session['name'] }}
                 </a>
-                <div style="width: 1px; height: 20px; background: rgba(0,0,0,0.1); margin: 0 5px;"></div>
-                <a href="{{ url_for('logout') }}" class="btn" style="padding: 10px 20px; border-radius: 40px; font-size: 0.85rem; background: var(--danger-gradient);">🚪 Exit</a>
+                <div style="width: 2px; height: 20px; background: #000;"></div>
+                <span style="font-size: 0.8rem; font-weight: 900; color: var(--imperial-crimson);">{{ session['role'] }}</span>
             </div>
             {% endif %}
         </div>
@@ -158,9 +166,8 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash {% if category == 'error' %}error{% else %}success{% endif %} animate-enter">
-                        <span style="margin-right: 15px; font-size: 1.4rem;">{% if category == 'error' %}⚠️{% else %}✅{% endif %}</span> 
-                        {{ message }}
+                    <div class="flash {% if category == 'error' %}error{% else %}success{% endif %}" style="border: 2px solid #000; font-weight: 800; color: #000; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                        {% if category == 'error' %}⚠️{% else %}✅{% endif %} {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
@@ -170,59 +177,41 @@
     </div>
 
     {% if session['user_id'] %}
-    <div id="fab-container" style="position: fixed; bottom: 40px; right: 40px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px;">
-        <button onclick="toggleFab()" id="fab-main" style="width: 70px; height: 70px; border-radius: 50%; background: var(--p-gradient); color: white; border: 2px solid rgba(255,255,255,0.3); font-size: 26px; cursor: pointer; box-shadow: var(--shadow-deep); display: flex; align-items: center; justify-content: center; transition: var(--trans-bouncy); position: relative; overflow: hidden;">
-            <span id="fab-icon" style="transition: transform 0.4s ease;">⚡</span>
+    <div id="fab-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 12px;">
+        <button onclick="toggleFab()" id="fab-main" style="width: 65px; height: 65px; border-radius: 50%; background: #000; color: white; border: 3px solid var(--imperial-gold); font-size: 24px; cursor: pointer; box-shadow: 6px 6px 0px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
+            <span id="fab-icon">⚡</span>
         </button>
-        <div id="fab-options" style="display: none; flex-direction: column; gap: 12px; align-items: flex-end; padding-bottom: 10px;">
-            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="color: var(--text-main); padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 800; font-size: 0.95rem;">🗓️ My Schedule</a>
-            <a href="{{ url_for('chat') }}" class="fab-item" style="color: var(--text-main); padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 800; font-size: 0.95rem;">💬 Quick Message</a>
-            <a href="{{ url_for('attendance') }}" class="fab-item" style="color: var(--text-main); padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 800; font-size: 0.95rem;">🕒 Mark Attendance</a>
-            <a href="{{ url_for('leave') }}" class="fab-item" style="color: var(--text-main); padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 800; font-size: 0.95rem;">🌴 Apply Leave</a>
+        <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end;">
+            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🗓️ SCHEDULE</a>
+            <a href="{{ url_for('chat') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">💬 MESSAGE</a>
+            <a href="{{ url_for('attendance') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🕒 ATTENDANCE</a>
+            <a href="{{ url_for('leave') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🌴 LEAVE</a>
         </div>
     </div>
     {% endif %}
 
     <script>
-        // THEME TOGGLE (RETAINED LOGIC)
+        // THEME TOGGLE: RETAINED LOGIC
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
             localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
         }
         if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 
-        // FAB ANIMATION (RETAINED LOGIC)
+        // FAB ANIMATION: RETAINED LOGIC
         function toggleFab() {
             const options = document.getElementById('fab-options');
             const icon = document.getElementById('fab-icon');
-            const mainBtn = document.getElementById('fab-main');
-            
             if (options.style.display === 'none' || options.style.display === '') {
                 options.style.display = 'flex';
-                Array.from(options.children).forEach((child, index) => {
-                    child.style.opacity = '0';
-                    child.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        child.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-                        child.style.opacity = '1';
-                        child.style.transform = 'translateY(0)';
-                    }, index * 50);
-                });
                 icon.innerText = '✕';
-                icon.style.transform = 'rotate(90deg)';
-                mainBtn.style.background = 'var(--danger-gradient)';
             } else {
-                icon.style.transform = 'rotate(-90deg)';
-                setTimeout(() => {
-                    options.style.display = 'none';
-                    icon.innerText = '⚡';
-                    icon.style.transform = 'rotate(0deg)';
-                    mainBtn.style.background = 'var(--p-gradient)';
-                }, 200);
+                options.style.display = 'none';
+                icon.innerText = '⚡';
             }
         }
 
-        // BADGE CLEAR (RETAINED LOGIC)
+        // BADGE CLEAR: RETAINED LOGIC
         function clearBadge(element) {
             const badge = element.querySelector('.pulse-badge');
             if (badge) { badge.style.display = 'none'; }
