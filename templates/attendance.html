@@ -4,34 +4,34 @@
 <div class="stats-container animate-enter" style="margin-bottom: 40px;">
     
     <div class="stat-card stat-office card">
-        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.65rem;">Life-time Presence</small>
-        <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 900; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">{{ history|length }}</h2>
-        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 700; backdrop-filter: blur(10px); color: white !important;">Total Check-ins</div>
+        <small style="color: #000; opacity: 0.9; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Life-time Presence</small>
+        <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: #000 !important; background: none; -webkit-text-fill-color: #000;">{{ history|length }}</h2>
+        <div style="font-size: 0.75rem; background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; backdrop-filter: blur(10px); color: #000 !important;">Total Check-ins</div>
     </div>
 
     <div class="stat-card card" style="background: linear-gradient(135deg, #ef4444, #991b1b);">
-        <small style="opacity: 0.8; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.65rem;">Current Month Analytics</small>
-        <h2 id="absent-stat-count" style="margin: 12px 0; font-size: 3rem; font-weight: 900; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">0</h2>
-        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 700; backdrop-filter: blur(10px); color: white !important;">Days Absent</div>
+        <small style="color: #fff; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Month Analytics</small>
+        <h2 id="absent-stat-count" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">0</h2>
+        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; backdrop-filter: blur(10px); color: white !important;">Days Absent</div>
     </div>
 
     <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
-        <small style="opacity: 0.6; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; font-size: 0.65rem;">Current Status</small>
-        <h2 style="margin: 12px 0; font-size: 2.5rem; font-weight: 900; letter-spacing: -2px; color: var(--gold) !important;">Online</h2>
-        <div class="pulse-active" style="font-size: 0.75rem; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 800; background: #10b981; color: white !important; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">Verified Session</div>
+        <small style="color: #000; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Status</small>
+        <h2 style="margin: 12px 0; font-size: 2.5rem; font-weight: 950; letter-spacing: -2px; color: #1a000a !important;">Online</h2>
+        <div class="pulse-active" style="font-size: 0.75rem; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; background: #065f46; color: white !important; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);">Verified Session</div>
     </div>
 </div>
 
-<div class="card animate-enter" style="animation-delay: 0.1s; border-top: 5px solid var(--p);">
+<div class="card animate-enter" style="animation-delay: 0.1s; border-top: 5px solid #1a000a;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-        <h3 style="margin:0; font-weight: 900; letter-spacing: -1px; display: flex; align-items: center; gap: 12px;">
+        <h3 style="margin:0; font-weight: 950; letter-spacing: -1px; display: flex; align-items: center; gap: 12px; color: #000;">
             <span style="font-size: 1.4rem;">📊</span> Last 7 Days Performance Matrix
         </h3>
         <div style="display: flex; gap: 20px; align-items: center;">
-            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--text-main); opacity: 0.7;">
-                <div style="width: 12px; height: 12px; background: var(--p); border-radius: 3px;"></div> Present
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: #000;">
+                <div style="width: 12px; height: 12px; background: #800000; border-radius: 3px;"></div> Present
             </span>
-            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; color: var(--text-main); opacity: 0.7;">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: #000;">
                 <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 3px;"></div> Missed
             </span>
         </div>
@@ -44,55 +44,55 @@
 <div class="main-content-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 35px; align-items: start;">
     
     <div class="card animate-enter" style="animation-delay: 0.2s;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid rgba(0,0,0,0.1); padding-bottom: 30px;">
             <div>
-                <h2 style="margin:0; font-weight: 900; font-size: 2rem; letter-spacing: -1.5px;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #ef4444; font-weight: 800; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Location verification required</small>
+                <h2 style="margin:0; font-weight: 950; font-size: 2rem; letter-spacing: -1.5px; color: #000;">Attendance Tracking</h2>
+                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Location verification required</small>
             </div>
             {% if session['role'] == 'HR' %}
-                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn" style="padding: 8px 16px; font-size: 0.7rem; background: #1e293b;">
+                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn" style="padding: 10px 18px; font-size: 0.7rem; background: #000; color: #fff; font-weight: 900;">
                     📥 EXPORT DATA
                 </a>
             {% endif %}
         </div>
 
-        <form id="attendanceForm" method="POST" style="background: rgba(0,0,0,0.03); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.5); display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 40px;">
+        <form id="attendanceForm" method="POST" style="background: rgba(0,0,0,0.05); padding: 25px; border-radius: 20px; border: 2px solid rgba(0,0,0,0.1); display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 40px;">
             <input type="hidden" name="lat" id="lat">
             <input type="hidden" name="lon" id="lon">
             
             <div style="flex: 1; min-width: 200px;">
-                <select name="work_mode" id="work_mode" style="width: 100%; height: 50px; border-radius: 12px; padding: 0 15px; font-weight: 700; border: 2px solid #e2e8f0; appearance: none; background: white url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 1rem center; background-size: 0.65rem auto;">
+                <select name="work_mode" id="work_mode" style="width: 100%; height: 50px; border-radius: 12px; padding: 0 15px; font-weight: 900; border: 2px solid #000; color: #000; appearance: none; background: white url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 1rem center; background-size: 0.65rem auto;">
                     <option value="Office">🏢 OFFICE CAMPUS</option>
                     <option value="WFH">🏠 REMOTE WORK (WFH)</option>
                 </select>
             </div>
             
-            <button type="button" onclick="getLocation()" class="btn" style="background: white; color: var(--p); border: 2px solid var(--p); flex: 1;">1. VERIFY GPS</button>
-            <button type="submit" id="submitBtn" class="btn" style="background: var(--success); flex: 1.5; opacity: 0.5; cursor: not-allowed;" disabled>2. CLOCK SESSION</button>
+            <button type="button" onclick="getLocation()" class="btn" style="background: white; color: #000; border: 2px solid #000; flex: 1; font-weight: 900;">1. VERIFY GPS</button>
+            <button type="submit" id="submitBtn" class="btn" style="background: #065f46; color: #fff; flex: 1.5; opacity: 0.5; cursor: not-allowed; font-weight: 900;" disabled>2. CLOCK SESSION</button>
         </form>
 
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: separate; border-spacing: 0 12px;">
                 <thead>
                     <tr style="text-align: left;">
-                        <th style="padding: 12px 20px; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Date</th>
-                        <th style="padding: 12px 20px; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Employee</th>
-                        <th style="padding: 12px 20px; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Mode</th>
-                        <th style="padding: 12px 20px; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; font-weight: 800;">Times</th>
+                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Date</th>
+                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Employee</th>
+                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Mode</th>
+                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Times</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody style="color: #000;">
                     {% for row in history %}
-                    <tr>
-                        <td style="padding: 20px; font-weight: 700; color: var(--text-muted); border-radius: 16px 0 0 16px;">{{ row.date }}</td>
-                        <td style="padding: 20px; font-weight: 800;">{{ row.user.full_name }}</td>
+                    <tr style="background: rgba(0,0,0,0.02);">
+                        <td style="padding: 20px; font-weight: 800; border-radius: 16px 0 0 16px;">{{ row.date }}</td>
+                        <td style="padding: 20px; font-weight: 900;">{{ row.user.full_name }}</td>
                         <td style="padding: 20px;">
-                            <span style="background: {% if row.work_mode == 'WFH' %}var(--success-bg){% else %}var(--p-light){% endif %}; color: {% if row.work_mode == 'WFH' %}var(--success){% else %}var(--p){% endif %}; padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 0.65rem;">{{ row.work_mode }}</span>
+                            <span style="background: #000; color: #fff; padding: 6px 12px; border-radius: 10px; font-weight: 900; font-size: 0.65rem;">{{ row.work_mode }}</span>
                         </td>
                         <td style="padding: 20px; border-radius: 0 16px 16px 0;">
-                            <span style="color: var(--success); font-weight: 900;">{{ row.check_in }}</span>
-                            <span style="margin: 0 8px; opacity: 0.3;">→</span>
-                            <span style="color: var(--p); font-weight: 900;">{{ row.check_out or '--:--' }}</span>
+                            <span style="color: #065f46; font-weight: 950;">{{ row.check_in }}</span>
+                            <span style="margin: 0 8px; opacity: 0.5; color: #000;">→</span>
+                            <span style="color: #800000; font-weight: 950;">{{ row.check_out or '--:--' }}</span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -101,11 +101,11 @@
         </div>
     </div>
 
-    <div class="card animate-enter" style="animation-delay: 0.3s; border-bottom: 5px solid var(--gold);">
-        <h3 style="font-weight: 900; margin-bottom: 30px; display: flex; align-items: center; gap: 12px;">
-            <span style="color: var(--gold) !important; font-size: 1.3rem;">📅</span> Monthly Overview
+    <div class="card animate-enter" style="animation-delay: 0.3s; border-bottom: 5px solid #000;">
+        <h3 style="font-weight: 950; margin-bottom: 30px; display: flex; align-items: center; gap: 12px; color: #000;">
+            <span style="color: #800000 !important; font-size: 1.3rem;">📅</span> Monthly Overview
         </h3>
-        <div id='calendar' style="background: white; border-radius: 20px; padding: 15px; border: 1px solid rgba(0,0,0,0.05); overflow: hidden;"></div>
+        <div id='calendar' style="background: white; border-radius: 20px; padding: 15px; border: 2px solid #000; overflow: hidden;"></div>
     </div>
 </div>
 
@@ -119,18 +119,18 @@ function getLocation() {
     const btn = document.getElementById('submitBtn');
     if (navigator.geolocation) {
         indicator.innerText = "🛰️ INITIATING SATELLITE LOCK...";
-        indicator.style.color = "var(--gold)";
+        indicator.style.color = "#800000";
         navigator.geolocation.getCurrentPosition((pos) => {
             document.getElementById('lat').value = pos.coords.latitude;
             document.getElementById('lon').value = pos.coords.longitude;
             indicator.innerText = "✅ POSITION SECURED: " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4);
-            indicator.style.color = "var(--success)";
+            indicator.style.color = "#065f46";
             btn.disabled = false;
             btn.style.opacity = "1";
             btn.style.cursor = "pointer";
         }, (err) => {
             indicator.innerText = "❌ ERROR: GEOLOCATION ACCESS DENIED";
-            indicator.style.color = "var(--danger)";
+            indicator.style.color = "#ef4444";
         });
     }
 }
@@ -161,7 +161,14 @@ document.addEventListener('DOMContentLoaded', function() {
         data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10, barThickness: 35 }] },
         options: { 
             responsive: true, maintainAspectRatio: false, 
-            scales: { y: { display: false, max: 1.2 }, x: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: '700' } } } },
+            scales: { 
+                y: { display: false, max: 1.2 }, 
+                x: { 
+                    grid: { display: false }, 
+                    border: { display: false }, 
+                    ticks: { color: '#000', font: { weight: '900' } } 
+                } 
+            },
             plugins: { legend: { display: false } }
         }
     });
@@ -181,9 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if ('{{ row.date }}' === cellDate) { isPresent = true; }
             {% endfor %}
             if (!isPresent && !isWeekend && cellDate < today) {
-                info.el.style.backgroundColor = 'rgba(239, 68, 68, 0.03)'; 
+                info.el.style.backgroundColor = 'rgba(239, 68, 68, 0.05)'; 
                 let mark = document.createElement('div');
-                mark.innerHTML = '<span style="background:var(--danger); color:white; font-size:0.55rem; padding:3px 8px; border-radius:6px; margin-top:8px; display:inline-block; font-weight:900;">ABSENT</span>';
+                mark.innerHTML = '<span style="background:#ef4444; color:white; font-size:0.55rem; padding:3px 8px; border-radius:6px; margin-top:8px; display:inline-block; font-weight:950;">ABSENT</span>';
                 mark.style.textAlign = 'center';
                 info.el.querySelector('.fc-daygrid-day-frame').appendChild(mark);
                 let statCounter = document.getElementById('absent-stat-count');
@@ -195,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         events: [
             {% for row in history %}
-            { title: '{{ row.work_mode }}', start: '{{ row.date }}', color: '{% if row.work_mode == "WFH" %}#10b981{% else %}#800000{% endif %}' },
+            { title: '{{ row.work_mode }}', start: '{{ row.date }}', color: '{% if row.work_mode == "WFH" %}#065f46{% else %}#800000{% endif %}' },
             {% endfor %}
         ]
     });
@@ -204,11 +211,13 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-/* FULLCALENDAR V5.0 THEMING */
-.fc .fc-toolbar-title { font-size: 1rem !important; font-weight: 900; color: var(--text-main); text-transform: uppercase; }
-.fc .fc-button-primary { background-color: var(--p) !important; border: none !important; text-transform: uppercase; font-size: 0.6rem !important; font-weight: 900 !important; border-radius: 8px !important; }
-.fc-daygrid-event { border-radius: 6px !important; padding: 4px 8px !important; font-size: 0.65rem !important; font-weight: 800 !important; }
-.fc-day-today { background: var(--p-light) !important; }
+/* FULLCALENDAR V5.0 THEMING - DARKER TEXT */
+.fc .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 950; color: #000; text-transform: uppercase; }
+.fc .fc-button-primary { background-color: #000 !important; border: none !important; text-transform: uppercase; font-size: 0.65rem !important; font-weight: 900 !important; border-radius: 8px !important; }
+.fc-daygrid-event { border-radius: 6px !important; padding: 4px 8px !important; font-size: 0.65rem !important; font-weight: 900 !important; }
+.fc-daygrid-day-number { color: #000 !important; font-weight: 900 !important; }
+.fc-col-header-cell-cushion { color: #000 !important; font-weight: 900 !important; text-transform: uppercase; }
+.fc-day-today { background: rgba(128, 0, 0, 0.05) !important; }
 </style>
 
 {% endblock %}
