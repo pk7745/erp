@@ -39,6 +39,12 @@
         padding: 12px; border-radius: 4px; margin-top: 8px;
     }
 
+    .status-active-badge {
+        background: #800000; color: #ffffff !important; 
+        padding: 5px 12px; border-radius: 4px; 
+        font-weight: 900; text-transform: uppercase; font-size: 0.7rem;
+    }
+
     .staff-img { border: 3px solid #000 !important; border-radius: 8px; width: 60px; height: 60px; object-fit: cover; cursor: pointer; }
 </style>
 
@@ -78,10 +84,8 @@
             <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Email</label><input type="email" name="email" class="search-input" required></div>
             <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Username</label><input type="text" name="username" class="search-input" required></div>
             <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Password</label><input type="password" name="password" class="search-input" required></div>
-            
             <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Religion</label><input type="text" name="religion" class="search-input"></div>
             <div><label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Caste</label><input type="text" name="caste" class="search-input"></div>
-            
             <div>
                 <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Department</label>
                 <select name="department" class="search-input" style="height: 50px;">
@@ -91,7 +95,6 @@
                     <option value="Accounts">Accounts</option>
                 </select>
             </div>
-
             <div>
                 <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Basic Salary</label>
                 <input type="number" id="new_staff_salary" name="salary" class="search-input" oninput="calculateAddFormNet()" required>
@@ -100,7 +103,6 @@
                 <label style="font-weight: 900; font-size: 0.65rem; color: #800000;">ESTIMATED NET TAKE-HOME</label>
                 <div id="new_net_display" style="font-size: 1.5rem; font-weight: 950;">₹0</div>
             </div>
-
             <button type="submit" class="btn" style="grid-column: span 3; padding: 15px; background: #800000; color: white !important; font-weight: 950;">SAVE TO DATABASE</button>
         </form>
     </div>
@@ -111,7 +113,7 @@
                 <th>Personnel</th>
                 <th>Contact</th>
                 <th>Status</th>
-                <th>Payroll</th>
+                <th>Payroll Breakdown</th>
                 <th style="text-align: right;">Actions</th>
             </tr>
         </thead>
@@ -134,23 +136,32 @@
                 <td style="font-weight: 800; font-size: 0.85rem;">{{ emp.email }}</td>
                 <td>
                     {% if emp.status == 'Pending Accountant Configuration' %}
-                        <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" class="btn" style="background:#800000; color:#fff !important; font-size:0.7rem;">CONFIG</button>
+                        <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" class="btn" style="background:#000; color:#fff !important; font-size:0.7rem;">CONFIG</button>
                     {% else %}
-                        <span style="background: #000; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: 900; font-size: 0.7rem;">ACTIVE</span>
+                        <span class="status-active-badge">ACTIVE</span>
                     {% endif %}
                 </td>
                 <td>
                     <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
                     <div id="fullBreakdown_{{ emp.id }}" class="payroll-glass">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px;">
-                            <span style="font-size: 0.65rem; font-weight: 950;">NET</span>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 4px;">
+                            <span style="font-size: 0.65rem; font-weight: 950;">NET TAKE-HOME</span>
                             <span id="netDisplay_{{ emp.id }}" style="font-weight:950; color:#800000 !important;">₹0</span>
                         </div>
+                        <div id="breakdown_{{ emp.id }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 0.6rem; font-weight: 800;"></div>
                     </div>
                 </td>
                 <td style="text-align: right;">
-                    <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn" style="background: #000; color: #fff !important; font-size: 0.6rem;">ID</a>
-                    <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn" style="background: #800000; color: #fff !important; font-size: 0.6rem;">PAYSLIP</a>
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
+                        {% if session['role'] == 'Principal' %}
+                            <form action="{{ url_for('update_salary', uid=emp.id) }}" method="POST" style="display:inline;">
+                                <input type="number" name="new_salary" placeholder="New Basic" style="width: 80px; font-size: 0.6rem; padding: 2px; border: 1px solid #000;" required>
+                                <button type="submit" class="btn" style="background: #800000; color: #fff !important; font-size: 0.6rem; padding: 2px 5px;">APPLY HIKE</button>
+                            </form>
+                        {% endif %}
+                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn" style="background: #000; color: #fff !important; font-size: 0.6rem; width: 85px;">ID CARD</a>
+                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn" style="background: #800000; color: #fff !important; font-size: 0.6rem; width: 85px;">PAYSLIP</a>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -159,7 +170,6 @@
 </div>
 
 <script>
-// RESTORED: Auto-calculator for the Add Staff Form
 function calculateAddFormNet() {
     let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
     const hra = Math.floor(basic * 0.40);
@@ -173,19 +183,24 @@ function calculateAddFormNet() {
     document.getElementById('new_net_display').innerText = '₹' + net.toLocaleString('en-IN');
 }
 
-// Logic for existing table rows
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
     let basic = parseFloat(input.value) || 0;
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
-    const gross = basic + hra + da + 2000;
+    const ta = 2000;
+    const gross = basic + hra + da + ta;
     let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
     const epf = Math.floor((basic + da) * 0.12);
     const tds = Math.floor(gross * tdsRate);
-    const net = gross - (epf + tds + 200);
+    const pt = 200;
+    const net = gross - (epf + tds + pt);
+    
     document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    document.getElementById('breakdown_' + empId).innerHTML = `
+        <span>HRA: ₹${hra}</span> <span>DA: ₹${da}</span>
+        <span style="color:#800000">TDS: -₹${tds}</span> <span style="color:#800000">EPF: -₹${epf}</span>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
