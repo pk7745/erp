@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | BMS COLLEGE OF COMMERCE AND MANAGEMENT</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #800000;         /* BMS Maroon */
-            --primary-light: #a31a1a;
-            --gold: #D4AF37;            /* Satin Gold */
-            --navy: #1b2559;
-            --error: #ea3a3a;
-            --text-gray: #707eae;
-            --glass: rgba(255, 255, 255, 0.85);
+            --primary: #000000;         /* High Contrast Black */
+            --accent: #800000;          /* Imperial Red */
+            --bg-body: #ffffff;
         }
 
         body {
@@ -22,61 +18,47 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Phenomenal Mesh Gradient Background */
-            background: 
-                radial-gradient(at 0% 0%, rgba(128, 0, 0, 0.08) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(212, 175, 55, 0.1) 0px, transparent 50%),
-                #f4f7fe;
+            background: #ffffff;
             font-family: 'Manrope', sans-serif;
             overflow: hidden;
-            /* This enables the 3D effect depth */
             perspective: 1000px;
         }
 
-        /* 3D Glass Card */
+        /* --- IMPERIAL 3D CARD --- */
         .login-card {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: #ffffff;
             padding: 50px;
-            border-radius: 32px;
-            /* High-end layered shadow */
-            box-shadow: 
-                0 10px 30px rgba(0,0,0,0.03),
-                0 30px 60px rgba(128,0,0,0.08);
+            border-radius: 12px;
+            /* Neubrutalist High-Contrast Shadow */
+            border: 4px solid #000;
+            box-shadow: 15px 15px 0px #000;
             width: 100%;
             max-width: 420px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            /* Smooth reset transition */
-            transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+            transition: transform 0.1s ease-out;
             transform-style: preserve-3d;
             will-change: transform;
         }
 
-        .login-card:hover {
-            box-shadow: 0 40px 80px rgba(128,0,0,0.12);
-        }
-
-        /* Elements inside card get a 3D lift */
+        /* 3D Depth for Internal Elements */
         .brand-name, .login-form, .footer-text {
-            transform: translateZ(30px);
+            transform: translateZ(40px);
         }
 
-        /* ALERT STYLING (Preserved & Upgraded) */
+        /* ALERT BOX: PRESERVED & STYLIZED */
         .alert-box {
-            background: #fff5f5;
-            color: var(--error);
+            background: #000;
+            color: #fff !important;
             padding: 14px;
-            border-radius: 16px;
-            border: 1px solid rgba(234, 58, 58, 0.1);
+            border-radius: 4px;
             margin-bottom: 25px;
             font-size: 0.9rem;
-            font-weight: 700;
+            font-weight: 900;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
+            border: 2px solid #800000;
             animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
 
@@ -88,123 +70,123 @@
         }
 
         .brand-name {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--navy);
+            font-size: 1.25rem;
+            font-weight: 950;
+            color: #000;
             margin-bottom: 5px;
-            letter-spacing: -0.5px;
-            line-height: 1.2;
+            letter-spacing: -1px;
+            line-height: 1.1;
             text-transform: uppercase;
         }
 
         .brand-highlight {
-            color: var(--primary);
-            font-size: 1.35rem;
+            color: var(--accent);
+            font-size: 1.45rem;
             display: block;
             margin-top: 5px;
-            background: linear-gradient(90deg, var(--primary), #4a0000);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-weight: 950;
         }
 
+        /* INPUTS: BOLD CONTRAST */
         input {
             width: 100%;
             padding: 18px;
             margin: 12px 0;
-            border: 1px solid rgba(224, 229, 242, 0.8);
-            background: rgba(244, 247, 254, 0.5);
-            border-radius: 16px;
+            border: 3px solid #000;
+            background: #fff;
+            border-radius: 4px;
             box-sizing: border-box;
             font-size: 1rem;
             font-family: inherit;
+            font-weight: 800;
             outline: none;
-            transition: all 0.3s ease;
+            transition: 0.2s;
         }
 
         input:focus {
-            border-color: var(--primary);
-            background: white;
-            box-shadow: 0 10px 20px rgba(128, 0, 0, 0.05);
-            transform: translateY(-2px);
+            background: #fff;
+            box-shadow: 6px 6px 0px #800000;
+            transform: translate(-3px, -3px);
         }
 
+        /* BUTTON: NEUBRUTALIST STYLE */
         .btn-login {
             width: 100%;
-            background: linear-gradient(135deg, var(--primary) 0%, #5a0000 100%);
-            color: white;
-            padding: 18px;
+            background: #000;
+            color: white !important;
+            padding: 20px;
             border: none;
-            border-radius: 16px;
-            font-weight: 800;
-            font-size: 1.1rem;
+            border-radius: 4px;
+            font-weight: 950;
+            font-size: 1.2rem;
             cursor: pointer;
             margin-top: 20px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 10px 25px rgba(128, 0, 0, 0.25);
-            letter-spacing: 0.5px;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .btn-login:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 15px 35px rgba(128, 0, 0, 0.35);
-            filter: brightness(1.1);
+            background: #800000;
+            transform: translate(-4px, -4px);
+            box-shadow: 6px 6px 0px #000;
         }
 
         .btn-login:active {
-            transform: translateY(0) scale(0.98);
+            transform: translate(0, 0);
+            box-shadow: none;
         }
 
         .forgot-link {
             display: block;
             margin-top: 25px;
-            color: var(--text-gray);
-            text-decoration: none;
+            color: #000;
+            text-decoration: underline;
+            text-decoration-thickness: 2px;
             font-size: 0.85rem;
-            font-weight: 700;
-            transition: 0.3s;
-        }
-
-        .forgot-link:hover {
-            color: var(--primary);
+            font-weight: 900;
+            text-transform: uppercase;
         }
 
         .footer-text {
             margin-top: 35px;
-            font-size: 0.7rem;
-            color: var(--text-gray);
+            font-size: 0.75rem;
+            color: #000;
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-weight: 800;
+            font-weight: 950;
+            opacity: 0.4;
         }
 
-        /* Floating decoration elements */
-        .orb {
+        /* Background Decorations */
+        .bg-stripe {
             position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(128,0,0,0.05) 0%, transparent 70%);
-            border-radius: 50%;
+            width: 100%;
+            height: 30vh;
+            background: #f0f0f0;
             z-index: -1;
+            transform: skewY(-5deg);
         }
     </style>
 </head>
 <body>
 
-    <div class="orb" style="top: -100px; left: -100px;"></div>
-    <div class="orb" style="bottom: -100px; right: -100px;"></div>
+    <div class="bg-stripe" style="top: -15vh;"></div>
+    <div class="bg-stripe" style="bottom: -15vh;"></div>
 
     <div class="login-card">
         <div class="brand-name">
             BMS COLLEGE OF <br> 
             <span class="brand-highlight">COMMERCE AND MANAGEMENT</span>
         </div>
-        <p style="color: var(--text-gray); margin-bottom: 35px; font-weight: 600; font-size: 0.9rem;">Faculty & Staff Enterprise Portal</p>
+        <p style="color: #000; margin-bottom: 35px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+            Faculty & Staff Enterprise Portal
+        </p>
 
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for message in messages %}
               <div class="alert-box">
-                <span style="background: var(--error); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px;">!</span> 
                 {{ message }}
               </div>
             {% endfor %}
@@ -212,8 +194,8 @@
         {% endwith %}
 
         <form method="POST" class="login-form">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
+            <input type="text" name="username" placeholder="USERNAME" required>
+            <input type="password" name="password" placeholder="PASSWORD" required>
             <button type="submit" class="btn-login">Sign Into Portal</button>
         </form>
 
@@ -225,6 +207,7 @@
     </div>
 
     <script>
+        /* 3D INTERACTION LOGIC: RETAINED EXACTLY */
         const card = document.querySelector('.login-card');
         const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
 
@@ -234,14 +217,12 @@
             const { clientX, clientY } = e;
             const { innerWidth, innerHeight } = window;
 
-            // Smooth 3D Rotation Calculation
-            const xRotation = ((clientY / innerHeight) - 0.5) * -15; // Max 15 deg
+            const xRotation = ((clientY / innerHeight) - 0.5) * -15; 
             const yRotation = ((clientX / innerWidth) - 0.5) * 15;
 
             card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
         });
 
-        // Elegant Reset when mouse leaves the viewport
         document.addEventListener('mouseleave', () => {
             card.style.transform = `rotateX(0deg) rotateY(0deg)`;
         });
