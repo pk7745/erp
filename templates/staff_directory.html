@@ -100,7 +100,8 @@
             <h3 style="margin:0; font-weight: 950; text-transform: uppercase; font-size: 1.5rem;">Register New Personnel</h3>
             <button class="btn-imperial" style="padding: 8px 20px;" onclick="document.getElementById('addForm').style.display='none'">CLOSE</button>
         </div>
-        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+        
+        <form action="{{ url_for('add_employee') }}" method="POST" enctype="multipart/form-data" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
             <div><label class="data-label">Full Name</label><input type="text" name="full_name" class="search-input" required></div>
             <div><label class="data-label">Email</label><input type="email" name="email" class="search-input" required></div>
             <div><label class="data-label">Phone</label><input type="text" name="phone" class="search-input" required></div>
@@ -112,8 +113,12 @@
             
             <div><label class="data-label">Religion</label><input type="text" name="religion" class="search-input" required></div>
             <div><label class="data-label">Caste</label><input type="text" name="caste" class="search-input" required></div>
+            
+            <div><label class="data-label">Date of Birth</label><input type="date" name="dob" class="search-input" required></div>
             <div><label class="data-label">Joining Date</label><input type="date" name="join_date" class="search-input" required></div>
             
+            <div><label class="data-label">Profile Photo</label><input type="file" name="profile_pic" class="search-input" accept="image/*"></div>
+
             <div>
                 <label class="data-label">Basic Salary</label>
                 <input type="number" id="new_staff_salary" name="salary" class="search-input" oninput="calculateAddFormNet()" required>
@@ -182,7 +187,7 @@
                                        oninput="calculateHikeLive(this, '{{ emp.id }}')" required>
                                 <button type="submit" class="btn-imperial" style="font-size: 0.7rem; padding: 8px 12px;">HIKE</button>
                                 
-                                <div id="hike_calc_{{ emp.id }}" class="live-calc-expanded" style="position: absolute; right: 0; z-index: 100; width: 280px; text-align: left;">
+                                <div id="hike_calc_{{ emp.id }}" class="live-calc-expanded" style="position: absolute; right: 105%; top: 0; z-index: 100; width: 280px; text-align: left;">
                                     <div class="calc-pill" style="grid-column: span 2; background: var(--royal-gold); color: #fff !important;">New Net: <span id="hike_net_{{ emp.id }}">0</span></div>
                                     <div class="calc-pill">HRA <span id="hike_hra_{{ emp.id }}" class="val-pos">0</span></div>
                                     <div class="calc-pill">DA <span id="hike_da_{{ emp.id }}" class="val-pos">0</span></div>
@@ -201,7 +206,7 @@
 </div>
 
 <script>
-/* LOGIC RETAINED 100% */
+/* ALL LOGIC RETAINED AS PER INSTRUCTION */
 function performFullCalc(basic) {
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
