@@ -5,132 +5,92 @@
 
 <style>
     :root {
-        --royal-maroon: #2d000f;
-        --deep-wine: #4a001a;
-        --gold-glow: rgba(212, 175, 55, 0.4);
+        --imp-text: #000000; --imp-bg: #f1f5f9; --imp-card: #ffffff;
+        --imp-border: #000000; --imp-maroon: #800000;
+    }
+    body { background-color: var(--imp-bg) !important; font-family: 'Inter', system-ui, sans-serif; }
+
+    /* Imperial Card Style */
+    .imperial-card {
+        background: var(--imp-card); border-radius: 24px; padding: 28px;
+        border: 4px solid var(--imp-border); box-shadow: 10px 10px 0px var(--imp-border);
+        margin-bottom: 30px;
     }
 
-    /* Imperial Glass Card */
-    .glass-card {
-        background: rgba(45, 0, 15, 0.95);
-        border: 1px solid var(--gold-primary);
-        border-radius: 15px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8), 0 0 15px var(--gold-glow);
-        padding: 25px;
-        margin-bottom: 20px;
+    /* High-Contrast Table */
+    .imperial-table {
+        width: 100%; border-collapse: separate; border-spacing: 0 12px;
     }
-
-    /* High-Contrast Premium Table */
-    .premium-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0 12px;
+    .imperial-table thead th {
+        background: #000; color: #fff !important; padding: 18px;
+        text-transform: uppercase; letter-spacing: 2px; font-weight: 950; border: none;
     }
-
-    .premium-table thead tr {
-        background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
-        color: #fff;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-weight: 900;
+    .imperial-table tbody tr {
+        background: #fff; transition: 0.2s;
     }
-
-    .premium-table tbody tr {
-        background: rgba(255, 255, 255, 0.06);
-        transition: all 0.3s ease;
-        border-radius: 10px;
+    .imperial-table td {
+        padding: 20px; vertical-align: middle; border-top: 3px solid #000;
+        border-bottom: 3px solid #000; color: #000; font-weight: 700;
     }
+    .imperial-table td:first-child { border-left: 3px solid #000; border-radius: 15px 0 0 15px; }
+    .imperial-table td:last-child { border-right: 3px solid #000; border-radius: 0 15px 15px 0; }
 
-    .premium-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.12);
-        transform: scale(1.01);
-    }
-
-    .premium-table td {
-        padding: 15px;
-        vertical-align: middle;
-        border-top: 1px solid rgba(212, 175, 55, 0.2);
-        border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        color: #ffffff;
-    }
-
-    /* Status Pills */
+    /* Status System */
     .status-pill {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 800;
-        letter-spacing: 0.8px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        padding: 8px 16px; border-radius: 10px; font-size: 0.85rem;
+        font-weight: 950; border: 2px solid #000; text-transform: uppercase;
     }
 
-    /* Form Visibility Overrides */
-    .form-control {
-        background: #ffffff !important;
-        color: #000000 !important;
-        font-weight: 600;
-        border: 2px solid var(--gold-primary);
+    /* Inputs & Buttons */
+    .glass-input {
+        background: #fff !important; border: 3px solid #000 !important;
+        border-radius: 12px !important; padding: 12px !important; 
+        font-weight: 900 !important; color: #000 !important;
     }
-
-    .form-control:focus {
-        background: #ffffff !important;
-        box-shadow: 0 0 15px var(--gold-primary);
-        color: #000 !important;
+    .btn-imperial {
+        background: var(--imp-maroon); color: #fff !important;
+        border: 3px solid #000; border-radius: 12px; padding: 12px 25px;
+        font-weight: 950; text-transform: uppercase; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
     }
-
     .action-btn {
-        width: 38px;
-        height: 38px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        transition: 0.2s;
-        border: none;
-        cursor: pointer;
-        font-weight: bold;
+        width: 42px; height: 42px; border-radius: 10px; border: 3px solid #000;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: 0.1s; cursor: pointer;
     }
+    .action-btn:active { transform: translate(3px, 3px); }
 
-    label {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        text-shadow: 1px 1px 2px #000;
-    }
-
-    /* RETAINED: Animation for the Free Slots */
+    /* Pulse for Free Slots */
     .badge-pulse {
-        background: #d4af37;
-        color: #000;
-        font-weight: 900;
-        padding: 5px 10px;
-        animation: glow 2s infinite;
+        background: #000; color: #fff; font-weight: 950;
+        padding: 8px 15px; border-radius: 8px; border: 2px solid var(--imp-maroon);
+        animation: pulse-glow 2s infinite;
     }
-
-    @keyframes glow {
-        0% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
-        50% { box-shadow: 0 0 15px rgba(212, 175, 55, 1); }
-        100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+    @keyframes pulse-glow {
+        0% { box-shadow: 0 0 0px rgba(128, 0, 0, 0); }
+        50% { box-shadow: 0 0 15px rgba(128, 0, 0, 0.6); }
+        100% { box-shadow: 0 0 0px rgba(128, 0, 0, 0); }
     }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-5" style="max-width: 1450px; margin: 0 auto;">
     <div class="row">
         <div class="col-xl-3 col-lg-4">
-            <div class="glass-card text-center">
-                <h5 style="color: var(--gold-primary); margin-bottom: 20px; font-weight: 800; letter-spacing: 1px;">FACULTY PERFORMANCE</h5>
+            <div class="imperial-card text-center">
+                <h5 style="font-weight: 950; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 25px;">Faculty Analytics</h5>
                 
-                <div style="position: relative; height: 250px;">
+                <div style="position: relative; height: 260px; margin-bottom: 30px;">
                     <canvas id="performanceChart"></canvas>
                 </div>
                 
-                <hr style="border-color: rgba(212, 175, 55, 0.4);">
+                <hr style="border-top: 3px solid #000; opacity: 1; margin: 30px 0;">
                 
                 {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
                 <div class="text-left">
-                    <label>View Faculty Schedule</label>
+                    <label style="font-weight: 950; text-transform: uppercase; font-size: 0.8rem;">Change Perspective</label>
                     <form method="GET" action="/timetable">
-                        <select name="faculty_id" class="form-control mb-4" onchange="this.form.submit()">
-                            <option value="{{ user.id }}">-- My Personal Schedule --</option>
+                        <select name="faculty_id" class="glass-input w-100 mb-4" onchange="this.form.submit()">
+                            <option value="{{ user.id }}">My Personal Schedule</option>
                             {% for staff in staff_list %}
                                 <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>
                                     {{ staff.full_name }}
@@ -141,11 +101,11 @@
                 </div>
                 {% endif %}
 
-                <div style="background: rgba(212, 175, 55, 0.15); border-radius: 12px; padding: 15px; border: 2px solid var(--gold-primary);">
-                    <h6 style="color: #fff; font-size: 0.9rem; font-weight: 800;"><i class="fas fa-bolt"></i> FREE SLOTS TODAY</h6>
-                    <div class="d-flex flex-wrap justify-content-center">
+                <div style="background: #f8fafc; border: 3px solid #000; border-radius: 18px; padding: 20px;">
+                    <h6 style="font-weight: 950; font-size: 0.85rem; margin-bottom: 15px;">⚡ FREE SLOTS TODAY</h6>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
                         {% for slot in free_slots %}
-                            <span class="badge m-1 badge-pulse">{{ slot.split(' ')[0] }}</span>
+                            <span class="badge-pulse">{{ slot.split(' ')[0] }}</span>
                         {% endfor %}
                     </div>
                 </div>
@@ -153,23 +113,24 @@
         </div>
 
         <div class="col-xl-9 col-lg-8">
-            <div class="glass-card">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="imperial-card">
+                <div class="d-flex justify-content-between align-items-end mb-5">
                     <div>
-                        <h2 style="color: white; margin: 0; font-weight: 900; text-transform: uppercase;">Weekly <span style="color: var(--gold-primary);">Schedule</span></h2>
-                        <p style="color: #ccc; font-weight: 600;" class="mb-0">Current Scope: {{ target_user.full_name }}</p>
+                        <span style="color: var(--imp-maroon); font-weight: 950; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem;">Session Deployment</span>
+                        <h1 style="font-weight: 950; font-size: 3.2rem; letter-spacing: -2px; margin: 0;">Weekly <span style="color: var(--imp-maroon);">Schedule</span></h1>
+                        <p style="font-weight: 800; opacity: 0.6; margin: 0;">Faculty: {{ target_user.full_name }}</p>
                     </div>
-                    <button class="btn-royal px-4 py-2" data-toggle="modal" data-target="#addClassModal">
-                        <i class="fas fa-plus-circle mr-2"></i>New Assignment
+                    <button class="btn-imperial" style="box-shadow: 6px 6px 0px #000;" data-toggle="modal" data-target="#addClassModal">
+                        <span>➕ NEW ASSIGNMENT</span>
                     </button>
                 </div>
 
                 <div class="table-responsive">
-                    <table class="premium-table">
+                    <table class="imperial-table">
                         <thead>
                             <tr>
-                                <th>Day & Time</th>
-                                <th>Course Details</th>
+                                <th>Day & Timing</th>
+                                <th>Course Intelligence</th>
                                 <th>Status</th>
                                 <th class="text-center">Operations</th>
                             </tr>
@@ -177,45 +138,45 @@
                         <tbody>
                             {% for item in timetable %}
                             <tr>
-                                <td style="width: 220px;">
-                                    <div style="color: var(--gold-primary); font-weight: 900; font-size: 1.1rem;">{{ item.day }}</div>
-                                    <div style="color: #fff; font-weight: 600; opacity: 0.9;">{{ item.time_slot }}</div>
+                                <td style="width: 250px;">
+                                    <div style="color: var(--imp-maroon); font-weight: 950; font-size: 1.2rem; text-transform: uppercase;">{{ item.day }}</div>
+                                    <div style="font-weight: 800; opacity: 0.7;">{{ item.time_slot }}</div>
                                 </td>
                                 <td>
-                                    <div style="color: white; font-size: 1.15rem; font-weight: 700;">{{ item.subject }}</div>
-                                    <div style="color: #e6c200; font-weight: 800; font-size: 0.85rem;">{{ item.semester }}</div>
+                                    <div style="font-size: 1.3rem; font-weight: 950; color: #000;">{{ item.subject }}</div>
+                                    <div style="font-weight: 800; color: var(--imp-maroon); text-transform: uppercase; font-size: 0.85rem;">{{ item.semester }}</div>
                                 </td>
                                 <td>
                                     {% if item.status == 'held' %}
-                                        <span class="status-pill" style="background: #2ecc71; color: #000;">HELD</span>
+                                        <span class="status-pill" style="background: #dcfce7; color: #166534;">HELD</span>
                                     {% elif item.status == 'missed' %}
-                                        <span class="status-pill" style="background: #e74c3c; color: #fff;">MISSED</span>
+                                        <span class="status-pill" style="background: #fee2e2; color: #991b1b;">MISSED</span>
                                     {% else %}
-                                        <span class="status-pill" style="background: #f1c40f; color: #000;">PENDING</span>
+                                        <span class="status-pill" style="background: #fef9c3; color: #854d0e;">PENDING</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <button class="action-btn mr-2" style="background: #d4af37; color: #000;" data-toggle="modal" data-target="#editModal{{ item.id }}">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="action-btn" style="background: #fff; color: #000;" data-toggle="modal" data-target="#editModal{{ item.id }}">
                                             <i class="fas fa-pen-nib"></i>
                                         </button>
                                         
-                                        <form action="/timetable/manage" method="POST" class="mr-1">
+                                        <form action="/timetable/manage" method="POST">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="status" value="held">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #27ae60; color: white; border: 1px solid rgba(255,255,255,0.3);">
+                                            <button type="submit" class="action-btn" style="background: #166534; color: #fff;">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
 
-                                        <form action="/timetable/manage" method="POST" class="mr-1">
+                                        <form action="/timetable/manage" method="POST">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="status" value="missed">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #c0392b; color: white; border: 1px solid rgba(255,255,255,0.3);">
+                                            <button type="submit" class="action-btn" style="background: #991b1b; color: #fff;">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </form>
@@ -224,7 +185,7 @@
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #111; color: #fff; border: 1px solid #444;" onclick="return confirm('Archive this record?')">
+                                            <button type="submit" class="action-btn" style="background: #000; color: #fff;" onclick="return confirm('Archive this record?')">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
@@ -234,42 +195,42 @@
 
                             <div class="modal fade" id="editModal{{ item.id }}">
                                 <div class="modal-dialog">
-                                    <div class="modal-content" style="background: #ffffff; border: 3px solid var(--royal-maroon);">
+                                    <div class="modal-content" style="border: 4px solid #000; border-radius: 20px; box-shadow: 15px 15px 0px #000;">
                                         <form action="/timetable/manage" method="POST">
-                                            <div class="modal-header" style="background: var(--royal-maroon); color: white;">
-                                                <h5 class="modal-title">Refine Session Details</h5>
+                                            <div class="modal-header" style="background: #000; color: #fff; border: none;">
+                                                <h5 class="modal-title" style="font-weight: 950;">REFINE SESSION</h5>
                                                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                                             </div>
-                                            <div class="modal-body">
+                                            <div class="modal-body p-4">
                                                 <input type="hidden" name="action" value="update_session">
                                                 <input type="hidden" name="class_id" value="{{ item.id }}">
                                                 <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
                                                 
-                                                <div class="form-group">
-                                                    <label style="color: #000 !important;">Subject</label>
-                                                    <input type="text" name="subject" class="form-control" value="{{ item.subject }}">
+                                                <div class="form-group mb-3">
+                                                    <label style="font-weight: 950; color: #000;">Subject Name</label>
+                                                    <input type="text" name="subject" class="glass-input w-100" value="{{ item.subject }}">
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-6">
-                                                        <label style="color: #000 !important;">Day</label>
-                                                        <select name="day" class="form-control">
+                                                        <label style="font-weight: 950; color: #000;">Day</label>
+                                                        <select name="day" class="glass-input w-100">
                                                             {% for d in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] %}
                                                             <option {% if item.day == d %}selected{% endif %}>{{ d }}</option>
                                                             {% endfor %}
                                                         </select>
                                                     </div>
                                                     <div class="col-6">
-                                                        <label style="color: #000 !important;">Timing</label>
-                                                        <input type="text" name="time" class="form-control" value="{{ item.time_slot }}">
+                                                        <label style="font-weight: 950; color: #000;">Time Slot</label>
+                                                        <input type="text" name="time" class="glass-input w-100" value="{{ item.time_slot }}">
                                                     </div>
                                                 </div>
                                                 <div class="form-group mt-3">
-                                                    <label style="color: #000 !important;">Semester</label>
-                                                    <input type="text" name="semester" class="form-control" value="{{ item.semester }}">
+                                                    <label style="font-weight: 950; color: #000;">Semester</label>
+                                                    <input type="text" name="semester" class="glass-input w-100" value="{{ item.semester }}">
                                                 </div>
                                             </div>
-                                            <div class="modal-footer">
-                                                <button type="submit" class="btn-royal w-100">Commit Changes</button>
+                                            <div class="modal-footer border-0">
+                                                <button type="submit" class="btn-imperial w-100">COMMIT CHANGES</button>
                                             </div>
                                         </form>
                                     </div>
@@ -284,23 +245,21 @@
     </div>
 </div>
 
-<div class="modal fade" id="addClassModal" tabindex="-1">
+<div class="modal fade" id="addClassModal">
     <div class="modal-dialog">
-        <div class="modal-content" style="background: #ffffff; border: 3px solid var(--royal-maroon);">
-            <div class="modal-header" style="background: var(--royal-maroon); color: #fff;">
-                <h5 class="modal-title" style="font-weight: bold;">
-                    <i class="fas fa-calendar-plus mr-2"></i>New Session Assignment
-                </h5>
+        <div class="modal-content" style="border: 4px solid #000; border-radius: 20px; box-shadow: 15px 15px 0px #000;">
+            <div class="modal-header" style="background: var(--imp-maroon); color: #fff; border: none;">
+                <h5 class="modal-title" style="font-weight: 950;">NEW SESSION ASSIGNMENT</h5>
                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
             </div>
             <form action="/timetable/manage" method="POST">
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <input type="hidden" name="action" value="add">
                     
                     {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
-                    <div class="form-group">
-                        <label style="color: #000 !important;">Assign To Faculty:</label>
-                        <select name="faculty_id" class="form-control">
+                    <div class="form-group mb-3">
+                        <label style="font-weight: 950; color: #000;">FACULTY ASSIGNMENT</label>
+                        <select name="faculty_id" class="glass-input w-100">
                             <option value="{{ user.id }}">Myself ({{ user.full_name }})</option>
                             {% for staff in staff_list %}
                             <option value="{{ staff.id }}" {% if target_user.id == staff.id %}selected{% endif %}>{{ staff.full_name }}</option>
@@ -313,31 +272,30 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <label style="color: #000 !important;">Day:</label>
-                            <select name="day" class="form-control mb-3">
+                            <label style="font-weight: 950; color: #000;">DAY</label>
+                            <select name="day" class="glass-input w-100 mb-3">
                                 <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
                                 <option>Thursday</option><option>Friday</option><option>Saturday</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label style="color: #000 !important;">Time Slot:</label>
-                            <input type="text" name="time" class="form-control mb-3" placeholder="09:00 AM-11:00 AM">
+                            <label style="font-weight: 950; color: #000;">TIME SLOT</label>
+                            <input type="text" name="time" class="glass-input w-100 mb-3" placeholder="09:00 AM-11:00 AM">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label style="color: #000 !important;">Subject Name:</label>
-                        <input type="text" name="subject" class="form-control mb-3" placeholder="e.g. Data Structures">
+                    <div class="form-group mb-3">
+                        <label style="font-weight: 950; color: #000;">SUBJECT NAME</label>
+                        <input type="text" name="subject" class="glass-input w-100" placeholder="e.g. Data Structures">
                     </div>
                     
-                    <div class="form-group">
-                        <label style="color: #000 !important;">Semester:</label>
-                        <input type="text" name="semester" class="form-control mb-3" placeholder="e.g. Semester IV">
+                    <div class="form-group mb-3">
+                        <label style="font-weight: 950; color: #000;">SEMESTER</label>
+                        <input type="text" name="semester" class="glass-input w-100" placeholder="e.g. Semester IV">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn-royal px-4">Confirm Assignment</button>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn-imperial w-100">DEPLOY ASSIGNMENT</button>
                 </div>
             </form>
         </div>
@@ -345,7 +303,7 @@
 </div>
 
 <script>
-    // RETAINED: Chart initialization with theme-consistent colors
+    // RETAINED: Chart logic with updated Imperial colors
     const ctx = document.getElementById('performanceChart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
@@ -353,22 +311,23 @@
             labels: ['Held', 'Missed', 'Pending'],
             datasets: [{
                 data: {{ chart_data | tojson }},
-                backgroundColor: ['#d4af37', '#800020', 'rgba(212, 175, 55, 0.3)'],
-                borderColor: '#d4af37',
-                borderWidth: 2,
+                backgroundColor: ['#166534', '#991b1b', '#000000'],
+                borderColor: '#ffffff',
+                borderWidth: 4,
                 hoverOffset: 15
             }]
         },
         options: {
-            cutout: '75%',
+            cutout: '70%',
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
                 legend: { 
                     position: 'bottom', 
                     labels: { 
-                        color: '#ffffff', 
-                        font: { size: 12, weight: 'bold' } 
+                        color: '#000', 
+                        font: { size: 12, weight: '950' },
+                        padding: 20
                     } 
                 }
             }
