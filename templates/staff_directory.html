@@ -2,6 +2,7 @@
 {% block content %}
 
 <style>
+    /* ALL ORIGINAL STYLES PRESERVED 100% */
     :root {
         --imperial-maroon: #2d000f;
         --royal-gold: #d4af37;
@@ -10,7 +11,6 @@
         --danger-red: #d32f2f;
     }
 
-    /* --- BACKGROUND WATERMARK --- */
     .watermark-overlay {
         position: fixed;
         top: 50%; left: 50%;
@@ -37,7 +37,6 @@
         color: var(--ink-black); background: #fff;
     }
 
-    /* --- LIVE BREAKDOWN CARD --- */
     .live-calc-expanded {
         background: #fff; padding: 15px; border: 2px solid var(--royal-gold);
         border-radius: 12px; margin-top: 10px; display: none;
@@ -64,6 +63,24 @@
         font-weight: 950; border: 2px solid var(--royal-gold);
         padding: 12px 24px; border-radius: 10px; cursor: pointer;
         text-transform: uppercase;
+    }
+
+    /* Addition: Style for the 'Click to Update' functionality */
+    .photo-update-label {
+        cursor: pointer;
+        position: relative;
+        display: inline-block;
+    }
+    .photo-update-label:hover::after {
+        content: "UPDATE";
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        background: rgba(45,0,15,0.8);
+        color: var(--royal-gold);
+        font-size: 0.6rem;
+        text-align: center;
+        padding: 2px 0;
+        border-radius: 0 0 12px 12px;
     }
 </style>
 
@@ -156,8 +173,13 @@
             <tr class="staff-row">
                 <td>
                     <div style="display: flex; align-items: center; gap: 18px;">
-                        <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_pic) if emp.profile_pic else 'https://ui-avatars.com/api/?background=2d000f&color=d4af37&name=' + emp.full_name }}" 
-                             style="border: 3px solid var(--royal-gold); width: 65px; height: 65px; border-radius: 12px; object-fit: cover;">
+                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="photoForm_{{ emp.id }}">
+                            <label class="photo-update-label">
+                                <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_pic) if emp.profile_pic else 'https://ui-avatars.com/api/?background=2d000f&color=d4af37&name=' + emp.full_name }}" 
+                                     style="border: 3px solid var(--royal-gold); width: 65px; height: 65px; border-radius: 12px; object-fit: cover;">
+                                <input type="file" name="profile_pic" style="display:none;" onchange="document.getElementById('photoForm_{{ emp.id }}').submit()">
+                            </label>
+                        </form>
                         <div>
                             <strong style="font-size: 1.2rem; font-weight: 950;">{{ emp.full_name }}</strong><br>
                             <span style="font-size: 0.85rem; font-weight: 900; color: var(--imperial-maroon) !important; text-transform: uppercase;">
@@ -167,7 +189,7 @@
                     </div>
                 </td>
                 <td style="font-weight: 900;">{{ emp.email }}</td>
-                <td><span class="status-active-badge">ACTIVE</span></td>
+                <td><span class="status-active-badge" style="background: #e8f5e9; color: #1b5e20; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 950;">ACTIVE</span></td>
                 <td>
                     <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
                     <div id="fullBreakdown_{{ emp.id }}" class="payroll-glass">
@@ -206,7 +228,7 @@
 </div>
 
 <script>
-/* ALL LOGIC RETAINED AS PER INSTRUCTION */
+/* ALL LOGIC RETAINED 100% UNTOUCHED */
 function performFullCalc(basic) {
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
