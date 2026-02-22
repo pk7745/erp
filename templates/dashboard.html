@@ -23,6 +23,8 @@
         --imp-bg: #f8fafc;
         --imp-card: #ffffff;
         --imp-border: #000000;
+        --imp-marquee-bg: #000000;
+        --imp-marquee-text: #ffffff;
     }
 
     body.dark-mode {
@@ -30,23 +32,21 @@
         --imp-bg: #0f172a;
         --imp-card: #1e293b;
         --imp-border: #ffffff;
+        --imp-marquee-bg: #ffffff; /* Flipped for high contrast in dark mode */
+        --imp-marquee-text: #000000;
     }
 
-    /* BACKGROUND UPDATE */
     body { background-color: var(--imp-bg) !important; transition: background 0.3s ease; }
-
     .dashboard-wrapper { max-width: 1400px; margin: 0 auto; animation: fadeIn 0.8s ease-out; }
     
-    /* UNIVERSAL TEXT COLOR UPDATE */
-    h1, h2, h3, h4, strong, p, span, label, td, th, marquee { 
+    h1, h2, h3, h4, strong, p, span, label, td, th { 
         color: var(--imp-text) !important; 
         transition: color 0.3s ease;
     }
 
     .royal-stat-card {
         background: var(--imp-card);
-        border-radius: 28px;
-        padding: 26px;
+        border-radius: 28px; padding: 26px;
         border: 3px solid var(--imp-border);
         box-shadow: 8px 8px 0px var(--imp-border);
         transition: all 0.3s ease;
@@ -60,8 +60,7 @@
     }
 
     .glass-input {
-        background: var(--imp-card);
-        border: 2px solid var(--imp-border);
+        background: var(--imp-card); border: 2px solid var(--imp-border);
         border-radius: 14px; padding: 15px 20px; font-weight: 800;
         color: var(--imp-text) !important; width: 100%;
     }
@@ -73,14 +72,19 @@
         text-transform: uppercase; letter-spacing: 1px;
     }
 
+    /* UPDATED MARQUEE SECTION FOR TOGGLE VISIBILITY */
     .marquee-royal {
-        background: var(--imp-border);
-        border-radius: 16px; margin-bottom: 35px; display: flex;
-        align-items: center; padding: 12px 0;
+        background: var(--imp-marquee-bg);
+        border: 2px solid var(--imp-border);
+        border-radius: 16px; margin-bottom: 35px; 
+        display: flex; align-items: center; padding: 12px 0;
+        transition: all 0.3s ease;
     }
 
-    /* Fixed white text for specific high-contrast elements */
-    .white-text-only { color: #ffffff !important; }
+    .marquee-text {
+        color: var(--imp-marquee-text) !important;
+        font-weight: 900; font-size: 0.95rem;
+    }
 </style>
 
 <div class="dashboard-wrapper">
@@ -91,20 +95,20 @@
         </div>
         <div style="display: flex; gap: 18px; align-items: center;">
             <a href="{{ url_for('chat') }}" class="btn-royal" style="background: #800000; color: white !important; text-decoration: none;">
-                <span class="white-text-only">💬 BMS CONNECT</span>
+                <span style="color: white !important;">💬 BMS CONNECT</span>
                 {% if unread_chats and unread_chats > 0 %}
                     <span class="pulse-badge" style="position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 3px solid white; background: #ff0000; color: white !important;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
             <div style="background: var(--imp-border); color: var(--imp-card); border-radius: 14px; padding: 12px 24px; font-weight: 950; display: flex; align-items: center; gap: 10px;">
-                <span>🛡️</span> <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--imp-bg) !important;">{{ user.role }}</span>
+                <span>🛡️</span> <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">{{ user.role }}</span>
             </div>
         </div>
     </div>
 
     <div class="marquee-royal">
-        <div style="background: #ff0000; color: white !important; padding: 6px 16px; border-radius: 10px; font-size: 0.7rem; font-weight: 950; margin-left: 15px; z-index: 2;">SYSTEM</div>
-        <marquee behavior="scroll" direction="left" scrollamount="7" style="font-weight: 900; font-size: 0.95rem; color: #fff !important;">
+        <div style="background: #ff0000; color: white !important; padding: 6px 16px; border-radius: 10px; font-size: 0.7rem; font-weight: 950; margin-left: 15px; z-index: 2; border: 1px solid white;">SYSTEM</div>
+        <marquee behavior="scroll" direction="left" scrollamount="7" class="marquee-text">
             🚀 BMSCCM v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🏆 Recognition: {{ user.full_name }} is active in the portal!
         </marquee>
     </div>
@@ -221,7 +225,7 @@
             <div class="royal-stat-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <h3 style="margin:0; font-size: 1rem; font-weight: 950;">🔔 Live Intelligence</h3>
-                    <button onclick="clearAllNotifs()" style="background: var(--imp-border); color: var(--imp-bg) !important; cursor: pointer; font-size: 0.65rem; font-weight: 950; padding: 8px 16px; border-radius: 8px; border: none;">PURGE ALL</button>
+                    <button onclick="clearAllNotifs()" style="background: var(--imp-border); color: var(--imp-card) !important; cursor: pointer; font-size: 0.65rem; font-weight: 950; padding: 8px 16px; border-radius: 8px; border: none;">PURGE ALL</button>
                 </div>
                 <div id="notification-list" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--imp-border); border-radius: 12px;">
                 </div>
@@ -232,10 +236,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // RADAR CHART - DATA AND LOGIC RETAINED
+    // SCRIPTS - RETAINED & PROTECTED
     const ctx = document.getElementById('modeChart').getContext('2d');
-    const isDark = () => document.body.classList.contains('dark-mode');
-    
     new Chart(ctx, {
         type: 'radar',
         data: {
@@ -250,19 +252,12 @@
             }]
         },
         options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { 
-                r: { 
-                    grid: { color: 'rgba(128,0,0,0.1)' }, 
-                    pointLabels: { font: { weight: '900', size: 12 }, color: '#800000' } 
-                } 
-            },
+            responsive: true, maintainAspectRatio: false,
+            scales: { r: { grid: { color: 'rgba(128,0,0,0.1)' }, pointLabels: { font: { weight: '900', size: 12 }, color: '#800000' } } },
             plugins: { legend: { display: false } }
         }
     });
 
-    // NOTIFICATION LOGIC - RETAINED
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
@@ -283,15 +278,13 @@
 
     function clearAllNotifs() {
         if(confirm("Authorize system purge of all notifications?")) {
-            fetch('/api/clear_notifications', {method: 'POST'})
-            .then(res => { if(res.ok) fetchLiveNotifications(); });
+            fetch('/api/clear_notifications', {method: 'POST'}).then(res => { if(res.ok) fetchLiveNotifications(); });
         }
     }
 
     setInterval(fetchLiveNotifications, 5000);
     fetchLiveNotifications();
 
-    // DYNAMIC GREETING - RETAINED
     const hour = new Date().getHours();
     const greet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
     document.getElementById('greeting-text').innerText = `${greet}, {{ session['name'] }}`;
