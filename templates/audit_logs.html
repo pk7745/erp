@@ -1,54 +1,147 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+
+<style>
+    :root {
+        --imperial-maroon: #2d000f;
+        --royal-gold: #d4af37;
+        --gold-muted: rgba(212, 175, 55, 0.2);
+        --text-premium: #ffffff;
+        --text-subtle: #e0cc9d;
+    }
+
+    .audit-card {
+        background: rgba(45, 0, 15, 0.95);
+        border-radius: 20px;
+        padding: 35px;
+        border: 1px solid var(--royal-gold);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    }
+
+    .imperial-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-top: 20px;
+    }
+
+    .imperial-table th {
+        padding: 18px;
+        color: var(--royal-gold);
+        font-weight: 900;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        border-bottom: 2px solid var(--royal-gold);
+    }
+
+    .imperial-table td {
+        padding: 18px;
+        color: #fff; /* High contrast white for dark backgrounds */
+        background: rgba(255, 255, 255, 0.05);
+        transition: 0.3s;
+    }
+
+    .log-row:hover td {
+        background: rgba(212, 175, 55, 0.1);
+        color: var(--royal-gold);
+    }
+
+    /* Action Badges */
+    .action-pill {
+        background: var(--royal-gold);
+        color: #000; /* Dark text on gold for visibility */
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        display: inline-block;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .btn-export {
+        background: transparent;
+        color: var(--royal-gold);
+        border: 2px solid var(--royal-gold);
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-export:hover {
+        background: var(--royal-gold);
+        color: #000;
+    }
+
+    .timestamp-text {
+        color: #ffffff;
+        font-weight: 600;
+        font-family: 'Courier New', monospace; /* Professional log feel */
+    }
+</style>
+
+<div class="audit-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <div>
-            <h2 style="color: #1b2559; margin: 0; font-family: 'DM Sans', sans-serif;">🛡️ System Audit Logs</h2>
-            <p style="color: #a3aed0; margin: 5px 0 0;">Historical record of all administrative actions</p>
+            <h2 style="color: var(--royal-gold); margin: 0; font-weight: 900; letter-spacing: -1px; text-transform: uppercase;">
+                🛡️ System Audit Logs
+            </h2>
+            <p style="color: var(--text-subtle); margin: 5px 0 0; font-weight: 700;">
+                Historical record of all administrative actions
+            </p>
         </div>
-        <button onclick="window.print()" class="btn" style="background: #f4f7fe; color: #4318ff; border: 1px solid #4318ff; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer;">
-            🖨️ Export to PDF
+        
+        <button onclick="window.print()" class="btn-export">
+            <span>🖨️ Export to PDF</span>
         </button>
     </div>
 
-    <table style="width: 100%; border-collapse: collapse;">
+    <table class="imperial-table">
         <thead>
-            <tr style="text-align: left; border-bottom: 2px solid #f4f7fe;">
-                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">TIMESTAMP</th>
-                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">ADMINISTRATOR</th>
-                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">ACTION PERFORMED</th>
-                <th style="padding: 15px; color: #a3aed0; font-weight: 500; font-size: 0.85rem;">TARGET USER</th>
+            <tr>
+                <th>TIMESTAMP</th>
+                <th>ADMINISTRATOR</th>
+                <th>ACTION PERFORMED</th>
+                <th>TARGET USER</th>
             </tr>
         </thead>
         <tbody>
             {% for log in logs %}
-            <tr style="border-bottom: 1px solid #f4f7fe; transition: 0.2s;" onmouseover="this.style.background='#fcfdff'" onmouseout="this.style.background='transparent'">
-                <td style="padding: 15px; color: #707eae; font-size: 0.85rem;">
+            <tr class="log-row">
+                <td class="timestamp-text">
                     {{ log.timestamp.strftime('%d %b %Y | %I:%M %p') }}
                 </td>
-                <td style="padding: 15px; color: #1b2559; font-weight: 700;">
-                    <span style="display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 8px; height: 8px; background: #4318ff; border-radius: 50%;"></div>
+                <td style="font-weight: 800;">
+                    <span style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 10px; height: 10px; background: var(--royal-gold); border-radius: 50%; box-shadow: 0 0 10px var(--royal-gold);"></div>
                         {{ log.user_name }}
                     </span>
                 </td>
-                <td style="padding: 15px;">
-                    <span style="background: #eef2ff; color: #4318ff; padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">
+                <td>
+                    <span class="action-pill">
                         {{ log.action }}
                     </span>
                 </td>
-                <td style="padding: 15px; color: #1b2559; font-weight: 500;">
+                <td style="font-weight: 700; color: var(--text-subtle);">
                     {{ log.target_user }}
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="4" style="padding: 40px; text-align: center; color: #a3aed0;">
-                    No logs found. System is running clean.
+                <td colspan="4" style="padding: 60px; text-align: center; color: var(--text-subtle); font-style: italic; background: transparent;">
+                    🏰 No logs found. The Imperial records are clean.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
 {% endblock %}
