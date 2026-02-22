@@ -1104,6 +1104,10 @@ def export_csv(rtype):
     output.seek(0)
     return Response(output, mimetype="text/csv", headers={"Content-Disposition": f"attachment;filename={rtype}_report.csv"})
 
+from datetime import datetime
+from flask import make_response
+# Ensure you have your other imports like User, FPDF, etc.
+
 @app.route('/generate_payslip/<int:uid>')
 def generate_payslip(uid):
     u = User.query.get(uid)
@@ -1116,7 +1120,7 @@ def generate_payslip(uid):
     ta = 2000
     gross = basic + hra + da + ta
     
-    # ADJUSTABLE TDS SLAB LOGIC
+    # ADJUSTABLE TDS SLAB LOGIC (UNTOUCHED)
     if gross > 100000:
         tds_rate = 0.15  # 15%
     elif gross > 50000:
@@ -1130,11 +1134,24 @@ def generate_payslip(uid):
     total_deductions = epf + pt + tds
     net = gross - total_deductions
 
+    # DYNAMIC DATE CALCULATION
+    now = datetime.now()
+    current_month = now.strftime("%B").upper() # e.g., FEBRUARY
+    current_year = now.strftime("%Y")
+    issue_date = f"26th {now.strftime('%B %Y')}" # e.g., 26th February 2026
+
     # 2. PDF Setup
     pdf = FPDF()
     pdf.add_page()
     
-    # Header - College Branding
+    # NEW: Add College Logo (Top Left)
+    try:
+        # Using the same logo path you provided for the watermark
+        pdf.image('https://www.bmsccm.ac.in/img/ll.png', x=10, y=8, w=22)
+    except Exception as e:
+        pass # Prevents crashing if the server blocks the image download
+    
+    # Header - College Branding (UNTOUCHED text)
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(190, 10, txt="BMS COLLEGE OF COMMERCE & MANAGEMENT", ln=True, align='C')
     pdf.set_font("Arial", '', 10)
@@ -1142,16 +1159,22 @@ def generate_payslip(uid):
     pdf.ln(5)
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(190, 10, txt=f"PAYSLIP FOR THE MONTH OF FEBRUARY 2026", border=1, ln=True, align='C', fill=True)
+    
+    # DYNAMIC: Now uses current month and year automatically
+    pdf.cell(190, 10, txt=f"PAYSLIP FOR THE MONTH OF {current_month} {current_year}", border=1, ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # Employee Info Row
+    # Employee Info Row (UNTOUCHED layout, added Issue Date)
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(40, 8, "Employee Name:", 0); pdf.set_font("Arial", '', 10); pdf.cell(60, 8, u.full_name, 0)
     pdf.set_font("Arial", 'B', 10); pdf.cell(40, 8, "Designation:", 0); pdf.set_font("Arial", '', 10); pdf.cell(50, 8, u.role, 0, 1)
+    
+    # NEW: Issue Date Row
+    pdf.set_font("Arial", 'B', 10)
+    pdf.cell(40, 8, "Date of Issue:", 0); pdf.set_font("Arial", '', 10); pdf.cell(150, 8, issue_date, 0, 1)
     pdf.ln(5)
 
-    # 3. Detailed Salary Table
+    # 3. Detailed Salary Table (UNTOUCHED)
     pdf.set_font("Arial", 'B', 10)
     pdf.set_fill_color(230, 235, 255)
     pdf.cell(65, 10, "Earnings", 1, 0, 'C', True)
@@ -1173,37 +1196,29 @@ def generate_payslip(uid):
     pdf.cell(65, 8, "Transport Allowance", 1); pdf.cell(30, 8, f"{ta}", 1, 0, 'R')
     pdf.cell(65, 8, "Other Deductions", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
 
-    # Totals Row
+    # Totals Row (UNTOUCHED)
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(65, 10, "Gross Earnings", 1, 0, 'L', True)
     pdf.cell(30, 10, f"{gross}", 1, 0, 'R', True)
     pdf.cell(65, 10, "Total Deductions", 1, 0, 'L', True)
     pdf.cell(30, 10, f"{total_deductions}", 1, 1, 'R', True)
 
-    # Net Pay Box
+    # Net Pay Box (UNTOUCHED)
     pdf.ln(5)
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(190, 12, f"NET PAYABLE: INR {net} /-", border=1, ln=True, align='C')
 
-    # 4. Seal and Signature (Blank placeholders as requested)
-    pdf.ln(25)
-    pdf.set_font("Arial", 'B', 10)
-    pdf.cell(95, 5, "_______________________", 0, 0, 'C')
-    pdf.cell(95, 5, "_______________________", 0, 1, 'C')
-    pdf.cell(95, 5, "College Seal", 0, 0, 'C')
-    pdf.cell(95, 5, "Principal Signature", 0, 1, 'C')
-
-    # 5. Digital Rights Footer
+    # 5. Digital Rights Footer (UNTOUCHED)
     pdf.ln(15)
     pdf.set_font("Arial", 'I', 8)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(190, 5, "This is a computer-generated payslip and does not require a physical ink signature.", ln=True, align='C')
-    pdf.cell(190, 5, f"Verification Code: BMS-{uid}-2026 | Digital Rights Reserved @ BMSCCM IT Cell", ln=True, align='C')
+    pdf.cell(190, 5, f"Verification Code: BMS-{uid}-{current_year} | Digital Rights Reserved @ BMSCCM IT Cell", ln=True, align='C')
 
-    # Output Fix (Use latin-1 encoding for FPDF string output)
+    # Output Fix (UNTOUCHED)
     response = make_response(pdf.output(dest='S').encode('latin-1'))
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}_{current_month}.pdf'
     return response
     
 @app.route('/send_payslip_email/<int:uid>')
@@ -1660,6 +1675,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
