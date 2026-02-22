@@ -22,20 +22,21 @@
             font-family: 'Manrope', sans-serif;
             overflow: hidden;
             perspective: 1000px;
+            position: relative;
         }
 
-        /* --- NEW: IMPERIAL WATERMARK --- */
+        /* --- UPDATED: IMPERIAL WATERMARK --- */
         .watermark-bg {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 70vh;
-            height: 70vh;
+            width: 80vh; /* Scaled up for better visibility */
+            height: 80vh;
             background: url('https://www.bmsccm.ac.in/img/ll.png') no-repeat center;
             background-size: contain;
-            opacity: 0.04; 
-            z-index: -2;
+            opacity: 0.08; /* Increased opacity slightly for visibility */
+            z-index: -2; /* Placed behind everything */
             pointer-events: none;
         }
 
@@ -56,7 +57,7 @@
             z-index: 1;
         }
 
-        /* NEW: Logo inside Login Card */
+        /* Logo inside Login Card */
         .login-logo {
             width: 100px;
             height: auto;
@@ -192,6 +193,7 @@
 <body>
 
     <div class="watermark-bg"></div>
+
     <div class="bg-stripe" style="top: -15vh;"></div>
     <div class="bg-stripe" style="bottom: -15vh;"></div>
 
@@ -230,7 +232,6 @@
     </div>
 
     <script>
-        /* 3D INTERACTION LOGIC: RETAINED EXACTLY */
         const card = document.querySelector('.login-card');
         const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
 
