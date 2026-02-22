@@ -814,22 +814,30 @@ def notify_recording(room_name):
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') in ['HR', 'Principal']:
-        # Note: 'department' and 'phone' are updated to match your HTML name attributes exactly
+        # Handle Profile Picture
+        filename = None
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and allowed_file(file.filename):
+                filename = f"staff_reg_{secure_filename(file.filename)}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
         new_user = User(
             username=request.form['username'],
             password=generate_password_hash(request.form['password']),
             full_name=request.form['full_name'],
             email=request.form['email'],
-            phone=request.form.get('phone'),            # Captured from HTML
+            phone=request.form.get('phone'),
             salary=int(request.form['salary']),
-            address=request.form.get('address', 'N/A'), # Fallback if not in form
+            address=request.form.get('address', 'N/A'),
             role='Faculty', 
-            dob=request.form.get('dob'),                # New field from your request
-            join_date=request.form.get('join_date'),
+            dob=request.form.get('dob', '1995-01-01'),
+            join_date=request.form.get('join_date', '2023-01-01'),
             caste=request.form.get('caste'),
             religion=request.form.get('religion'),
-            department=request.form.get('department'),  # Matches name="department" in HTML
-            dept_id=request.form.get('dept_id'),        # Matches name="dept_id" in HTML
+            department=request.form.get('department'),
+            dept_id=request.form.get('dept_id'),
+            profile_pic=filename # Saves the filename to DB
         )
         db.session.add(new_user)
         db.session.commit()
@@ -1373,8 +1381,9 @@ def email_staff_list():
 
 @app.route('/upload_photo/<int:uid>', methods=['POST'])
 def upload_photo(uid):
-    if 'photo' not in request.files: return redirect(request.referrer)
-    file = request.files['photo']
+    # Changed 'photo' to 'profile_pic' to match HTML
+    if 'profile_pic' not in request.files: return redirect(request.referrer)
+    file = request.files['profile_pic']
     if file and allowed_file(file.filename):
         user = User.query.get(uid)
         filename = f"staff_{uid}_{secure_filename(file.filename)}"
@@ -1651,6 +1660,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
