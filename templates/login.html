@@ -24,12 +24,26 @@
             perspective: 1000px;
         }
 
+        /* --- NEW: IMPERIAL WATERMARK --- */
+        .watermark-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70vh;
+            height: 70vh;
+            background: url('https://www.bmsccm.ac.in/img/ll.png') no-repeat center;
+            background-size: contain;
+            opacity: 0.04; 
+            z-index: -2;
+            pointer-events: none;
+        }
+
         /* --- IMPERIAL 3D CARD --- */
         .login-card {
             background: #ffffff;
             padding: 50px;
             border-radius: 12px;
-            /* Neubrutalist High-Contrast Shadow */
             border: 4px solid #000;
             box-shadow: 15px 15px 0px #000;
             width: 100%;
@@ -38,14 +52,23 @@
             transition: transform 0.1s ease-out;
             transform-style: preserve-3d;
             will-change: transform;
+            position: relative;
+            z-index: 1;
         }
 
-        /* 3D Depth for Internal Elements */
+        /* NEW: Logo inside Login Card */
+        .login-logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.1));
+            transform: translateZ(50px);
+        }
+
         .brand-name, .login-form, .footer-text {
             transform: translateZ(40px);
         }
 
-        /* ALERT BOX: PRESERVED & STYLIZED */
         .alert-box {
             background: #000;
             color: #fff !important;
@@ -87,7 +110,6 @@
             font-weight: 950;
         }
 
-        /* INPUTS: BOLD CONTRAST */
         input {
             width: 100%;
             padding: 18px;
@@ -109,7 +131,6 @@
             transform: translate(-3px, -3px);
         }
 
-        /* BUTTON: NEUBRUTALIST STYLE */
         .btn-login {
             width: 100%;
             background: #000;
@@ -158,7 +179,6 @@
             opacity: 0.4;
         }
 
-        /* Background Decorations */
         .bg-stripe {
             position: absolute;
             width: 100%;
@@ -171,10 +191,13 @@
 </head>
 <body>
 
+    <div class="watermark-bg"></div>
     <div class="bg-stripe" style="top: -15vh;"></div>
     <div class="bg-stripe" style="bottom: -15vh;"></div>
 
     <div class="login-card">
+        <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM Logo" class="login-logo">
+
         <div class="brand-name">
             BMS COLLEGE OF <br> 
             <span class="brand-highlight">COMMERCE AND MANAGEMENT</span>
