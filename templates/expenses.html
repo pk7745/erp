@@ -1,62 +1,118 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
-    <div class="card">
-        <h3>💰 New Claim</h3>
+
+<style>
+    /* --- IMPERIAL EXPENSE UI --- */
+    h2, h3, h4, strong, span, p, label, td, th { color: #000000 !important; }
+    
+    .imperial-layout { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
+    
+    /* Imperial Card Design */
+    .imperial-card {
+        background: #fff; border: 3px solid #000; border-radius: 12px;
+        padding: 25px; box-shadow: 8px 8px 0px #000;
+    }
+
+    /* Form Elements */
+    .imperial-input, .imperial-textarea {
+        width: 100%; padding: 12px; margin-bottom: 15px;
+        border: 2px solid #000; border-radius: 4px;
+        font-weight: 900; color: #000; font-size: 0.9rem;
+    }
+    .imperial-input:focus, .imperial-textarea:focus { border-color: #800000; outline: none; }
+
+    /* Imperial Table */
+    .imperial-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .imperial-table th { 
+        padding: 15px; text-align: left; font-weight: 950; 
+        text-transform: uppercase; font-size: 0.75rem; border-bottom: 3px solid #000;
+    }
+    .expense-row td { 
+        background: white; padding: 15px; 
+        border-top: 2px solid #000; border-bottom: 2px solid #000;
+    }
+    .expense-row td:first-child { border-left: 2px solid #000; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+    .expense-row td:last-child { border-right: 2px solid #000; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+
+    /* Imperial Badges & Buttons */
+    .imp-btn {
+        padding: 10px 15px; font-weight: 950; text-transform: uppercase;
+        border: 2px solid #000; border-radius: 4px; cursor: pointer;
+        transition: 0.2s; text-decoration: none; display: inline-block; text-align: center;
+    }
+    .imp-btn-maroon { background: #800000; color: #fff !important; }
+    .imp-btn-black { background: #000; color: #fff !important; }
+    
+    .status-pill {
+        padding: 4px 10px; border: 2px solid #000; border-radius: 4px;
+        font-weight: 950; font-size: 0.65rem; text-transform: uppercase;
+    }
+</style>
+
+<div class="imperial-layout">
+    <div class="imperial-card">
+        <h3 style="margin-top:0; font-weight: 950; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px;">💰 New Claim</h3>
         <form method="POST">
-            <input type="text" name="category" placeholder="Category (WiFi, Travel, etc.)" required>
-            <input type="number" name="amount" placeholder="Amount (INR)" required>
-            <textarea name="desc" placeholder="Reason for expense..." required></textarea>
-            <button type="submit" class="btn" style="width: 100%;">Submit Claim</button>
+            <label style="font-weight: 900; font-size: 0.7rem; text-transform: uppercase;">Expense Category</label>
+            <input type="text" name="category" class="imperial-input" placeholder="e.g. WiFi, Travel, Books" required>
+            
+            <label style="font-weight: 900; font-size: 0.7rem; text-transform: uppercase;">Amount (INR)</label>
+            <input type="number" name="amount" class="imperial-input" placeholder="₹ 0.00" required>
+            
+            <label style="font-weight: 900; font-size: 0.7rem; text-transform: uppercase;">Description</label>
+            <textarea name="desc" class="imperial-textarea" rows="4" placeholder="Reason for expenditure..." required></textarea>
+            
+            <button type="submit" class="imp-btn imp-btn-maroon" style="width: 100%;">Submit Claim to Database</button>
         </form>
     </div>
 
-    <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <h3>📋 Claims History</h3>
+    <div class="imperial-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px;">
+            <h3 style="margin:0; font-weight: 950; text-transform: uppercase;">📋 Claims History</h3>
             <div style="display: flex; gap: 10px;">
-                <input type="text" id="expenseSearch" placeholder="Filter claims..." 
-                       style="padding: 8px; width: 200px; border-radius: 5px; border: 1px solid #ddd;">
+                <input type="text" id="expenseSearch" class="imperial-input" style="margin-bottom:0; width: 200px;" placeholder="Filter Records...">
                 
                 {% if session['role'] in ['HR', 'Accountant'] %}
-              <a href="{{ url_for('export_csv', rtype='expenses') }}" class="btn">Download CSV</a>
-                    📥 Export CSV
+                <a href="{{ url_for('export_csv', rtype='expenses') }}" class="imp-btn imp-btn-black" style="font-size: 0.7rem;">
+                    📥 EXPORT CSV
                 </a>
                 {% endif %}
             </div>
         </div>
-        
-        <table>
+
+        <table class="imperial-table">
             <thead>
                 <tr>
-                    <th>Employee</th>
+                    <th>Personnel</th>
                     <th>Category</th>
                     <th>Amount</th>
-                    <th>Action / Status</th>
+                    <th>Approval Status & Actions</th>
                 </tr>
             </thead>
             <tbody id="expenseTable">
                 {% for claim in claims %}
-                <tr>
-                    <td>{{ claim.rel_user.full_name }}</td>
-                    <td>{{ claim.category }}</td>
-                    <td><strong>₹{{ claim.amount }}</strong></td>
+                <tr class="expense-row">
+                    <td><strong style="font-weight: 950;">{{ claim.rel_user.full_name }}</strong></td>
+                    <td><span style="font-weight: 800; font-size: 0.85rem;">{{ claim.category }}</span></td>
+                    <td><strong style="color: #800000 !important; font-size: 1.1rem;">₹{{ claim.amount }}</strong></td>
                     <td>
                         {% if claim.status == 'Finalized' %}
-                            <span class="badge badge-wfh" style="background:green; color:white;">Paid on: {{ claim.payment_date }}</span>
-                            <br><small>By: {{ claim.processed_by }}</small>
-                        
+                            <div style="display: flex; flex-direction: column;">
+                                <span class="status-pill" style="background: #000; color: #fff !important;">PAID: {{ claim.payment_date }}</span>
+                                <small style="font-weight: 900; font-size: 0.6rem; margin-top: 4px;">VERIFIED BY: {{ claim.processed_by }}</small>
+                            </div>
+
                         {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
-                            <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="badge badge-office">Approve (HR)</a>
-                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
-                            
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="imp-btn imp-btn-maroon" style="font-size: 0.65rem; padding: 5px 10px;">APPROVE (HR)</a>
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="imp-btn" style="background: #fff; color: #000 !important; font-size: 0.65rem; padding: 5px 10px;">REJECT</a>
+
                         {% elif claim.status == 'Approved by HR' and session['role'] == 'Accountant' %}
-                            <a href="{{ url_for('approve_expense', id=claim.id, action='acc_approve') }}" class="badge badge-office" style="background:green; color:white;">Finalize Payment</a>
-                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="badge badge-wfh" style="background:red; color:white;">Reject</a>
-                            
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='acc_approve') }}" class="imp-btn imp-btn-maroon" style="font-size: 0.65rem; padding: 5px 10px;">FINALIZE PAYMENT</a>
+                            <a href="{{ url_for('approve_expense', id=claim.id, action='reject') }}" class="imp-btn" style="background: #fff; color: #000 !important; font-size: 0.65rem; padding: 5px 10px;">REJECT</a>
+
                         {% else %}
-                            <span class="badge {% if claim.status == 'Rejected' %}badge-wfh{% else %}badge-office{% endif %}" 
-                                  style="{% if claim.status == 'Rejected' %}background:#dc3545; color:white;{% endif %}">
+                            <span class="status-pill" 
+                                  style="{% if claim.status == 'Rejected' %}background:#000; color:#fff !important;{% else %}background:#fff; color:#000 !important;{% endif %}">
                                 {{ claim.status }}
                             </span>
                         {% endif %}
