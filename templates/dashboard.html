@@ -178,21 +178,35 @@
             </div>
 
             <div class="royal-stat-card">
-                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid var(--accent-gold); padding-left: 15px;">Mission Objectives</h3>
-                <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
-                    <input type="text" name="task_content" class="glass-input" placeholder="Deploy new objective..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--imp-maroon); color: #fff;">ASSIGN</button>
-                </form>
-                {% for task in tasks %}
-                <div class="task-item" style="{% if task.is_done %}opacity: 0.6; background: #f8fafc;{% endif %}">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem;">{{ '✅' if task.is_done else '⭕' }}</a>
-                        <span style="font-weight: 600; font-size: 1rem; {% if task.is_done %}text-decoration: line-through;{% endif %}">{{ task.content }}</span>
-                    </div>
-                    <a href="{{ url_for('delete_task', tid=task.id) }}" style="color: #e53e3e; font-weight: 800; text-decoration: none; font-size: 0.8rem;">PURGE</a>
-                </div>
-                {% endfor %}
-            </div>
+    <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid var(--accent-gold); padding-left: 15px;">Mission Objectives</h3>
+    
+    <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
+        <input type="text" name="title" class="glass-input" placeholder="Deploy new objective title..." required>
+        <button type="submit" class="btn-royal" style="background: var(--imp-maroon); color: #fff;">ASSIGN</button>
+    </form>
+
+    {% for task in tasks %}
+    <div class="task-item" style="{% if task.is_done %}opacity: 0.6; background: #f8fafc;{% endif %}">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem;">
+                {{ '✅' if task.is_done else '⭕' }}
+            </a>
+            <span style="font-weight: 600; font-size: 1rem; {% if task.is_done %}text-decoration: line-through;{% endif %}">
+                {{ task.title or task.content }}
+            </span>
+        </div>
+        
+        {% if not task.is_done %}
+            <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="display: flex; gap: 5px;">
+                <input type="hidden" name="reply" value="Completed via Dashboard">
+                <button type="submit" style="background: none; border: none; color: #065f46; font-weight: 800; cursor: pointer; font-size: 0.8rem;">COMPLETE</button>
+            </form>
+        {% else %}
+            <span style="color: #707eae; font-size: 0.8rem; font-weight: 800;">ARCHIVED</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
 
             <div class="royal-stat-card">
                 <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid #065f46; padding-left: 15px;">Activity Dispatch</h3>
@@ -292,3 +306,4 @@
     document.getElementById('greeting-text').innerText = `${greet}, {{ session['name'] }}`;
 </script>
 {% endblock %}
+
