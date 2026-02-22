@@ -1,121 +1,208 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width: 700px; margin: 20px auto;">
-    <div class="card" style="padding: 40px; position: relative; overflow: hidden;">
-        <div style="position: absolute; top: 0; left: 0; right: 0; height: 100px; background: linear-gradient(90deg, var(--p), #6060f0); opacity: 0.1;"></div>
+
+<style>
+    :root {
+        --royal-maroon: #2d000f;
+        --gold-primary: #d4af37;
+        --gold-glow: #ffdf00;
+        --ink-dark: #0a0a0a; /* Darkest ink for maximum legibility */
+        --imperial-bg: #fdfaf0; /* Cream background for table/form sections */
+    }
+
+    .profile-card {
+        background: rgba(45, 0, 15, 0.98);
+        border-radius: 24px;
+        border: 1px solid var(--gold-primary);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        overflow: hidden;
+        max-width: 800px;
+        margin: 20px auto;
+        color: white;
+    }
+
+    .info-section {
+        background: var(--imperial-bg);
+        padding: 40px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        border-top: 2px solid var(--gold-primary);
+    }
+
+    .info-group label {
+        display: block;
+        color: var(--royal-maroon);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 900;
+        margin-bottom: 5px;
+    }
+
+    /* High contrast dark text for inputs */
+    .imperial-input {
+        width: 100%;
+        border: none;
+        border-bottom: 2px solid var(--gold-primary);
+        background: transparent;
+        font-weight: 800;
+        font-size: 1.1rem;
+        padding: 8px 0;
+        color: var(--ink-dark) !important;
+        outline: none;
+        transition: 0.3s;
+    }
+
+    .imperial-input:focus {
+        border-bottom-color: var(--royal-maroon);
+    }
+
+    .static-value {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--royal-maroon);
+        display: block;
+        padding: 8px 0;
+    }
+
+    .btn-imperial {
+        background: var(--gold-primary);
+        color: var(--royal-maroon);
+        font-weight: 900;
+        border: none;
+        padding: 15px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        cursor: pointer;
+        transition: 0.3s;
+        width: 100%;
+    }
+
+    .btn-imperial:hover {
+        background: var(--gold-glow);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+    }
+
+    .payroll-box {
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid var(--gold-primary);
+    }
+
+    .salary-net-strip {
+        background: linear-gradient(90deg, var(--gold-primary), var(--gold-glow));
+        color: var(--royal-maroon);
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 20px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+</style>
+
+<div class="profile-card">
+    <div style="padding: 40px; text-align: center; background: linear-gradient(to bottom, #4a001a, var(--royal-maroon));">
+        <div style="position: relative; width: 140px; height: 140px; margin: 0 auto 20px auto;">
+            <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic or 'default.png')) }}" 
+                 onerror="this.src='https://ui-avatars.com/api/?name={{ user.full_name }}&background=d4af37&color=2d000f'"
+                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 4px solid var(--gold-primary); box-shadow: 0 0 20px rgba(212,175,55,0.3);">
+            
+            <form action="{{ url_for('upload_photo', uid=user.id) }}" method="POST" enctype="multipart/form-data" id="photoForm">
+                <input type="file" name="photo" id="photoInput" style="display:none;" onchange="document.getElementById('photoForm').submit()">
+                <label for="photoInput" style="position: absolute; bottom: 5px; right: 5px; background: var(--gold-primary); color: var(--royal-maroon); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid var(--royal-maroon); font-size: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                    📷
+                </label>
+            </form>
+        </div>
         
-        <div style="text-align: center; position: relative; z-index: 1;">
-            <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 15px auto;">
-                <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic or 'default.png')) }}" 
-                     onerror="this.src='https://ui-avatars.com/api/?name={{ user.full_name }}&background=4318ff&color=fff'"
-                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 4px solid var(--card-bg); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                
-                <form action="{{ url_for('upload_photo', uid=user.id) }}" method="POST" enctype="multipart/form-data" id="photoForm">
-                    <input type="file" name="photo" id="photoInput" style="display:none;" onchange="document.getElementById('photoForm').submit()">
-                    <label for="photoInput" style="position: absolute; bottom: 0; right: 0; background: #4318ff; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; font-size: 0.8rem;">
-                        📷
-                    </label>
-                </form>
-            </div>
-            
-            <h1 style="margin: 0; font-family: 'DM Sans', sans-serif;">{{ user.full_name }}</h1>
-            <span class="badge badge-office" style="margin-top: 10px; padding: 5px 15px; font-size: 0.9rem;">Official Profile</span>
-        </div>
-
-        <form method="POST" style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; border-top: 1px solid #eee; padding-top: 30px;">
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Full Name</label>
-                <input type="text" name="full_name" value="{{ user.full_name }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;" required>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Designation / Role</label>
-                <span style="font-weight: 700; font-size: 1.1rem; color: var(--p); display: block; padding: 5px 0;">{{ user.role }}</span>
-            </div>
-            
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Official Email</label>
-                <input type="email" name="email" value="{{ user.email }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;" required>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Work Location</label>
-                <input type="text" name="address" value="{{ user.address or 'Nexus HQ' }}" style="width:100%; border:none; border-bottom:1px solid #ddd; font-weight:700; font-size: 1.1rem; padding: 5px 0;">
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Username</label>
-                <span style="font-weight: 700; font-size: 1.1rem; display: block; padding: 5px 0;">@{{ user.username }}</span>
-            </div>
-
-            <div class="info-group">
-                <label style="display: block; color: var(--text-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">New Password (Optional)</label>
-                <input type="password" name="password" placeholder="Leave blank to keep current" style="width:100%; border:none; border-bottom:1px solid #ddd; font-size: 1.1rem; padding: 5px 0;">
-            </div>
-
-            <div style="grid-column: span 2; text-align: center; margin-top: 10px;">
-                <button type="submit" class="btn" style="width: 100%; padding: 12px;">Save Profile Changes</button>
-            </div>
-        </form>
-
-       <div class="card" style="margin-top: 30px; border-top: 4px solid #05cd99; padding: 20px; background: #fff;">
-    <h3 style="margin-top: 0; color: #1b2559;">💰 My Salary Structure (Monthly)</h3>
-    
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div style="background: #f4f7fe; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-            <p style="color: #4318ff; font-weight: bold; border-bottom: 1px solid #cbd5e0; margin-bottom: 10px;">EARNINGS</p>
-            
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>Basic:</span> <strong>₹{{ user.salary }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>HRA (40%):</span> <strong>₹{{ payroll.hra }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>DA (10%):</span> <strong>₹{{ payroll.da }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>TA:</span> <strong>₹{{ payroll.ta }}</strong>
-            </div>
-            
-            <hr style="border: 0.5px solid #cbd5e0; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold; color: #1b2559;">
-                <span>GROSS:</span> <span>₹{{ payroll.gross }}</span>
-            </div>
-        </div>
-
-        <div style="background: #fff5f5; padding: 15px; border-radius: 10px; border: 1px solid #fed7d7;">
-            <p style="color: #ee5d50; font-weight: bold; border-bottom: 1px solid #feb2b2; margin-bottom: 10px;">DEDUCTIONS</p>
-            
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>EPF (12%):</span> <strong>₹{{ payroll.epf }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #1b2559;">
-                <span>Prof. Tax:</span> <strong>₹{{ payroll.pt }}</strong>
-            </div>
-            
-            <div style="height: 40px;"></div> <hr style="border: 0.5px solid #feb2b2; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between; font-weight: bold; color: #ee5d50;">
-                <span>TOTAL:</span> <span>₹{{ payroll.epf + payroll.pt }}</span>
-            </div>
+        <h1 style="margin: 0; color: var(--gold-primary); letter-spacing: -1px; text-transform: uppercase;">{{ user.full_name }}</h1>
+        <div style="display: inline-block; background: rgba(212,175,55,0.1); border: 1px solid var(--gold-primary); padding: 5px 20px; border-radius: 20px; color: var(--gold-primary); font-weight: 700; margin-top: 10px; font-size: 0.8rem; text-transform: uppercase;">
+            🛡️ Official Nexus Profile
         </div>
     </div>
 
-    <div style="background: #05cd99; color: white; padding: 15px; border-radius: 10px; margin-top: 15px; text-align: center;">
-        <h2 style="margin: 0;">Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
-    </div>
-</div>
-        <div class="card" style="margin-top: 20px; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">📈 Salary Growth Trajectory</h3>
-                <div style="display: flex; gap: 10px;">
-                    <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #1b2559; text-decoration: none;">🪪 Digital ID</a>
-                    <a href="{{ url_for('download_salary_certificate') }}" class="btn" style="padding: 8px 15px; font-size: 0.8rem; background: #4318ff; text-decoration: none;">📥 Certificate</a>
+    <form method="POST" class="info-section">
+        <div class="info-group">
+            <label>Full Name</label>
+            <input type="text" name="full_name" value="{{ user.full_name }}" class="imperial-input" required>
+        </div>
+
+        <div class="info-group">
+            <label>Designation / Role</label>
+            <span class="static-value">{{ user.role }}</span>
+        </div>
+        
+        <div class="info-group">
+            <label>Official Email</label>
+            <input type="email" name="email" value="{{ user.email }}" class="imperial-input" required>
+        </div>
+
+        <div class="info-group">
+            <label>Work Location</label>
+            <input type="text" name="address" value="{{ user.address or 'Nexus HQ' }}" class="imperial-input">
+        </div>
+
+        <div class="info-group">
+            <label>Username</label>
+            <span class="static-value" style="color: var(--gold-primary); background: var(--royal-maroon); display: inline-block; padding: 2px 10px; border-radius: 5px;">@{{ user.username }}</span>
+        </div>
+
+        <div class="info-group">
+            <label>Security Key (Password)</label>
+            <input type="password" name="password" placeholder="••••••••" class="imperial-input">
+        </div>
+
+        <div style="grid-column: span 2; margin-top: 10px;">
+            <button type="submit" class="btn-imperial">Save Imperial Records</button>
+        </div>
+    </form>
+
+    <div style="background: white; padding: 40px; border-top: 2px solid var(--gold-primary);">
+        <h3 style="margin-top: 0; color: var(--royal-maroon); text-transform: uppercase; letter-spacing: 1px;">💰 Salary Architecture</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="payroll-box" style="background: #fdfaf0;">
+                <p style="color: var(--royal-maroon); font-weight: 900; border-bottom: 2px solid var(--gold-primary); margin-bottom: 10px; font-size: 0.75rem;">EARNINGS</p>
+                <div style="color: var(--ink-dark); font-size: 0.9rem; font-weight: 700;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>Basic:</span> <span>₹{{ user.salary }}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>HRA:</span> <span>₹{{ payroll.hra }}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>DA:</span> <span>₹{{ payroll.da }}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>TA:</span> <span>₹{{ payroll.ta }}</span></div>
+                    <hr style="border: 1px solid var(--gold-primary); opacity: 0.3;">
+                    <div style="display: flex; justify-content: space-between; color: var(--royal-maroon);"><span>GROSS:</span> <span>₹{{ payroll.gross }}</span></div>
                 </div>
             </div>
-            <div style="height: 300px; width: 100%;">
-                <canvas id="salaryChart"></canvas>
+
+            <div class="payroll-box" style="background: #fff5f5; border-color: #feb2b2;">
+                <p style="color: #c53030; font-weight: 900; border-bottom: 2px solid #feb2b2; margin-bottom: 10px; font-size: 0.75rem;">DEDUCTIONS</p>
+                <div style="color: var(--ink-dark); font-size: 0.9rem; font-weight: 700;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>EPF (12%):</span> <span>₹{{ payroll.epf }}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>Prof. Tax:</span> <span>₹{{ payroll.pt }}</span></div>
+                    <div style="height: 50px;"></div>
+                    <hr style="border: 1px solid #feb2b2;">
+                    <div style="display: flex; justify-content: space-between; color: #c53030;"><span>TOTAL:</span> <span>₹{{ payroll.epf + payroll.pt }}</span></div>
+                </div>
             </div>
+        </div>
+
+        <div class="salary-net-strip">
+            <h2 style="margin: 0; font-weight: 900;">Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
+        </div>
+    </div>
+
+    <div style="background: var(--imperial-bg); padding: 40px; border-top: 2px solid var(--gold-primary);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: var(--royal-maroon); text-transform: uppercase;">📈 Growth Trajectory</h3>
+            <div style="display: flex; gap: 10px;">
+                <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn-imperial" style="padding: 8px 15px; font-size: 0.7rem; text-decoration: none;">🪪 Digital ID</a>
+                <a href="{{ url_for('download_salary_certificate') }}" class="btn-imperial" style="padding: 8px 15px; font-size: 0.7rem; text-decoration: none; background: var(--royal-maroon); color: var(--gold-primary);">📥 Certificate</a>
+            </div>
+        </div>
+        <div style="height: 250px; background: white; padding: 20px; border-radius: 15px; border: 1px solid var(--gold-primary);">
+            <canvas id="salaryChart"></canvas>
         </div>
     </div>
 </div>
@@ -133,20 +220,37 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Monthly Basic Salary (INR)',
+                label: 'Monthly Basic (INR)',
                 data: dataPoints,
-                borderColor: '#4318ff',
-                backgroundColor: 'rgba(67, 24, 255, 0.1)',
-                borderWidth: 3,
+                borderColor: '#2d000f',
+                backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                borderWidth: 4,
                 fill: true,
-                tension: 0.4
+                tension: 0.4,
+                pointBackgroundColor: '#d4af37',
+                pointBorderWidth: 3,
+                pointRadius: 6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { ticks: { callback: (v) => '₹' + v.toLocaleString() } }
+                y: { 
+                    ticks: { 
+                        color: '#2d000f',
+                        font: { weight: 'bold' },
+                        callback: (v) => '₹' + v.toLocaleString() 
+                    },
+                    grid: { color: 'rgba(212, 175, 55, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#2d000f', font: { weight: 'bold' } },
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                legend: { display: false }
             }
         }
     });
