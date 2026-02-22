@@ -17,105 +17,106 @@
 </div>
 
 <style>
+    /* IMPERIAL THEME VARIABLES */
+    :root {
+        --imp-text: #000000;
+        --imp-bg: #f8fafc;
+        --imp-card: #ffffff;
+        --imp-border: #000000;
+    }
+
+    body.dark-mode {
+        --imp-text: #ffffff;
+        --imp-bg: #0f172a;
+        --imp-card: #1e293b;
+        --imp-border: #ffffff;
+    }
+
+    /* BACKGROUND UPDATE */
+    body { background-color: var(--imp-bg) !important; transition: background 0.3s ease; }
+
     .dashboard-wrapper { max-width: 1400px; margin: 0 auto; animation: fadeIn 0.8s ease-out; }
     
-    /* PRISMATIC GLASS CARDS - DARKER CONTEXT */
+    /* UNIVERSAL TEXT COLOR UPDATE */
+    h1, h2, h3, h4, strong, p, span, label, td, th, marquee { 
+        color: var(--imp-text) !important; 
+        transition: color 0.3s ease;
+    }
+
     .royal-stat-card {
-        background: var(--glass);
-        backdrop-filter: blur(16px);
+        background: var(--imp-card);
         border-radius: 28px;
         padding: 26px;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.08);
-        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        position: relative;
+        border: 3px solid var(--imp-border);
+        box-shadow: 8px 8px 0px var(--imp-border);
+        transition: all 0.3s ease;
     }
-
-    body.dark-mode .royal-stat-card {
-        background: rgba(15, 23, 42, 0.8);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-
-    .royal-stat-card:hover {
-        transform: translateY(-8px);
-        border-color: #000;
-    }
-
-    /* TYPOGRAPHY CLARITY - FORCED DARK */
-    h1, h2, h3, h4, strong { color: #000 !important; letter-spacing: -0.5px; }
-    body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode strong { color: #fff !important; }
-    
-    p, span, label { color: #000; font-weight: 800; }
-    body.dark-mode p, body.dark-mode span, body.dark-mode label { color: #fff; }
 
     .stat-icon-box {
         width: 56px; height: 56px; border-radius: 18px;
         display: flex; align-items: center; justify-content: center;
         font-size: 1.6rem; margin-bottom: 22px;
-        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
-        border: 1px solid rgba(0,0,0,0.1);
+        border: 2px solid var(--imp-border);
     }
 
-    /* ROYAL INPUTS - HIGHER CONTRAST */
     .glass-input {
-        background: #fff; 
-        border: 2px solid #000;
+        background: var(--imp-card);
+        border: 2px solid var(--imp-border);
         border-radius: 14px; padding: 15px 20px; font-weight: 800;
-        color: #000 !important; width: 100%; transition: 0.3s;
+        color: var(--imp-text) !important; width: 100%;
     }
-    body.dark-mode .glass-input { background: #1e293b; border-color: #fff; color: #fff !important; }
 
-    /* LIQUID GOLD BUTTONS */
     .btn-royal {
         border-radius: 14px; padding: 12px 28px; font-weight: 950;
-        transition: all 0.4s; border: 2px solid transparent; cursor: pointer;
+        border: 2px solid var(--imp-border); cursor: pointer;
         display: flex; align-items: center; justify-content: center; gap: 10px;
-        text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+        text-transform: uppercase; letter-spacing: 1px;
     }
 
     .marquee-royal {
-        background: #000;
+        background: var(--imp-border);
         border-radius: 16px; margin-bottom: 35px; display: flex;
-        align-items: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-        border: 1px solid #444;
+        align-items: center; padding: 12px 0;
     }
+
+    /* Fixed white text for specific high-contrast elements */
+    .white-text-only { color: #ffffff !important; }
 </style>
 
 <div class="dashboard-wrapper">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 45px;">
-        <div class="delay-1">
+        <div>
             <span style="color: #800000 !important; font-weight: 950; text-transform: uppercase; letter-spacing: 3px; font-size: 0.75rem; display: block; margin-bottom: 10px;">Institutional Command Center</span>
-            <h1 id="greeting-text" style="font-size: 3.2rem; font-weight: 950; margin: 0; letter-spacing: -2px; color: #000 !important;">Welcome, {{ session['name'] }}</h1>
+            <h1 id="greeting-text" style="font-size: 3.2rem; font-weight: 950; margin: 0; letter-spacing: -2px;">Welcome, {{ session['name'] }}</h1>
         </div>
-        <div style="display: flex; gap: 18px; align-items: center;" class="delay-2">
+        <div style="display: flex; gap: 18px; align-items: center;">
             <a href="{{ url_for('chat') }}" class="btn-royal" style="background: #800000; color: white !important; text-decoration: none;">
-                <span style="color: white !important;">💬 BMS CONNECT</span>
+                <span class="white-text-only">💬 BMS CONNECT</span>
                 {% if unread_chats and unread_chats > 0 %}
-                    <span class="pulse-badge" style="position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 3px solid white; background: #ff0000;">{{ unread_chats }}</span>
+                    <span class="pulse-badge" style="position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 3px solid white; background: #ff0000; color: white !important;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
-            <div style="background: #000; color: white; border-radius: 14px; padding: 12px 24px; font-weight: 950; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.2rem;">🛡️</span> <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">{{ user.role }}</span>
+            <div style="background: var(--imp-border); color: var(--imp-card); border-radius: 14px; padding: 12px 24px; font-weight: 950; display: flex; align-items: center; gap: 10px;">
+                <span>🛡️</span> <span style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--imp-bg) !important;">{{ user.role }}</span>
             </div>
         </div>
     </div>
 
-    <div class="marquee-royal delay-2" style="overflow: hidden; padding: 12px 0;">
-        <div style="background: #ff0000; color: white !important; padding: 6px 16px; border-radius: 10px; font-size: 0.7rem; font-weight: 950; margin-left: 15px; z-index: 2; letter-spacing: 1.5px;">SYSTEM</div>
+    <div class="marquee-royal">
+        <div style="background: #ff0000; color: white !important; padding: 6px 16px; border-radius: 10px; font-size: 0.7rem; font-weight: 950; margin-left: 15px; z-index: 2;">SYSTEM</div>
         <marquee behavior="scroll" direction="left" scrollamount="7" style="font-weight: 900; font-size: 0.95rem; color: #fff !important;">
             🚀 BMSCCM v2.0 update scheduled for next Sunday at 02:00 AM IST. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🏆 Recognition: {{ user.full_name }} is active in the portal!
         </marquee>
     </div>
 
     {% if request.args.get('join_meet') %}
-    <div class="royal-stat-card animate-enter" style="border: 3px solid #000; margin-bottom: 40px; padding: 0; overflow: hidden;">
-        <div style="background: #f8fafc; padding: 22px 35px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000;">
+    <div class="royal-stat-card" style="margin-bottom: 40px; padding: 0; overflow: hidden;">
+        <div style="background: var(--imp-card); padding: 22px 35px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--imp-border);">
             <h3 style="margin:0; font-weight: 950; display: flex; align-items: center; gap: 15px;">
-                <span style="color: #800000 !important; font-size: 1.5rem;">🎥</span> Live Briefing: <span style="color: #000 !important;">{{ request.args.get('join_meet') }}</span>
+                <span style="color: #800000 !important; font-size: 1.5rem;">🎥</span> Live Briefing: <span>{{ request.args.get('join_meet') }}</span>
             </h3>
             <div style="display: flex; gap: 15px; align-items: center;">
-                <span id="meet-timer" style="background: #000; color: #00ff00 !important; padding: 10px 22px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 950; letter-spacing: 2px; font-size: 1.2rem;">00:00:00</span>
+                <span id="meet-timer" style="background: #000; color: #00ff00 !important; padding: 10px 22px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 950; font-size: 1.2rem;">00:00:00</span>
                 <button onclick="endMeeting()" class="btn-royal" style="background: #991b1b; color: white !important;">Leave & Close</button>
             </div>
         </div>
@@ -136,26 +137,26 @@
     {% endif %}
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px;">
-        <div class="royal-stat-card delay-1">
+        <div class="royal-stat-card">
             <div class="stat-icon-box" style="background: #800000; color: #fff;">🏢</div>
-            <h4 style="margin: 0; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 950; letter-spacing: 1.5px;">Campus Attendance</h4>
-            <h2 style="margin: 10px 0; font-size: 2.8rem; font-weight: 950;">{{ office_days or 0 }} <span style="font-size: 1.1rem; color: #666;">Days</span></h2>
+            <h4 style="margin: 0; font-size: 0.75rem; text-transform: uppercase; font-weight: 950;">Campus Attendance</h4>
+            <h2 style="margin: 10px 0; font-size: 2.8rem; font-weight: 950;">{{ office_days or 0 }} <span style="font-size: 1.1rem; opacity: 0.7;">Days</span></h2>
         </div>
-        <div class="royal-stat-card delay-2">
+        <div class="royal-stat-card">
             <div class="stat-icon-box" style="background: #065f46; color: #fff;">🏠</div>
-            <h4 style="margin: 0; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 950; letter-spacing: 1.5px;">Remote Sessions</h4>
-            <h2 style="margin: 10px 0; font-size: 2.8rem; font-weight: 950;">{{ wfh_days or 0 }} <span style="font-size: 1.1rem; color: #666;">Days</span></h2>
+            <h4 style="margin: 0; font-size: 0.75rem; text-transform: uppercase; font-weight: 950;">Remote Sessions</h4>
+            <h2 style="margin: 10px 0; font-size: 2.8rem; font-weight: 950;">{{ wfh_days or 0 }} <span style="font-size: 1.1rem; opacity: 0.7;">Days</span></h2>
         </div>
-        <div class="royal-stat-card delay-3" style="background: #000; border: none;">
+        <div class="royal-stat-card" style="background: var(--imp-border);">
             <div class="stat-icon-box" style="background: #ffd700; color: #000;">🎯</div>
-            <h4 style="margin: 0; color: rgba(255,255,255,0.8) !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 950; letter-spacing: 1.5px;">Open Objectives</h4>
-            <h2 style="margin: 10px 0; color: white !important; font-size: 2.8rem; font-weight: 950;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1.1rem; opacity: 0.6;">Pending</span></h2>
+            <h4 style="margin: 0; color: var(--imp-bg) !important; font-size: 0.75rem; text-transform: uppercase; font-weight: 950;">Open Objectives</h4>
+            <h2 style="margin: 10px 0; color: var(--imp-bg) !important; font-size: 2.8rem; font-weight: 950;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1.1rem; opacity: 0.6;">Pending</span></h2>
         </div>
     </div>
 
     <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 40px;">
         <div style="display: flex; flex-direction: column; gap: 40px;">
-            <div class="royal-stat-card delay-1" style="border-top: 8px solid #065f46;">
+            <div class="royal-stat-card" style="border-top: 8px solid #065f46;">
                 <h3 style="margin-bottom: 30px; font-weight: 950; display: flex; align-items: center; gap: 15px;">
                     <span style="color: #065f46 !important;">📝</span> Daily Activity Intelligence
                 </h3>
@@ -169,29 +170,29 @@
                         <input type="text" name="report_topic" class="glass-input" placeholder="Project / Subject Heading" required>
                     </div>
                     <textarea name="report_content" class="glass-input" style="height: 140px; resize: none; margin-bottom: 20px;" placeholder="Detailed achievement log for today..." required></textarea>
-                    <button type="submit" class="btn-royal" style="background: #065f46; color: white !important; width: 100%; height: 55px; font-size: 0.95rem;">Finalize & Dispatch Report</button>
+                    <button type="submit" class="btn-royal" style="background: #065f46; color: white !important; width: 100%; height: 55px;">Finalize & Dispatch Report</button>
                 </form>
             </div>
 
-            <div class="royal-stat-card delay-2">
+            <div class="royal-stat-card">
                 <h3 style="margin-bottom: 30px; font-weight: 950; display: flex; align-items: center; gap: 15px;">
                     <span style="color: #800000 !important;">🎥</span> Video Conference Hub
                 </h3>
                 <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 15px; margin-bottom: 35px;">
                     <input type="text" name="room_name" class="glass-input" style="margin-bottom: 0;" placeholder="Create new session ID..." required>
-                    <button type="submit" class="btn-royal" style="background: #000; color: white !important; white-space: nowrap; padding: 0 35px;">Start Room</button>
+                    <button type="submit" class="btn-royal" style="background: var(--imp-border); color: var(--imp-card) !important; white-space: nowrap; padding: 0 35px;">Start Room</button>
                 </form>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     {% for meet in meetings %}
-                    <div style="background: #fff; padding: 22px 28px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border: 2px solid #000;">
+                    <div style="background: var(--imp-card); padding: 22px 28px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border: 2px solid var(--imp-border);">
                         <div>
-                            <strong style="font-size: 1.2rem; display: block; color: #000;">{{ meet.room_name }}</strong>
-                            <div style="color: #000; font-size: 0.85rem; margin-top: 6px; font-weight: 800;">Moderator: {{ meet.created_by }}</div>
+                            <strong style="font-size: 1.2rem; display: block;">{{ meet.room_name }}</strong>
+                            <div style="font-size: 0.85rem; margin-top: 6px; font-weight: 800;">Moderator: {{ meet.created_by }}</div>
                         </div>
                         <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-royal" style="background: #065f46; color: #fff !important; text-decoration: none;">Join Session</a>
                     </div>
                     {% else %}
-                        <div style="text-align: center; padding: 40px; background: rgba(0,0,0,0.05); border-radius: 20px; border: 2px dashed #000; font-weight: 900; color: #000;">No active video sessions found.</div>
+                        <div style="text-align: center; padding: 40px; border: 2px dashed var(--imp-border); border-radius: 20px; font-weight: 900;">No active video sessions found.</div>
                     {% endfor %}
                 </div>
             </div>
@@ -199,7 +200,7 @@
 
         <div style="display: flex; flex-direction: column; gap: 40px;">
             {% if session['role'] in ['HR', 'Principal'] %}
-            <div class="royal-stat-card delay-1" style="background: #fff; border: 3px solid #991b1b;">
+            <div class="royal-stat-card" style="border: 3px solid #991b1b;">
                 <h3 style="color: #991b1b !important; margin-bottom: 15px; font-weight: 950; display: flex; align-items: center; gap: 10px;">
                     <span>📢</span> Imperial Broadcast
                 </h3>
@@ -210,20 +211,20 @@
             </div>
             {% endif %}
 
-            <div class="royal-stat-card delay-2">
-                <h3 style="margin-bottom: 30px; text-align: center; font-weight: 950; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: #800000 !important;">📊 Performance Matrix</h3>
+            <div class="royal-stat-card">
+                <h3 style="margin-bottom: 30px; text-align: center; font-weight: 950; font-size: 0.85rem; text-transform: uppercase; color: #800000 !important;">📊 Performance Matrix</h3>
                 <div style="height: 280px; position: relative;">
                     <canvas id="modeChart"></canvas>
                 </div>
             </div>
 
-            <div class="royal-stat-card delay-3">
+            <div class="royal-stat-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h3 style="margin:0; font-size: 1rem; font-weight: 950; color: #000;">🔔 Live Intelligence</h3>
-                    <button onclick="clearAllNotifs()" style="background: #000; color: #fff !important; cursor: pointer; font-size: 0.65rem; font-weight: 950; padding: 8px 16px; border-radius: 8px; border: none;">PURGE ALL</button>
+                    <h3 style="margin:0; font-size: 1rem; font-weight: 950;">🔔 Live Intelligence</h3>
+                    <button onclick="clearAllNotifs()" style="background: var(--imp-border); color: var(--imp-bg) !important; cursor: pointer; font-size: 0.65rem; font-weight: 950; padding: 8px 16px; border-radius: 8px; border: none;">PURGE ALL</button>
                 </div>
-                <div id="notification-list" style="max-height: 320px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;">
-                    </div>
+                <div id="notification-list" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--imp-border); border-radius: 12px;">
+                </div>
             </div>
         </div>
     </div>
@@ -231,8 +232,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // RADAR CHART - PRESERVED DATA
+    // RADAR CHART - DATA AND LOGIC RETAINED
     const ctx = document.getElementById('modeChart').getContext('2d');
+    const isDark = () => document.body.classList.contains('dark-mode');
+    
     new Chart(ctx, {
         type: 'radar',
         data: {
@@ -251,27 +254,27 @@
             maintainAspectRatio: false,
             scales: { 
                 r: { 
-                    grid: { color: 'rgba(0,0,0,0.2)' }, 
-                    pointLabels: { font: { weight: '900', size: 12 }, color: '#000' } 
+                    grid: { color: 'rgba(128,0,0,0.1)' }, 
+                    pointLabels: { font: { weight: '900', size: 12 }, color: '#800000' } 
                 } 
             },
             plugins: { legend: { display: false } }
         }
     });
 
-    // LIVE NOTIFICATIONS - PRESERVED LOGIC
+    // NOTIFICATION LOGIC - RETAINED
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
             if (list) {
                 if (data.length === 0) {
-                    list.innerHTML = '<div style="text-align: center; color: #000; opacity: 0.5; padding: 50px; font-weight: 950;">System Clear.</div>';
+                    list.innerHTML = '<div style="text-align: center; padding: 50px; font-weight: 950;">System Clear.</div>';
                     return;
                 }
                 list.innerHTML = data.map(n => `
-                    <div style="padding:18px; border-bottom:2px solid rgba(0,0,0,0.05); display:flex; gap:15px; align-items:flex-start; background: #fff;">
+                    <div style="padding:18px; border-bottom:1px solid var(--imp-border); display:flex; gap:15px; align-items:flex-start; background: var(--imp-card);">
                         <span style="color:#800000; font-weight:950; font-size:1.2rem;">⚡</span>
-                        <div style="font-weight:900; line-height:1.5; font-size: 0.95rem; color: #000;">${n.msg}</div>
+                        <div style="font-weight:900; line-height:1.5; font-size: 0.95rem;">${n.msg}</div>
                     </div>
                 `).join('');
             }
@@ -288,7 +291,7 @@
     setInterval(fetchLiveNotifications, 5000);
     fetchLiveNotifications();
 
-    // DYNAMIC GREETING - PRESERVED
+    // DYNAMIC GREETING - RETAINED
     const hour = new Date().getHours();
     const greet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
     document.getElementById('greeting-text').innerText = `${greet}, {{ session['name'] }}`;
