@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BMSCCM | Staff Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Official BMSCCM Colors */
-            --primary: #800000; /* BMS Maroon */
-            --gold: #C5A059;    /* BMS Gold accent */
+            /* Official BMSCCM Colors - Preserved */
+            --primary: #800000; 
+            --gold: #C5A059;    
             --navy: #1b2559;
             --text-gray: #707eae;
             --light-bg: #f4f7fe;
+            --white: #ffffff;
         }
 
         body, html {
@@ -20,9 +22,36 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             overflow-x: hidden;
             background: #FAFCFF;
+        }
+
+        /* NEW: Logo Container in Brand Bar */
+        .nav-brand {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .main-logo {
+            height: 60px;
+            width: auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+        }
+
+        .brand-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--navy);
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .hero {
@@ -32,52 +61,52 @@
             align-items: center;
             justify-content: center;
             background: 
-                radial-gradient(circle at 90% 10%, rgba(128, 0, 0, 0.05), transparent 40%),
-                radial-gradient(circle at 10% 90%, rgba(197, 160, 89, 0.05), transparent 40%),
-                linear-gradient(135deg, #ffffff 0%, #fdf5f5 100%);
+                radial-gradient(circle at 90% 10%, rgba(128, 0, 0, 0.08), transparent 40%),
+                radial-gradient(circle at 10% 90%, rgba(197, 160, 89, 0.08), transparent 40%),
+                linear-gradient(135deg, #ffffff 0%, #f9f9fc 100%);
             text-align: center;
-            padding: 40px 20px;
+            padding: 100px 20px 40px;
             box-sizing: border-box;
+            position: relative;
         }
 
-        .nav-brand {
+        /* NEW: Floating Animation for background elements */
+        .hero::before {
+            content: '';
             position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--navy);
-            letter-spacing: -0.5px;
-            z-index: 10;
-            text-transform: uppercase;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/cubes.png');
+            opacity: 0.03;
+            pointer-events: none;
         }
 
         .hero-content {
             max-width: 1000px;
             width: 100%;
-            animation: fadeIn 1s ease-out;
+            animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(40px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .hero-content h1 {
-            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-size: clamp(2.5rem, 6vw, 4.2rem);
             color: var(--navy);
             margin: 15px 0 25px;
-            line-height: 1.2;
+            line-height: 1.1;
             font-weight: 800;
+            letter-spacing: -1.5px;
         }
 
         .hero-content p {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: var(--text-gray);
-            margin-bottom: 40px;
-            line-height: 1.6;
-            max-width: 750px;
+            margin-bottom: 45px;
+            line-height: 1.7;
+            max-width: 700px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -86,85 +115,122 @@
             display: flex;
             gap: 15px;
             justify-content: center;
-            margin-bottom: 60px;
+            margin-bottom: 70px;
         }
 
+        /* UPDATED: Premium Button Effect */
         .btn-launch {
             background: var(--primary);
-            color: white;
-            padding: 18px 45px;
-            border-radius: 12px;
+            color: var(--white);
+            padding: 20px 50px;
+            border-radius: 16px;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 800;
             font-size: 1.1rem;
-            box-shadow: 0 10px 20px rgba(128, 0, 0, 0.2);
-            transition: 0.3s;
+            box-shadow: 0 15px 30px rgba(128, 0, 0, 0.25);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 2px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .btn-launch:hover {
-            transform: translateY(-3px);
-            background: white;
+            transform: translateY(-5px) scale(1.02);
+            background: var(--white);
             color: var(--primary);
             border: 2px solid var(--primary);
+            box-shadow: 0 20px 40px rgba(128, 0, 0, 0.15);
         }
 
+        /* UPDATED: Modernized Feature Grid */
         .feature-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
+            gap: 25px;
+            margin-top: 50px;
             width: 100%;
         }
 
         .feature-card {
-            background: white;
-            padding: 25px;
-            border-radius: 20px;
-            border: 1px solid rgba(128, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
             text-align: center;
-            transition: 0.3s;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
         }
 
         .feature-card:hover {
+            transform: translateY(-10px);
+            background: var(--white);
             border-color: var(--gold);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(197, 160, 89, 0.15);
+            box-shadow: 0 25px 50px rgba(27, 37, 89, 0.08);
         }
 
         .icon-circle {
-            width: 50px;
-            height: 50px;
-            background: rgba(128, 0, 0, 0.05);
-            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #fdf5f5 0%, rgba(128, 0, 0, 0.1) 100%);
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 24px;
+            margin: 0 auto 20px;
+            font-size: 28px;
+            transition: 0.3s;
+        }
+
+        .feature-card:hover .icon-circle {
+            background: var(--primary);
+            color: white;
+            transform: rotate(10deg);
         }
 
         .feature-card h3 {
-            margin: 0 0 8px 0;
+            margin: 0 0 10px 0;
             color: var(--navy);
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
         }
 
         .feature-card small {
             color: var(--text-gray);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Badge Styling */
+        .badge {
+            display: inline-block;
+            background: linear-gradient(90deg, rgba(128,0,0,0.1), rgba(197,160,89,0.1));
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 100px;
+            font-weight: 800;
             font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(128,0,0,0.05);
         }
     </style>
 </head>
 <body>
 
-    <div class="nav-brand">BMS<span style="color: var(--primary);">CCM</span> Staff Portal</div>
+    <div class="nav-brand">
+        <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM" class="main-logo">
+        <div class="brand-text">BMS<span style="color: var(--primary);">CCM</span> Staff Portal</div>
+    </div>
 
     <section class="hero">
         <div class="hero-content">
-            <div style="display: inline-block; background: rgba(128, 0, 0, 0.1); color: var(--primary); padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
-                Faculty & Administration Hub
+            <div class="badge">
+                ✨ Faculty & Administration Hub
             </div>
             
             <h1>Empowering Academic <br> <span style="color: var(--primary);">Excellence & Management.</span></h1>
@@ -172,7 +238,9 @@
             <p>Access the unified BMS Centre for Communication and Management ecosystem for real-time attendance, digital document vaulting, and seamless staff communication.</p>
             
             <div class="home-btns">
-                <a href="{{ url_for('login') }}" class="btn-launch">Enter Staff Dashboard</a>
+                <a href="{{ url_for('login') }}" class="btn-launch">
+                    Enter Staff Dashboard <span>→</span>
+                </a>
             </div>
 
             <div class="feature-grid">
