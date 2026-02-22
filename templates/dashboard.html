@@ -141,7 +141,7 @@
                 {% for task in tasks %}
                 <div class="task-item" style="{% if task.is_done %}opacity: 0.5; background: #f8fafc;{% endif %}">
                     <div style="display: flex; align-items: center; gap: 20px;">
-                        <a href="{{ url_for('toggle_task', tid=task.id) }}" style="text-decoration: none; font-size: 1.5rem;">{{ '✅' if task.is_done else '⭕' }}</a>
+                        <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.5rem;">{{ '✅' if task.is_done else '⭕' }}</a>
                         <span style="font-weight: 900; font-size: 1.1rem; {% if task.is_done %}text-decoration: line-through;{% endif %}">{{ task.content }}</span>
                     </div>
                     <a href="{{ url_for('delete_task', tid=task.id) }}" style="color: #ff0000 !important; font-weight: 950; text-decoration: none;">PURGE</a>
@@ -249,3 +249,4 @@
     document.getElementById('greeting-text').innerText = `${greet}, {{ session['name'] }}`;
 </script>
 {% endblock %}
+
