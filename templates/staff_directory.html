@@ -7,6 +7,7 @@
         --royal-gold: #d4af37;
         --ink-black: #000000;
         --imperial-cream: #fdfaf0;
+        --danger-red: #d32f2f;
     }
 
     /* --- BACKGROUND WATERMARK --- */
@@ -22,18 +23,12 @@
         pointer-events: none;
     }
 
-    h2, h3, h4, strong, span, p, label, td, th { 
-        color: var(--ink-black) !important; 
-    }
+    h2, h3, h4, strong, span, p, label, td, th { color: var(--ink-black) !important; }
     
     .dashboard-grid { display: flex; gap: 20px; margin-bottom: 30px; }
     .imperial-stat-card {
         flex: 1; padding: 25px; border: 3px solid var(--royal-gold); border-radius: 15px;
         background: var(--imperial-cream); box-shadow: 12px 12px 0px var(--imperial-maroon);
-    }
-    .imperial-stat-card small { 
-        color: var(--imperial-maroon) !important; 
-        font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px;
     }
 
     .search-input {
@@ -42,26 +37,27 @@
         color: var(--ink-black); background: #fff;
     }
 
-    .staff-table { width: 100%; border-collapse: separate; border-spacing: 0 15px; }
-    .staff-table th { 
-        padding: 18px; text-align: left; font-weight: 950; 
-        text-transform: uppercase; border-bottom: 3px solid var(--royal-gold);
+    /* --- FULL COMPONENT CALCULATOR CARD --- */
+    .live-calc-expanded {
+        background: #fff; padding: 15px; border: 2px solid var(--royal-gold);
+        border-radius: 12px; margin-top: 10px; display: none;
+        grid-template-columns: repeat(2, 1fr); gap: 8px;
+        box-shadow: 6px 6px 0px var(--imperial-maroon);
     }
+    .calc-pill {
+        padding: 6px 10px; background: var(--imperial-cream);
+        border: 1px solid rgba(45,0,15,0.1); border-radius: 6px;
+        font-size: 0.7rem; font-weight: 950; text-transform: uppercase;
+        display: flex; justify-content: space-between;
+    }
+    .val-pos { color: #1b5e20 !important; }
+    .val-neg { color: var(--danger-red) !important; }
+
+    .staff-table { width: 100%; border-collapse: separate; border-spacing: 0 15px; }
     .staff-row td { 
         background: white; padding: 20px; 
         border-top: 2px solid var(--royal-gold); border-bottom: 2px solid var(--royal-gold);
     }
-
-    /* --- NEW: LIVE BREAKDOWN CARD STYLE --- */
-    .live-calc-box {
-        background: white; padding: 15px; 
-        border: 2px solid var(--royal-gold); border-radius: 10px;
-        margin-top: 10px; display: none; /* Shown via JS */
-        grid-template-columns: 1fr 1fr; gap: 10px;
-        box-shadow: 5px 5px 0px var(--imperial-maroon);
-    }
-    .calc-item { font-size: 0.75rem; font-weight: 900; text-transform: uppercase; }
-    .calc-val { color: var(--accent) !important; }
 
     .btn-imperial {
         background: var(--imperial-maroon); color: var(--royal-gold) !important;
@@ -109,17 +105,19 @@
             <div><label class="data-label">Email</label><input type="email" name="email" class="search-input" required></div>
             <div><label class="data-label">Username</label><input type="text" name="username" class="search-input" required></div>
             <div><label class="data-label">Password</label><input type="password" name="password" class="search-input" required></div>
-            <div><label class="data-label">Date of Birth</label><input type="date" name="dob" class="search-input" required></div>
             <div><label class="data-label">Joining Date</label><input type="date" name="join_date" class="search-input" required></div>
             
             <div>
                 <label class="data-label">Basic Salary</label>
                 <input type="number" id="new_staff_salary" name="salary" class="search-input" oninput="calculateAddFormNet()" required>
-                <div id="add_calc_box" class="live-calc-box">
-                    <div class="calc-item">HRA: <span id="add_hra" class="calc-val">0</span></div>
-                    <div class="calc-item">DA: <span id="add_da" class="calc-val">0</span></div>
-                    <div class="calc-item">TA: <span class="calc-val">2000</span></div>
-                    <div class="calc-item">TDS: <span id="add_tds" class="calc-val" style="color:red !important;">0</span></div>
+                
+                <div id="add_calc_box" class="live-calc-expanded">
+                    <div class="calc-pill">HRA <span id="add_hra" class="val-pos">0</span></div>
+                    <div class="calc-pill">DA <span id="add_da" class="val-pos">0</span></div>
+                    <div class="calc-pill">TA <span class="val-pos">2000</span></div>
+                    <div class="calc-pill">EPF <span id="add_epf" class="val-neg">0</span></div>
+                    <div class="calc-pill">TDS <span id="add_tds" class="val-neg">0</span></div>
+                    <div class="calc-pill">PT <span class="val-neg">200</span></div>
                 </div>
             </div>
 
@@ -171,13 +169,16 @@
                         {% if session['role'] == 'Principal' %}
                             <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="position: relative;">
                                 <input type="number" name="new_salary" placeholder="Hike Amount" 
-                                       style="width: 120px; padding: 8px; border: 2px solid var(--royal-gold); border-radius: 6px;"
+                                       style="width: 120px; padding: 8px; border: 2px solid var(--royal-gold); border-radius: 6px; font-weight: 900;"
                                        oninput="calculateHikeLive(this, '{{ emp.id }}')" required>
                                 <button type="submit" class="btn-imperial" style="font-size: 0.7rem; padding: 8px 12px;">HIKE</button>
                                 
-                                <div id="hike_calc_{{ emp.id }}" class="live-calc-box" style="position: absolute; right: 0; z-index: 100; width: 200px; text-align: left;">
-                                    <div class="calc-item">New Net: <span id="hike_net_{{ emp.id }}" class="calc-val">0</span></div>
-                                    <div class="calc-item">HRA: <span id="hike_hra_{{ emp.id }}" class="calc-val">0</span></div>
+                                <div id="hike_calc_{{ emp.id }}" class="live-calc-expanded" style="position: absolute; right: 0; z-index: 100; width: 280px; text-align: left;">
+                                    <div class="calc-pill" style="grid-column: span 2; background: var(--royal-gold); color: #fff !important;">New Net: <span id="hike_net_{{ emp.id }}">0</span></div>
+                                    <div class="calc-pill">HRA <span id="hike_hra_{{ emp.id }}" class="val-pos">0</span></div>
+                                    <div class="calc-pill">DA <span id="hike_da_{{ emp.id }}" class="val-pos">0</span></div>
+                                    <div class="calc-pill">EPF <span id="hike_epf_{{ emp.id }}" class="val-neg">0</span></div>
+                                    <div class="calc-pill">TDS <span id="hike_tds_{{ emp.id }}" class="val-neg">0</span></div>
                                 </div>
                             </form>
                         {% endif %}
@@ -191,23 +192,37 @@
 </div>
 
 <script>
-/* REFINED CALCULATION LOGIC */
+/* CORE CALCULATION ENGINE - DO NOT REMOVE */
+function performFullCalc(basic) {
+    const hra = Math.floor(basic * 0.40);
+    const da = Math.floor(basic * 0.10);
+    const ta = 2000;
+    const pt = 200;
+    const gross = basic + hra + da + ta;
+    const tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
+    const tds = Math.floor(gross * tdsRate);
+    const epf = Math.floor((basic + da) * 0.12);
+    const net = gross - (epf + tds + pt);
+    
+    return { hra, da, ta, pt, tds, epf, net };
+}
+
 function calculateAddFormNet() {
     let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
     const box = document.getElementById('add_calc_box');
-    if(basic > 0) box.style.display = 'grid'; else box.style.display = 'none';
-
-    const hra = Math.floor(basic * 0.40);
-    const da = Math.floor(basic * 0.10);
-    const gross = basic + hra + da + 2000;
-    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
-    const epf = Math.floor((basic + da) * 0.12);
-    const net = gross - (epf + tds + 200);
-
-    document.getElementById('add_hra').innerText = '₹' + hra;
-    document.getElementById('add_da').innerText = '₹' + da;
-    document.getElementById('add_tds').innerText = '-₹' + tds;
-    document.getElementById('new_net_display').innerText = '₹' + net.toLocaleString('en-IN');
+    
+    if(basic > 0) {
+        box.style.display = 'grid';
+        let c = performFullCalc(basic);
+        document.getElementById('add_hra').innerText = '₹' + c.hra;
+        document.getElementById('add_da').innerText = '₹' + c.da;
+        document.getElementById('add_epf').innerText = '-₹' + c.epf;
+        document.getElementById('add_tds').innerText = '-₹' + c.tds;
+        document.getElementById('new_net_display').innerText = '₹' + c.net.toLocaleString('en-IN');
+    } else {
+        box.style.display = 'none';
+        document.getElementById('new_net_display').innerText = '₹0';
+    }
 }
 
 function calculateHikeLive(input, empId) {
@@ -216,34 +231,28 @@ function calculateHikeLive(input, empId) {
     let newBasic = currentBasic + hike;
     const box = document.getElementById('hike_calc_' + empId);
     
-    if(hike !== 0) box.style.display = 'grid'; else box.style.display = 'none';
-
-    const hra = Math.floor(newBasic * 0.40);
-    const da = Math.floor(newBasic * 0.10);
-    const gross = newBasic + hra + da + 2000;
-    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
-    const epf = Math.floor((newBasic + da) * 0.12);
-    const net = gross - (epf + tds + 200);
-
-    document.getElementById('hike_net_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
-    document.getElementById('hike_hra_' + empId).innerText = '₹' + hra;
+    if(hike !== 0) {
+        box.style.display = 'grid';
+        let c = performFullCalc(newBasic);
+        document.getElementById('hike_net_' + empId).innerText = '₹' + c.net.toLocaleString('en-IN');
+        document.getElementById('hike_hra_' + empId).innerText = '₹' + c.hra;
+        document.getElementById('hike_da_' + empId).innerText = '₹' + c.da;
+        document.getElementById('hike_epf_' + empId).innerText = '-₹' + c.epf;
+        document.getElementById('hike_tds_' + empId).innerText = '-₹' + c.tds;
+    } else {
+        box.style.display = 'none';
+    }
 }
 
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
-    let basic = parseFloat(input.value) || 0;
-    const hra = Math.floor(basic * 0.40);
-    const da = Math.floor(basic * 0.10);
-    const gross = basic + hra + da + 2000;
-    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
-    const epf = Math.floor((basic + da) * 0.12);
-    const net = gross - (epf + tds + 200);
+    let c = performFullCalc(parseFloat(input.value) || 0);
     
-    document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    document.getElementById('netDisplay_' + empId).innerText = '₹' + c.net.toLocaleString('en-IN');
     document.getElementById('breakdown_' + empId).innerHTML = `
-        <span>HRA: ₹${hra}</span> <span>DA: ₹${da}</span>
-        <span style="color:#d32f2f">TDS: -₹${tds}</span> <span style="color:#d32f2f">EPF: -₹${epf}</span>`;
+        <span>HRA: ₹${c.hra}</span> <span>DA: ₹${c.da}</span>
+        <span style="color:var(--danger-red)">TDS: -₹${c.tds}</span> <span style="color:var(--danger-red)">EPF: -₹${c.epf}</span>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
