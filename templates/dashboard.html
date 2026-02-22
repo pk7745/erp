@@ -60,7 +60,6 @@
         border-radius: 16px; margin-bottom: 35px; display: flex; align-items: center; padding: 12px 0;
     }
 
-    /* TASK LIST UI */
     .task-item {
         background: var(--imp-card); border: 2px solid var(--imp-border);
         padding: 15px 20px; border-radius: 15px; display: flex; 
@@ -96,6 +95,33 @@
         </marquee>
     </div>
 
+    {% if request.args.get('join_meet') %}
+    <div class="royal-stat-card" style="margin-bottom: 40px; padding: 0; overflow: hidden; border-color: var(--imp-maroon);">
+        <div style="background: var(--imp-card); padding: 22px 35px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--imp-border);">
+            <h3 style="margin:0; font-weight: 950; display: flex; align-items: center; gap: 15px;">
+                <span style="color: var(--imp-maroon) !important; font-size: 1.5rem;">🎥</span> Live Briefing: <span>{{ request.args.get('join_meet') }}</span>
+            </h3>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span id="meet-timer" style="background: #000; color: #00ff00 !important; padding: 10px 22px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 950; font-size: 1.2rem; border: 2px solid #00ff00;">00:00:00</span>
+                <button onclick="endMeeting()" class="btn-royal" style="background: #991b1b; color: white !important;">TERMINATE SESSION</button>
+            </div>
+        </div>
+        <div id="jitsi-container" style="height: 650px; background: #000;"></div>
+    </div>
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <script>
+        let seconds = 0; setInterval(() => {
+            seconds++; let hrs = Math.floor(seconds/3600); let mins = Math.floor((seconds-(hrs*3600))/60); let secs = seconds%60;
+            document.getElementById('meet-timer').innerText = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+        }, 1000);
+        const api = new JitsiMeetExternalAPI("meet.jit.si", {
+            roomName: "{{ request.args.get('join_meet') }}", width: "100%", height: 650,
+            parentNode: document.querySelector('#jitsi-container'), userInfo: { displayName: "{{ session['name'] }}" }
+        });
+        function endMeeting() { if(confirm("Terminate this briefing session?")) { fetch(`/delete_meeting/{{ request.args.get('join_meet') }}`).then(() => window.location.href="{{ url_for('dashboard') }}"); } else { window.location.href="{{ url_for('dashboard') }}"; }}
+    </script>
+    {% endif %}
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 50px;">
         <div class="royal-stat-card">
             <div style="width: 56px; height: 56px; background: var(--imp-maroon); color: white; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 15px; border: 2px solid #000;">🏢</div>
@@ -115,9 +141,31 @@
     </div>
 
     <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 40px;">
-        
         <div style="display: flex; flex-direction: column; gap: 40px;">
             
+            <div class="royal-stat-card">
+                <h3 style="margin-bottom: 25px; font-weight: 950; font-size: 1.4rem; display: flex; align-items: center; gap: 15px;">
+                    <span style="color: var(--imp-maroon) !important;">🎥</span> Video Conference Hub
+                </h3>
+                <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 15px; margin-bottom: 30px;">
+                    <input type="text" name="room_name" class="glass-input" placeholder="Create new session ID..." required>
+                    <button type="submit" class="btn-royal" style="background: var(--imp-border); color: #fff !important; white-space: nowrap;">START ROOM</button>
+                </form>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for meet in meetings %}
+                    <div class="task-item">
+                        <div>
+                            <strong style="font-size: 1.2rem; display: block;">{{ meet.room_name }}</strong>
+                            <div style="font-size: 0.85rem; margin-top: 4px; font-weight: 800; opacity: 0.7;">Moderator: {{ meet.created_by }}</div>
+                        </div>
+                        <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-royal" style="background: #065f46; color: #fff !important; text-decoration: none;">JOIN SESSION</a>
+                    </div>
+                    {% else %}
+                        <div style="text-align: center; padding: 40px; border: 2px dashed #ccc; border-radius: 20px; font-weight: 900;">No active video sessions found.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="royal-stat-card" style="border-top: 10px solid var(--imp-maroon);">
                 <h3 style="margin-bottom: 25px; font-weight: 950; font-size: 1.4rem; display: flex; align-items: center; gap: 15px;">
                     <span style="color: var(--imp-maroon) !important;">🎯</span> Mission Objectives
@@ -139,8 +187,6 @@
                         </div>
                         <a href="{{ url_for('delete_task', tid=task.id) }}" style="color: #ff0000 !important; font-weight: 950; text-decoration: none; font-size: 0.8rem;">PURGE</a>
                     </div>
-                    {% else %}
-                        <div style="text-align: center; padding: 30px; border: 2px dashed #ccc; border-radius: 15px; font-weight: 900;">No objectives assigned for today.</div>
                     {% endfor %}
                 </div>
             </div>
@@ -165,12 +211,9 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 40px;">
-            
             {% if session['role'] in ['HR', 'Principal'] %}
             <div class="royal-stat-card" style="border: 4px solid #991b1b;">
-                <h3 style="color: #991b1b !important; margin-bottom: 15px; font-weight: 950; display: flex; align-items: center; gap: 10px;">
-                    <span>📢</span> Imperial Broadcast
-                </h3>
+                <h3 style="color: #991b1b !important; margin-bottom: 15px; font-weight: 950; display: flex; align-items: center; gap: 10px;">📢 Broadcast</h3>
                 <form action="{{ url_for('send_broadcast') }}" method="POST">
                     <input type="text" name="message" class="glass-input" style="border-color: #991b1b;" placeholder="Message to all staff..." required>
                     <button type="submit" class="btn-royal" style="background: #991b1b; color: white !important; width: 100%; margin-top: 15px;">Deploy Alert</button>
@@ -190,8 +233,7 @@
                     <h3 style="margin:0; font-size: 1.1rem; font-weight: 950;">🔔 Live Intelligence</h3>
                     <button onclick="clearAllNotifs()" style="background: #000; color: #fff !important; cursor: pointer; font-size: 0.75rem; font-weight: 950; padding: 8px 16px; border-radius: 8px; border: none;">PURGE</button>
                 </div>
-                <div id="notification-list" style="max-height: 350px; overflow-y: auto; border: 2.5px solid var(--imp-border); border-radius: 12px;">
-                    </div>
+                <div id="notification-list" style="max-height: 450px; overflow-y: auto; border: 2.5px solid var(--imp-border); border-radius: 12px;"></div>
             </div>
         </div>
     </div>
@@ -199,7 +241,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. Radar Chart Logic
+    // Radar Chart
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
@@ -221,7 +263,7 @@
         }
     });
 
-    // 2. Notification System
+    // Notifications
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
@@ -246,7 +288,6 @@
         }
     }
 
-    // 3. Greeting & Auto-Refresh
     setInterval(fetchLiveNotifications, 5000);
     fetchLiveNotifications();
 
