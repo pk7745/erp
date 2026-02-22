@@ -8,104 +8,160 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        /* --- IMPERIAL THEME OVERRIDES --- */
+        /* --- IMPERIAL DESIGN SYSTEM --- */
         :root {
-            --imperial-black: #000000;
-            --imperial-crimson: #800000;
-            --imperial-gold: #d4af37;
+            --imp-black: #000000;
+            --imp-white: #ffffff;
+            --imp-crimson: #800000;
+            --imp-gold: #d4af37;
+            --imp-bg: #f8fafc;
+            --imp-border-width: 3px;
+            --imp-shadow: 8px 8px 0px var(--imp-black);
         }
 
-        body { color: var(--imperial-black); }
+        body { 
+            font-family: 'Manrope', sans-serif; 
+            background-color: var(--imp-bg);
+            color: var(--imp-black);
+            transition: background 0.3s ease;
+        }
 
         body.dark-mode { 
-            --bg: #05070a; 
-            --text-main: #ffffff; 
-            --text-muted: #cbd5e1;
-            background: #05070a;
+            --imp-bg: #05070a;
+            --imp-white: #111827;
+            --imp-black: #ffffff;
+            background-color: var(--imp-bg);
         }
 
-        /* SIDEBAR: HIGH CONTRAST RETAINED LOGIC */
+        /* SIDEBAR: IMPERIAL COMMAND STYLE */
         .sidebar {
             background: #ffffff !important;
-            border-right: 3px solid #000 !important;
+            border-right: 4px solid var(--imp-black) !important;
+            width: 280px;
+            box-shadow: none;
         }
         
         body.dark-mode .sidebar {
             background: #0a0f18 !important;
-            border-right: 3px solid var(--imperial-gold) !important;
+            border-right: 4px solid var(--imp-gold) !important;
+        }
+
+        .sidebar-brand {
+            padding: 30px 20px;
+            border-bottom: 4px solid var(--imp-black);
+            background: #000;
+        }
+        
+        .sidebar-brand h2 {
+            color: #fff !important;
+            font-size: 0.9rem !important;
+            line-height: 1.4;
         }
 
         .sidebar-link { 
-            color: #000000 !important; 
-            font-weight: 900 !important; /* DARKER TEXT */
-            letter-spacing: -0.2px;
-            padding: 14px 20px !important;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
+            color: var(--imp-black) !important; 
+            font-weight: 900 !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 16px 25px !important;
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            text-decoration: none;
         }
         
         .sidebar-link:hover {
-            background: #f1f5f9 !important;
-            padding-left: 30px !important;
+            background: var(--imp-black) !important;
+            color: #fff !important;
+            padding-left: 35px !important;
         }
 
-        body.dark-mode .sidebar-link { color: #ffffff !important; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        body.dark-mode .sidebar-link { border-bottom: 2px solid rgba(255,255,255,0.05); }
+        body.dark-mode .sidebar-link:hover { background: var(--imp-gold) !important; color: #000 !important; }
 
-        /* PULSE BADGE: PRESERVED LOGIC */
+        /* PULSE BADGE: HIGH VISIBILITY */
         .pulse-badge {
             position: absolute;
             right: 15px;
             background: #ff0000;
-            color: white !important;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-weight: 900;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
-        }
-
-        /* CAMPUS ALERT: PRESERVED LOGIC */
-        .alert-banner {
-            background: #000 !important;
-            border-bottom: 3px solid var(--imperial-crimson);
             color: #fff !important;
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 900;
+            border: 2px solid #000;
+            animation: badge-throb 1.5s infinite;
         }
 
-        /* FAB: PRESERVED LOGIC */
+        @keyframes badge-throb {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,0,0,0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255,0,0,0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,0,0,0); }
+        }
+
+        /* ALERT BANNER: BROADCAST SYSTEM */
+        .alert-banner {
+            background: var(--imp-black) !important;
+            border-bottom: 5px solid var(--imp-crimson);
+            height: 50px;
+        }
+
+        /* MAIN CONTENT AREA */
+        .main {
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        /* FLASH MESSAGES: DIRECTIVES */
+        .flash {
+            border: 3px solid #000 !important;
+            box-shadow: 6px 6px 0px #000;
+            background: #fff;
+            padding: 20px !important;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        /* FAB: THE GOLDEN TRIGGER */
         .fab-item { 
             background: #ffffff !important;
-            border: 2px solid #000 !important;
+            border: 3px solid #000 !important;
             color: #000 !important;
-            font-weight: 900 !important;
-            box-shadow: 5px 5px 0px rgba(0,0,0,1) !important;
+            font-weight: 950 !important;
+            box-shadow: 6px 6px 0px #000 !important;
+            text-transform: uppercase;
+            font-size: 0.8rem;
         }
+        
+        .fab-item:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0px #000 !important; }
     </style>
 </head>
 <body>
     {% if active_broadcast %}
-    <div class="alert-banner" style="padding: 12px 0; overflow: hidden; position: relative; z-index: 10001; display: flex; align-items: center;">
-        <div style="background: var(--imperial-crimson); padding: 0 25px; font-weight: 900; position: absolute; z-index: 2; display: flex; align-items: center; gap: 10px; height: 100%; text-transform: uppercase;">
-            <span style="font-size: 1.2rem;">⚠️</span> ALERT
+    <div class="alert-banner" style="overflow: hidden; position: relative; z-index: 10001; display: flex; align-items: center;">
+        <div style="background: var(--imp-crimson); color: white; padding: 0 30px; font-weight: 950; position: absolute; z-index: 2; display: flex; align-items: center; height: 100%; border-right: 4px solid #fff;">
+            COMMAND ALERT
         </div>
-        <marquee behavior="scroll" direction="left" scrollamount="7" style="font-size: 1rem; font-weight: 800; padding-left: 200px;">
-            {{ active_broadcast.message }} &nbsp;&nbsp;&nbsp;&nbsp; [ORIGIN: {{ active_broadcast.author }} @ {{ active_broadcast.timestamp.strftime('%I:%M %p') }}]
+        <marquee behavior="scroll" direction="left" scrollamount="8" style="font-size: 1.1rem; font-weight: 900; color: #fff; padding-left: 220px;">
+            {{ active_broadcast.message }} ——— ORIGIN: {{ active_broadcast.author }} @ {{ active_broadcast.timestamp.strftime('%I:%M %p') }}
         </marquee>
         {% if session['role'] in ['HR', 'Principal'] %}
-        <a href="{{ url_for('clear_broadcast') }}" style="color: white; margin-right: 20px; text-decoration: none; font-weight: 900; z-index: 2; background: #ff0000; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px;" title="Dismiss">✕</a>
+        <a href="{{ url_for('clear_broadcast') }}" style="color: white; margin-right: 20px; text-decoration: none; font-weight: 950; z-index: 2; background: #ff0000; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 2px solid #fff;" title="Dismiss">✕</a>
         {% endif %}
     </div>
     {% endif %}
 
     <div class="sidebar">
         <div class="sidebar-content">
-            <div class="sidebar-brand" style="padding: 20px 10px; border-bottom: 3px solid #000; margin-bottom: 25px;">
-                <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
-                    <h2 style="margin: 0; font-size: 1rem; font-weight: 950; text-transform: uppercase; color: #000;">BMS COLLEGE OF COMMERCE AND MANAGEMENT</h2>
+            <div class="sidebar-brand">
+                <a href="{{ url_for('about') }}" style="text-decoration: none;">
+                    <h2 style="margin: 0; font-weight: 950; letter-spacing: 1px;">BMS COLLEGE OF COMMERCE<br>AND MANAGEMENT</h2>
                 </a>
             </div>
 
             <a href="{{ url_for('dashboard') }}" class="sidebar-link" onclick="clearBadge(this)">
-                📊 DASHBOARD
+                <span>📊 DASHBOARD</span>
                 {% if global_notif_count and global_notif_count > 0 %}
                     <span class="pulse-badge">{{ global_notif_count }}</span>
                 {% endif %}
@@ -117,7 +173,7 @@
             <a href="{{ url_for('performance') }}" class="sidebar-link">📈 PERFORMANCE</a> 
 
             {% if session['role'] in ['Principal', 'HR'] %}
-                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="color: var(--imperial-crimson) !important;">📅 LEAVE CALENDAR</a>
+                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="border-left: 8px solid var(--imp-crimson);">📅 LEAVE CALENDAR</a>
             {% else %}
                 <a href="{{ url_for('leave') }}" class="sidebar-link">📅 LEAVE MGMT</a>
             {% endif %}
@@ -130,35 +186,35 @@
             <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 DIRECTORY</a>
 
             <a href="{{ url_for('activity_room') }}" class="sidebar-link" onclick="clearBadge(this)">
-                📝 ACTIVITY ROOM
+                <span>📝 ACTIVITY ROOM</span>
                 {% if pending_tasks_count and pending_tasks_count > 0 %}
-                    <span class="pulse-badge">{{ pending_tasks_count }}</span>
+                    <span class="pulse-badge" style="background: #000; border-color: var(--imp-gold);">{{ pending_tasks_count }}</span>
                 {% endif %}
             </a>
 
             <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 MY PROFILE</a>
 
             {% if session['role'] == 'Principal' %}
-                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fff0f0; color: #ff0000 !important; border-left: 5px solid #ff0000;">🛡️ AUDIT LOGS</a>
+                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fee2e2; color: #991b1b !important; border-bottom: 4px solid #991b1b;">🛡️ AUDIT LOGS</a>
             {% endif %}
             
-            <button onclick="toggleDarkMode()" class="btn" style="width: 90%; margin: 20px auto; display: block; background: #000; color: #fff; font-weight: 900; border-radius: 8px;">🌙 THEME TOGGLE</button>
+            <button onclick="toggleDarkMode()" class="btn" style="width: 85%; margin: 30px auto; display: block; background: #000; color: #fff; font-weight: 950; border: 3px solid var(--imp-gold); padding: 12px; cursor: pointer;">🌙 TOGGLE THEME</button>
         </div>
         
         <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #fff !important; background: #ff0000 !important; text-align: center; border: none;">LOGOUT</a>
+            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #fff !important; background: var(--imp-crimson) !important; text-align: center; border: none; justify-content: center; font-size: 1.1rem;">LOGOUT</a>
         </div>
     </div>
 
     <div class="main">
-        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 30px;">
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 40px;">
             {% if session['name'] %}
-            <div style="display: flex; align-items: center; gap: 15px; background: #fff; padding: 10px 25px; border-radius: 12px; border: 2px solid #000; box-shadow: 4px 4px 0px #000;">
-                <a href="{{ url_for('my_profile') }}" style="text-decoration: none; color: #000; font-weight: 900; display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 20px; background: #fff; padding: 12px 30px; border: 4px solid #000; box-shadow: 6px 6px 0px #000;">
+                <a href="{{ url_for('my_profile') }}" style="text-decoration: none; color: #000; font-weight: 950; display: flex; align-items: center; gap: 10px; font-size: 1rem;">
                     <span>👤</span> {{ session['name'] }}
                 </a>
-                <div style="width: 2px; height: 20px; background: #000;"></div>
-                <span style="font-size: 0.8rem; font-weight: 900; color: var(--imperial-crimson);">{{ session['role'] }}</span>
+                <div style="width: 3px; height: 25px; background: #000;"></div>
+                <span style="font-weight: 950; color: var(--imp-crimson); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">{{ session['role'] }}</span>
             </div>
             {% endif %}
         </div>
@@ -166,8 +222,9 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash {% if category == 'error' %}error{% else %}success{% endif %}" style="border: 2px solid #000; font-weight: 800; color: #000; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
-                        {% if category == 'error' %}⚠️{% else %}✅{% endif %} {{ message }}
+                    <div class="flash" style="margin-bottom: 30px;">
+                        <span style="font-size: 1.5rem; margin-right: 15px;">{% if category == 'error' %}⚠️{% else %}✅{% endif %}</span>
+                        {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
@@ -177,15 +234,15 @@
     </div>
 
     {% if session['user_id'] %}
-    <div id="fab-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 12px;">
-        <button onclick="toggleFab()" id="fab-main" style="width: 65px; height: 65px; border-radius: 50%; background: #000; color: white; border: 3px solid var(--imperial-gold); font-size: 24px; cursor: pointer; box-shadow: 6px 6px 0px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: 0.3s;">
+    <div id="fab-container" style="position: fixed; bottom: 40px; right: 40px; z-index: 1000; display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 15px;">
+        <button onclick="toggleFab()" id="fab-main" style="width: 70px; height: 70px; border-radius: 50%; background: #000; color: white; border: 4px solid var(--imp-gold); font-size: 28px; cursor: pointer; box-shadow: 8px 8px 0px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
             <span id="fab-icon">⚡</span>
         </button>
-        <div id="fab-options" style="display: none; flex-direction: column; gap: 10px; align-items: flex-end;">
-            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🗓️ SCHEDULE</a>
-            <a href="{{ url_for('chat') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">💬 MESSAGE</a>
-            <a href="{{ url_for('attendance') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🕒 ATTENDANCE</a>
-            <a href="{{ url_for('leave') }}" class="fab-item" style="padding: 12px 24px; border-radius: 8px; text-decoration: none;">🌴 LEAVE</a>
+        <div id="fab-options" style="display: none; flex-direction: column; gap: 12px; align-items: flex-end;">
+            <a href="{{ url_for('view_timetable') }}" class="fab-item" style="padding: 14px 28px; border-radius: 12px; text-decoration: none;">🗓️ SCHEDULE</a>
+            <a href="{{ url_for('chat') }}" class="fab-item" style="padding: 14px 28px; border-radius: 12px; text-decoration: none;">💬 MESSAGE</a>
+            <a href="{{ url_for('attendance') }}" class="fab-item" style="padding: 14px 28px; border-radius: 12px; text-decoration: none;">🕒 ATTENDANCE</a>
+            <a href="{{ url_for('leave') }}" class="fab-item" style="padding: 14px 28px; border-radius: 12px; text-decoration: none;">🌴 LEAVE MGMT</a>
         </div>
     </div>
     {% endif %}
@@ -202,12 +259,15 @@
         function toggleFab() {
             const options = document.getElementById('fab-options');
             const icon = document.getElementById('fab-icon');
+            const mainBtn = document.getElementById('fab-main');
             if (options.style.display === 'none' || options.style.display === '') {
                 options.style.display = 'flex';
                 icon.innerText = '✕';
+                mainBtn.style.transform = 'rotate(90deg)';
             } else {
                 options.style.display = 'none';
                 icon.innerText = '⚡';
+                mainBtn.style.transform = 'rotate(0deg)';
             }
         }
 
