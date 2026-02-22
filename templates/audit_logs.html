@@ -5,9 +5,9 @@
     :root {
         --imperial-maroon: #2d000f;
         --royal-gold: #d4af37;
-        --gold-muted: rgba(212, 175, 55, 0.2);
-        --text-premium: #ffffff;
-        --text-subtle: #e0cc9d;
+        /* Darker text variables for universal mode compatibility */
+        --log-text-primary: #1a0008; /* Very dark for readability */
+        --log-text-secondary: #2d000f;
     }
 
     .audit-card {
@@ -29,35 +29,41 @@
         padding: 18px;
         color: var(--royal-gold);
         font-weight: 900;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         text-transform: uppercase;
         letter-spacing: 1.5px;
-        border-bottom: 2px solid var(--royal-gold);
+        border-bottom: 3px solid var(--royal-gold);
     }
 
     .imperial-table td {
         padding: 18px;
-        color: #fff; /* High contrast white for dark backgrounds */
-        background: rgba(255, 255, 255, 0.05);
+        /* Updated to a high-contrast off-white to make the dark text pop */
+        background: #f8f1e5; 
+        color: var(--log-text-primary);
         transition: 0.3s;
+        border-top: 1px solid rgba(212, 175, 55, 0.3);
+        border-bottom: 1px solid rgba(212, 175, 55, 0.3);
     }
+
+    .log-row td:first-child { border-left: 1px solid var(--royal-gold); border-radius: 10px 0 0 10px; }
+    .log-row td:last-child { border-right: 1px solid var(--royal-gold); border-radius: 0 10px 10px 0; }
 
     .log-row:hover td {
-        background: rgba(212, 175, 55, 0.1);
-        color: var(--royal-gold);
+        background: #fff;
+        filter: brightness(1.05);
     }
 
-    /* Action Badges */
+    /* Action Badges - Darker Text */
     .action-pill {
-        background: var(--royal-gold);
-        color: #000; /* Dark text on gold for visibility */
+        background: var(--imperial-maroon);
+        color: var(--royal-gold); 
         padding: 6px 14px;
         border-radius: 4px;
         font-size: 0.75rem;
         font-weight: 900;
         text-transform: uppercase;
         display: inline-block;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     }
 
     .btn-export {
@@ -77,13 +83,13 @@
 
     .btn-export:hover {
         background: var(--royal-gold);
-        color: #000;
+        color: var(--imperial-maroon);
     }
 
     .timestamp-text {
-        color: #ffffff;
-        font-weight: 600;
-        font-family: 'Courier New', monospace; /* Professional log feel */
+        color: var(--log-text-secondary);
+        font-weight: 800;
+        font-family: 'Courier New', monospace;
     }
 </style>
 
@@ -93,7 +99,7 @@
             <h2 style="color: var(--royal-gold); margin: 0; font-weight: 900; letter-spacing: -1px; text-transform: uppercase;">
                 🛡️ System Audit Logs
             </h2>
-            <p style="color: var(--text-subtle); margin: 5px 0 0; font-weight: 700;">
+            <p style="color: #e0cc9d; margin: 5px 0 0; font-weight: 700;">
                 Historical record of all administrative actions
             </p>
         </div>
@@ -118,9 +124,9 @@
                 <td class="timestamp-text">
                     {{ log.timestamp.strftime('%d %b %Y | %I:%M %p') }}
                 </td>
-                <td style="font-weight: 800;">
+                <td style="font-weight: 900; color: var(--log-text-primary);">
                     <span style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 10px; height: 10px; background: var(--royal-gold); border-radius: 50%; box-shadow: 0 0 10px var(--royal-gold);"></div>
+                        <div style="width: 10px; height: 10px; background: var(--imperial-maroon); border-radius: 50%;"></div>
                         {{ log.user_name }}
                     </span>
                 </td>
@@ -129,13 +135,13 @@
                         {{ log.action }}
                     </span>
                 </td>
-                <td style="font-weight: 700; color: var(--text-subtle);">
+                <td style="font-weight: 800; color: var(--log-text-secondary);">
                     {{ log.target_user }}
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="4" style="padding: 60px; text-align: center; color: var(--text-subtle); font-style: italic; background: transparent;">
+                <td colspan="4" style="padding: 60px; text-align: center; color: #e0cc9d; font-style: italic; background: transparent; border: none;">
                     🏰 No logs found. The Imperial records are clean.
                 </td>
             </tr>
