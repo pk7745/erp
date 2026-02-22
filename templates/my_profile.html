@@ -142,7 +142,7 @@
         <div style="text-align: center; border-right: 2px solid rgba(212, 175, 55, 0.2); padding-right: 20px;">
             <div class="avatar-frame">
                 {% if user.profile_pic and user.profile_pic != 'default.png' %}
-                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="{{ url_for('static', filename='uploads/profiles' + user.profile_pic) }}" style="width: 100%; height: 100%; object-fit: cover;">
                 {% else %}
                     <div style="font-size: 5rem; background: #eee; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--imperial-maroon) !important;">👤</div>
                 {% endif %}
