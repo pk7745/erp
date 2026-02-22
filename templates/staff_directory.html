@@ -5,14 +5,25 @@
     :root {
         --imperial-maroon: #2d000f;
         --royal-gold: #d4af37;
-        --ink-black: #000000; /* Pure black for maximum visibility */
+        --ink-black: #000000;
         --imperial-cream: #fdfaf0;
     }
 
-    /* --- ENHANCED VISIBILITY UI --- */
+    /* --- BACKGROUND WATERMARK --- */
+    .watermark-overlay {
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70vh; height: 70vh;
+        background: url('https://www.bmsccm.ac.in/img/ll.png') no-repeat center;
+        background-size: contain;
+        opacity: 0.03;
+        z-index: -1;
+        pointer-events: none;
+    }
+
     h2, h3, h4, strong, span, p, label, td, th { 
         color: var(--ink-black) !important; 
-        letter-spacing: -0.2px; /* Tighter letter spacing for bold look */
     }
     
     .dashboard-grid { display: flex; gap: 20px; margin-bottom: 30px; }
@@ -22,67 +33,45 @@
     }
     .imperial-stat-card small { 
         color: var(--imperial-maroon) !important; 
-        font-weight: 900; 
-        text-transform: uppercase; 
-        letter-spacing: 1.5px;
-        font-size: 0.9rem; /* Increased from 0.75 */
-    }
-    .imperial-stat-card h2 { 
-        font-size: 3.2rem; /* Increased size */
-        font-weight: 950; 
-        margin: 5px 0; 
+        font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px;
     }
 
     .search-input {
-        padding: 14px 18px; 
-        width: 100%; border-radius: 8px;
-        border: 2.5px solid var(--royal-gold); 
-        font-weight: 800; 
-        color: var(--ink-black);
-        background: #fff;
-        font-size: 1.1rem; /* Bigger font for search */
+        padding: 14px 18px; width: 100%; border-radius: 8px;
+        border: 2.5px solid var(--royal-gold); font-weight: 800; 
+        color: var(--ink-black); background: #fff;
     }
 
     .staff-table { width: 100%; border-collapse: separate; border-spacing: 0 15px; }
     .staff-table th { 
         padding: 18px; text-align: left; font-weight: 950; 
-        text-transform: uppercase; font-size: 0.95rem; /* Bigger headers */
-        border-bottom: 3px solid var(--royal-gold);
+        text-transform: uppercase; border-bottom: 3px solid var(--royal-gold);
     }
     .staff-row td { 
         background: white; padding: 20px; 
         border-top: 2px solid var(--royal-gold); border-bottom: 2px solid var(--royal-gold);
-        font-size: 1.05rem; /* Larger table text */
-    }
-    .staff-row td:first-child { border-left: 2px solid var(--royal-gold); border-top-left-radius: 15px; border-bottom-left-radius: 15px; }
-    .staff-row td:last-child { border-right: 2px solid var(--royal-gold); border-top-right-radius: 15px; border-bottom-right-radius: 15px; }
-
-    .data-label {
-        font-weight: 950 !important;
-        font-size: 0.85rem !important; /* Increased from 0.7 */
-        margin-bottom: 6px;
-        display: block;
-        color: var(--imperial-maroon) !important;
     }
 
-    .payroll-glass {
-        background: var(--imperial-cream); border: 2px solid var(--royal-gold);
-        padding: 12px; border-radius: 10px;
+    /* --- NEW: LIVE BREAKDOWN CARD STYLE --- */
+    .live-calc-box {
+        background: white; padding: 15px; 
+        border: 2px solid var(--royal-gold); border-radius: 10px;
+        margin-top: 10px; display: none; /* Shown via JS */
+        grid-template-columns: 1fr 1fr; gap: 10px;
+        box-shadow: 5px 5px 0px var(--imperial-maroon);
     }
-
-    .status-active-badge {
-        background: var(--imperial-maroon); color: var(--royal-gold) !important; 
-        padding: 6px 15px; border-radius: 8px; 
-        font-weight: 950; text-transform: uppercase; font-size: 0.8rem;
-    }
+    .calc-item { font-size: 0.75rem; font-weight: 900; text-transform: uppercase; }
+    .calc-val { color: var(--accent) !important; }
 
     .btn-imperial {
         background: var(--imperial-maroon); color: var(--royal-gold) !important;
         font-weight: 950; border: 2px solid var(--royal-gold);
         padding: 12px 24px; border-radius: 10px; cursor: pointer;
-        text-transform: uppercase; font-size: 0.9rem;
+        text-transform: uppercase;
     }
 </style>
+
+<div class="watermark-overlay"></div>
 
 <div class="dashboard-grid">
     <div class="imperial-stat-card">
@@ -110,7 +99,7 @@
         </div>
     </div>
 
-    <div id="addForm" style="display:none; background: var(--imperial-cream); margin-bottom: 35px; border: 3px solid var(--imperial-maroon); border-radius: 20px; padding: 35px; animation: slideUp 0.4s ease;">
+    <div id="addForm" style="display:none; background: var(--imperial-cream); margin-bottom: 35px; border: 3px solid var(--imperial-maroon); border-radius: 20px; padding: 35px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 3px solid var(--royal-gold); padding-bottom: 15px;">
             <h3 style="margin:0; font-weight: 950; text-transform: uppercase; font-size: 1.5rem;">Register New Personnel</h3>
             <button class="btn-imperial" style="padding: 8px 20px;" onclick="document.getElementById('addForm').style.display='none'">CLOSE</button>
@@ -120,26 +109,20 @@
             <div><label class="data-label">Email</label><input type="email" name="email" class="search-input" required></div>
             <div><label class="data-label">Username</label><input type="text" name="username" class="search-input" required></div>
             <div><label class="data-label">Password</label><input type="password" name="password" class="search-input" required></div>
-            
             <div><label class="data-label">Date of Birth</label><input type="date" name="dob" class="search-input" required></div>
-            
             <div><label class="data-label">Joining Date</label><input type="date" name="join_date" class="search-input" required></div>
             
-            <div><label class="data-label">Religion</label><input type="text" name="religion" class="search-input"></div>
-            <div><label class="data-label">Caste</label><input type="text" name="caste" class="search-input"></div>
             <div>
-                <label class="data-label">Department</label>
-                <select name="department" class="search-input" style="height: 55px;">
-                    <option value="Computer Applications">Computer Applications</option>
-                    <option value="Commerce">Commerce</option>
-                    <option value="Management">Management</option>
-                    <option value="Accounts">Accounts</option>
-                </select>
-            </div>
-            <div>
-                <label class="data-label">Basic Salary (Monthly)</label>
+                <label class="data-label">Basic Salary</label>
                 <input type="number" id="new_staff_salary" name="salary" class="search-input" oninput="calculateAddFormNet()" required>
+                <div id="add_calc_box" class="live-calc-box">
+                    <div class="calc-item">HRA: <span id="add_hra" class="calc-val">0</span></div>
+                    <div class="calc-item">DA: <span id="add_da" class="calc-val">0</span></div>
+                    <div class="calc-item">TA: <span class="calc-val">2000</span></div>
+                    <div class="calc-item">TDS: <span id="add_tds" class="calc-val" style="color:red !important;">0</span></div>
+                </div>
             </div>
+
             <div style="grid-column: span 2; background: white; padding: 20px; border: 3px dashed var(--royal-gold); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
                 <label style="font-weight: 950; font-size: 0.9rem; color: var(--imperial-maroon) !important; text-transform: uppercase;">Estimated Net Take-Home</label>
                 <div id="new_net_display" style="font-size: 2rem; font-weight: 950; color: var(--ink-black) !important;">₹0</div>
@@ -163,30 +146,20 @@
             <tr class="staff-row">
                 <td>
                     <div style="display: flex; align-items: center; gap: 18px;">
-                        <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="form_{{ emp.id }}">
-                            <input type="file" name="photo" id="file_{{ emp.id }}" style="display:none" onchange="document.getElementById('form_{{ emp.id }}').submit()">
-                            <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_pic) if emp.profile_pic else 'https://ui-avatars.com/api/?background=2d000f&color=d4af37&name=' + emp.full_name }}" 
-                                 style="border: 3px solid var(--royal-gold); width: 65px; height: 65px; border-radius: 12px; object-fit: cover; cursor: pointer;"
-                                 onclick="document.getElementById('file_{{ emp.id }}').click()">
-                        </form>
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_pic) if emp.profile_pic else 'https://ui-avatars.com/api/?background=2d000f&color=d4af37&name=' + emp.full_name }}" 
+                             style="border: 3px solid var(--royal-gold); width: 65px; height: 65px; border-radius: 12px; object-fit: cover;">
                         <div>
                             <strong style="font-size: 1.2rem; font-weight: 950;">{{ emp.full_name }}</strong><br>
                             <span style="font-size: 0.85rem; font-weight: 900; color: var(--imperial-maroon) !important; text-transform: uppercase;">{{ emp.department }}</span>
                         </div>
                     </div>
                 </td>
-                <td style="font-weight: 900; font-size: 1rem;">{{ emp.email }}</td>
-                <td>
-                    {% if emp.status == 'Pending Accountant Configuration' %}
-                        <button onclick="openPayrollModal('{{ emp.id }}', '{{ emp.full_name }}', '{{ emp.salary }}')" class="btn-imperial" style="font-size:0.75rem; padding: 6px 12px;">CONFIG</button>
-                    {% else %}
-                        <span class="status-active-badge">ACTIVE</span>
-                    {% endif %}
-                </td>
+                <td style="font-weight: 900;">{{ emp.email }}</td>
+                <td><span class="status-active-badge">ACTIVE</span></td>
                 <td>
                     <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
                     <div id="fullBreakdown_{{ emp.id }}" class="payroll-glass">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid rgba(212,175,55,0.4); padding-bottom: 5px; margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid rgba(212,175,55,0.4); padding-bottom: 5px;">
                             <span style="font-size: 0.75rem; font-weight: 950;">NET MONTHLY</span>
                             <span id="netDisplay_{{ emp.id }}" style="font-weight:950; font-size: 1.1rem;">₹0</span>
                         </div>
@@ -196,13 +169,19 @@
                 <td style="text-align: right;">
                     <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                         {% if session['role'] == 'Principal' %}
-                            <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="display:inline-flex; gap: 4px;">
-                                <input type="number" name="new_salary" placeholder="Hike" style="width: 70px; font-size: 0.8rem; padding: 6px; border: 2px solid var(--royal-gold); border-radius: 6px;" required>
-                                <button type="submit" class="btn-imperial" style="font-size: 0.7rem; padding: 6px 10px;">HIKE</button>
+                            <form action="{{ url_for('edit_salary', uid=emp.id) }}" method="POST" style="position: relative;">
+                                <input type="number" name="new_salary" placeholder="Hike Amount" 
+                                       style="width: 120px; padding: 8px; border: 2px solid var(--royal-gold); border-radius: 6px;"
+                                       oninput="calculateHikeLive(this, '{{ emp.id }}')" required>
+                                <button type="submit" class="btn-imperial" style="font-size: 0.7rem; padding: 8px 12px;">HIKE</button>
+                                
+                                <div id="hike_calc_{{ emp.id }}" class="live-calc-box" style="position: absolute; right: 0; z-index: 100; width: 200px; text-align: left;">
+                                    <div class="calc-item">New Net: <span id="hike_net_{{ emp.id }}" class="calc-val">0</span></div>
+                                    <div class="calc-item">HRA: <span id="hike_hra_{{ emp.id }}" class="calc-val">0</span></div>
+                                </div>
                             </form>
                         {% endif %}
                         <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn-imperial" style="font-size: 0.75rem; width: 100px; text-align: center; text-decoration: none;">ID CARD</a>
-                        <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn-imperial" style="font-size: 0.75rem; width: 100px; text-align: center; text-decoration: none; background: white; color: var(--imperial-maroon) !important;">PAYSLIP</a>
                     </div>
                 </td>
             </tr>
@@ -212,18 +191,42 @@
 </div>
 
 <script>
-/* ALL LOGIC RETAINED EXACTLY AS PER YOUR PREVIOUS TEMPLATE */
+/* REFINED CALCULATION LOGIC */
 function calculateAddFormNet() {
     let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
+    const box = document.getElementById('add_calc_box');
+    if(basic > 0) box.style.display = 'grid'; else box.style.display = 'none';
+
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
-    const ta = 2000;
-    const gross = basic + hra + da + ta;
-    let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
+    const gross = basic + hra + da + 2000;
+    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
     const epf = Math.floor((basic + da) * 0.12);
-    const tds = Math.floor(gross * tdsRate);
     const net = gross - (epf + tds + 200);
+
+    document.getElementById('add_hra').innerText = '₹' + hra;
+    document.getElementById('add_da').innerText = '₹' + da;
+    document.getElementById('add_tds').innerText = '-₹' + tds;
     document.getElementById('new_net_display').innerText = '₹' + net.toLocaleString('en-IN');
+}
+
+function calculateHikeLive(input, empId) {
+    let hike = parseFloat(input.value) || 0;
+    let currentBasic = parseFloat(document.getElementById('salaryInput_' + empId).value);
+    let newBasic = currentBasic + hike;
+    const box = document.getElementById('hike_calc_' + empId);
+    
+    if(hike !== 0) box.style.display = 'grid'; else box.style.display = 'none';
+
+    const hra = Math.floor(newBasic * 0.40);
+    const da = Math.floor(newBasic * 0.10);
+    const gross = newBasic + hra + da + 2000;
+    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
+    const epf = Math.floor((newBasic + da) * 0.12);
+    const net = gross - (epf + tds + 200);
+
+    document.getElementById('hike_net_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
+    document.getElementById('hike_hra_' + empId).innerText = '₹' + hra;
 }
 
 function calculateLiveNet(empId) {
@@ -232,17 +235,14 @@ function calculateLiveNet(empId) {
     let basic = parseFloat(input.value) || 0;
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
-    const ta = 2000;
-    const gross = basic + hra + da + ta;
-    let tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
+    const gross = basic + hra + da + 2000;
+    const tds = Math.floor(gross * (gross > 100000 ? 0.15 : (gross > 50000 ? 0.10 : 0.05)));
     const epf = Math.floor((basic + da) * 0.12);
-    const tds = Math.floor(gross * tdsRate);
-    const pt = 200;
-    const net = gross - (epf + tds + pt);
+    const net = gross - (epf + tds + 200);
     
     document.getElementById('netDisplay_' + empId).innerText = '₹' + net.toLocaleString('en-IN');
     document.getElementById('breakdown_' + empId).innerHTML = `
-        <span style="color:var(--ink-black)">HRA: ₹${hra}</span> <span style="color:var(--ink-black)">DA: ₹${da}</span>
+        <span>HRA: ₹${hra}</span> <span>DA: ₹${da}</span>
         <span style="color:#d32f2f">TDS: -₹${tds}</span> <span style="color:#d32f2f">EPF: -₹${epf}</span>`;
 }
 
