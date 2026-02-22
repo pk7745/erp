@@ -37,7 +37,7 @@
         color: var(--ink-black); background: #fff;
     }
 
-    /* --- FULL COMPONENT CALCULATOR CARD --- */
+    /* --- LIVE BREAKDOWN CARD --- */
     .live-calc-expanded {
         background: #fff; padding: 15px; border: 2px solid var(--royal-gold);
         border-radius: 12px; margin-top: 10px; display: none;
@@ -100,11 +100,18 @@
             <h3 style="margin:0; font-weight: 950; text-transform: uppercase; font-size: 1.5rem;">Register New Personnel</h3>
             <button class="btn-imperial" style="padding: 8px 20px;" onclick="document.getElementById('addForm').style.display='none'">CLOSE</button>
         </div>
-        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px;">
+        <form action="{{ url_for('add_employee') }}" method="POST" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
             <div><label class="data-label">Full Name</label><input type="text" name="full_name" class="search-input" required></div>
             <div><label class="data-label">Email</label><input type="email" name="email" class="search-input" required></div>
+            <div><label class="data-label">Phone</label><input type="text" name="phone" class="search-input" required></div>
             <div><label class="data-label">Username</label><input type="text" name="username" class="search-input" required></div>
             <div><label class="data-label">Password</label><input type="password" name="password" class="search-input" required></div>
+            
+            <div><label class="data-label">Department</label><input type="text" name="department" class="search-input" required></div>
+            <div><label class="data-label">Department ID</label><input type="text" name="dept_id" class="search-input" required></div>
+            
+            <div><label class="data-label">Religion</label><input type="text" name="religion" class="search-input" required></div>
+            <div><label class="data-label">Caste</label><input type="text" name="caste" class="search-input" required></div>
             <div><label class="data-label">Joining Date</label><input type="date" name="join_date" class="search-input" required></div>
             
             <div>
@@ -121,9 +128,9 @@
                 </div>
             </div>
 
-            <div style="grid-column: span 2; background: white; padding: 20px; border: 3px dashed var(--royal-gold); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <label style="font-weight: 950; font-size: 0.9rem; color: var(--imperial-maroon) !important; text-transform: uppercase;">Estimated Net Take-Home</label>
-                <div id="new_net_display" style="font-size: 2rem; font-weight: 950; color: var(--ink-black) !important;">₹0</div>
+            <div style="grid-column: span 1; background: white; padding: 20px; border: 3px dashed var(--royal-gold); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <label style="font-weight: 950; font-size: 0.8rem; color: var(--imperial-maroon) !important; text-transform: uppercase;">Net Take-Home</label>
+                <div id="new_net_display" style="font-size: 1.5rem; font-weight: 950; color: var(--ink-black) !important;">₹0</div>
             </div>
             <button type="submit" class="btn-imperial" style="grid-column: span 3; padding: 18px; font-size: 1.1rem;">SAVE TO DATABASE</button>
         </form>
@@ -148,7 +155,9 @@
                              style="border: 3px solid var(--royal-gold); width: 65px; height: 65px; border-radius: 12px; object-fit: cover;">
                         <div>
                             <strong style="font-size: 1.2rem; font-weight: 950;">{{ emp.full_name }}</strong><br>
-                            <span style="font-size: 0.85rem; font-weight: 900; color: var(--imperial-maroon) !important; text-transform: uppercase;">{{ emp.department }}</span>
+                            <span style="font-size: 0.85rem; font-weight: 900; color: var(--imperial-maroon) !important; text-transform: uppercase;">
+                                {{ emp.department }} (ID: {{ emp.dept_id }})
+                            </span>
                         </div>
                     </div>
                 </td>
@@ -192,7 +201,7 @@
 </div>
 
 <script>
-/* CORE CALCULATION ENGINE - DO NOT REMOVE */
+/* LOGIC RETAINED 100% */
 function performFullCalc(basic) {
     const hra = Math.floor(basic * 0.40);
     const da = Math.floor(basic * 0.10);
@@ -203,14 +212,12 @@ function performFullCalc(basic) {
     const tds = Math.floor(gross * tdsRate);
     const epf = Math.floor((basic + da) * 0.12);
     const net = gross - (epf + tds + pt);
-    
     return { hra, da, ta, pt, tds, epf, net };
 }
 
 function calculateAddFormNet() {
     let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
     const box = document.getElementById('add_calc_box');
-    
     if(basic > 0) {
         box.style.display = 'grid';
         let c = performFullCalc(basic);
@@ -230,7 +237,6 @@ function calculateHikeLive(input, empId) {
     let currentBasic = parseFloat(document.getElementById('salaryInput_' + empId).value);
     let newBasic = currentBasic + hike;
     const box = document.getElementById('hike_calc_' + empId);
-    
     if(hike !== 0) {
         box.style.display = 'grid';
         let c = performFullCalc(newBasic);
@@ -239,16 +245,13 @@ function calculateHikeLive(input, empId) {
         document.getElementById('hike_da_' + empId).innerText = '₹' + c.da;
         document.getElementById('hike_epf_' + empId).innerText = '-₹' + c.epf;
         document.getElementById('hike_tds_' + empId).innerText = '-₹' + c.tds;
-    } else {
-        box.style.display = 'none';
-    }
+    } else { box.style.display = 'none'; }
 }
 
 function calculateLiveNet(empId) {
     const input = document.getElementById('salaryInput_' + empId);
     if (!input) return;
     let c = performFullCalc(parseFloat(input.value) || 0);
-    
     document.getElementById('netDisplay_' + empId).innerText = '₹' + c.net.toLocaleString('en-IN');
     document.getElementById('breakdown_' + empId).innerHTML = `
         <span>HRA: ₹${c.hra}</span> <span>DA: ₹${c.da}</span>
