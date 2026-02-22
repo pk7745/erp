@@ -8,11 +8,9 @@
         --royal-maroon: #2d000f;
         --deep-wine: #4a001a;
         --gold-glow: rgba(212, 175, 55, 0.4);
-        /* Darker text variables for high contrast */
-        --text-dark-main: #1a0000; 
-        --text-gold-vibrant: #e6c200;
     }
 
+    /* Imperial Glass Card */
     .glass-card {
         background: rgba(45, 0, 15, 0.95);
         border: 1px solid var(--gold-primary);
@@ -22,6 +20,7 @@
         margin-bottom: 20px;
     }
 
+    /* High-Contrast Premium Table */
     .premium-table {
         width: 100%;
         border-collapse: separate;
@@ -30,10 +29,10 @@
 
     .premium-table thead tr {
         background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
-        color: #fff; /* Changed to pure white for extreme contrast */
+        color: #fff;
         text-transform: uppercase;
         letter-spacing: 1.5px;
-        font-weight: 900; /* Extra bold */
+        font-weight: 900;
     }
 
     .premium-table tbody tr {
@@ -47,28 +46,28 @@
         transform: scale(1.01);
     }
 
-    /* Darkening specific table text */
     .premium-table td {
         padding: 15px;
         vertical-align: middle;
         border-top: 1px solid rgba(212, 175, 55, 0.2);
         border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-        color: #ffffff; /* High contrast text */
+        color: #ffffff;
     }
 
+    /* Status Pills */
     .status-pill {
         padding: 6px 14px;
         border-radius: 20px;
         font-size: 0.8rem;
-        font-weight: 800; /* Darker, thicker font */
+        font-weight: 800;
         letter-spacing: 0.8px;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
 
-    /* Form Overrides for Darker Visibility */
+    /* Form Visibility Overrides */
     .form-control {
-        background: #ffffff !important; /* Pure white background for inputs */
-        color: #000000 !important; /* Pure black text for inputs */
+        background: #ffffff !important;
+        color: #000000 !important;
         font-weight: 600;
         border: 2px solid var(--gold-primary);
     }
@@ -93,14 +92,24 @@
     }
 
     label {
-        color: #ffffff !important; /* Ensure labels stand out */
+        color: #ffffff !important;
         font-weight: 700 !important;
         text-shadow: 1px 1px 2px #000;
     }
 
-    .text-white-50 {
-        color: #dddddd !important; /* Make "faded" text actually readable */
-        font-weight: 500;
+    /* RETAINED: Animation for the Free Slots */
+    .badge-pulse {
+        background: #d4af37;
+        color: #000;
+        font-weight: 900;
+        padding: 5px 10px;
+        animation: glow 2s infinite;
+    }
+
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+        50% { box-shadow: 0 0 15px rgba(212, 175, 55, 1); }
+        100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
     }
 </style>
 
@@ -108,7 +117,8 @@
     <div class="row">
         <div class="col-xl-3 col-lg-4">
             <div class="glass-card text-center">
-                <h5 style="color: var(--gold-primary); margin-bottom: 20px; font-weight: 800;">FACULTY PERFORMANCE</h5>
+                <h5 style="color: var(--gold-primary); margin-bottom: 20px; font-weight: 800; letter-spacing: 1px;">FACULTY PERFORMANCE</h5>
+                
                 <div style="position: relative; height: 250px;">
                     <canvas id="performanceChart"></canvas>
                 </div>
@@ -117,7 +127,7 @@
                 
                 {% if user.role in ['Principal', 'HOD - BCA Dept'] %}
                 <div class="text-left">
-                    <label>Select Staff Member</label>
+                    <label>View Faculty Schedule</label>
                     <form method="GET" action="/timetable">
                         <select name="faculty_id" class="form-control mb-4" onchange="this.form.submit()">
                             <option value="{{ user.id }}">-- My Personal Schedule --</option>
@@ -131,11 +141,11 @@
                 </div>
                 {% endif %}
 
-                <div style="background: rgba(212, 175, 55, 0.1); border-radius: 12px; padding: 15px; border: 2px solid var(--gold-primary);">
+                <div style="background: rgba(212, 175, 55, 0.15); border-radius: 12px; padding: 15px; border: 2px solid var(--gold-primary);">
                     <h6 style="color: #fff; font-size: 0.9rem; font-weight: 800;"><i class="fas fa-bolt"></i> FREE SLOTS TODAY</h6>
                     <div class="d-flex flex-wrap justify-content-center">
                         {% for slot in free_slots %}
-                            <span class="badge m-1" style="background: #d4af37; color: #000; font-weight: 900; padding: 5px 10px;">{{ slot.split(' ')[0] }}</span>
+                            <span class="badge m-1 badge-pulse">{{ slot.split(' ')[0] }}</span>
                         {% endfor %}
                     </div>
                 </div>
@@ -146,8 +156,8 @@
             <div class="glass-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 style="color: white; margin: 0; font-weight: 900;">Weekly <span style="color: var(--gold-primary);">Schedule</span></h2>
-                        <p style="color: #ccc; font-weight: 600;" class="mb-0">Currently viewing: {{ target_user.full_name }}</p>
+                        <h2 style="color: white; margin: 0; font-weight: 900; text-transform: uppercase;">Weekly <span style="color: var(--gold-primary);">Schedule</span></h2>
+                        <p style="color: #ccc; font-weight: 600;" class="mb-0">Current Scope: {{ target_user.full_name }}</p>
                     </div>
                     <button class="btn-royal px-4 py-2" data-toggle="modal" data-target="#addClassModal">
                         <i class="fas fa-plus-circle mr-2"></i>New Assignment
@@ -167,13 +177,13 @@
                         <tbody>
                             {% for item in timetable %}
                             <tr>
-                                <td style="width: 200px;">
+                                <td style="width: 220px;">
                                     <div style="color: var(--gold-primary); font-weight: 900; font-size: 1.1rem;">{{ item.day }}</div>
-                                    <div style="color: #fff; font-weight: 600;">{{ item.time_slot }}</div>
+                                    <div style="color: #fff; font-weight: 600; opacity: 0.9;">{{ item.time_slot }}</div>
                                 </td>
                                 <td>
                                     <div style="color: white; font-size: 1.15rem; font-weight: 700;">{{ item.subject }}</div>
-                                    <div style="color: #e6c200; font-weight: 800;">{{ item.semester }}</div>
+                                    <div style="color: #e6c200; font-weight: 800; font-size: 0.85rem;">{{ item.semester }}</div>
                                 </td>
                                 <td>
                                     {% if item.status == 'held' %}
@@ -195,7 +205,7 @@
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="status" value="held">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #27ae60; color: white; border: 1px solid #fff;">
+                                            <button type="submit" class="action-btn" style="background: #27ae60; color: white; border: 1px solid rgba(255,255,255,0.3);">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
@@ -205,7 +215,7 @@
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="status" value="missed">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #c0392b; color: white; border: 1px solid #fff;">
+                                            <button type="submit" class="action-btn" style="background: #c0392b; color: white; border: 1px solid rgba(255,255,255,0.3);">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </form>
@@ -214,7 +224,7 @@
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="class_id" value="{{ item.id }}">
                                             <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                            <button type="submit" class="action-btn" style="background: #333; color: #fff;" onclick="return confirm('Archive this record?')">
+                                            <button type="submit" class="action-btn" style="background: #111; color: #fff; border: 1px solid #444;" onclick="return confirm('Archive this record?')">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
@@ -224,7 +234,7 @@
 
                             <div class="modal fade" id="editModal{{ item.id }}">
                                 <div class="modal-dialog">
-                                    <div class="modal-content" style="background: #f8f9fa; border: 3px solid var(--royal-maroon);">
+                                    <div class="modal-content" style="background: #ffffff; border: 3px solid var(--royal-maroon);">
                                         <form action="/timetable/manage" method="POST">
                                             <div class="modal-header" style="background: var(--royal-maroon); color: white;">
                                                 <h5 class="modal-title">Refine Session Details</h5>
@@ -335,7 +345,7 @@
 </div>
 
 <script>
-    // LOGIC RETAINED: Chart initialization
+    // RETAINED: Chart initialization with theme-consistent colors
     const ctx = document.getElementById('performanceChart').getContext('2d');
     new Chart(ctx, {
         type: 'doughnut',
