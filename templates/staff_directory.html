@@ -63,9 +63,10 @@
         font-weight: 950; border: 2px solid var(--royal-gold);
         padding: 12px 24px; border-radius: 10px; cursor: pointer;
         text-transform: uppercase;
+        text-decoration: none;
+        display: inline-block;
     }
 
-    /* Addition: Style for the 'Click to Update' functionality */
     .photo-update-label {
         cursor: pointer;
         position: relative;
@@ -218,7 +219,10 @@
                                 </div>
                             </form>
                         {% endif %}
-                        <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn-imperial" style="font-size: 0.75rem; width: 100px; text-align: center; text-decoration: none;">ID CARD</a>
+                        <div style="display: flex; gap: 5px;">
+                            <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn-imperial" style="font-size: 0.7rem; padding: 8px 10px;">ID CARD</a>
+                            <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn-imperial" style="font-size: 0.7rem; padding: 8px 10px;">PAYSLIP</a>
+                        </div>
                     </div>
                 </td>
             </tr>
