@@ -814,26 +814,28 @@ def notify_recording(room_name):
 @app.route('/add_employee', methods=['POST'])
 def add_employee():
     if session.get('role') in ['HR', 'Principal']:
+        # Note: 'department' and 'phone' are updated to match your HTML name attributes exactly
         new_user = User(
             username=request.form['username'],
             password=generate_password_hash(request.form['password']),
             full_name=request.form['full_name'],
             email=request.form['email'],
+            phone=request.form.get('phone'),            # Captured from HTML
             salary=int(request.form['salary']),
-            address=request.form['address'],
+            address=request.form.get('address', 'N/A'), # Fallback if not in form
             role='Faculty', 
-            dob=request.form.get('dob', '1995-01-01'),
-            join_date=request.form.get('join_date', '2023-01-01'),
+            dob=request.form.get('dob'),                # New field from your request
+            join_date=request.form.get('join_date'),
             caste=request.form.get('caste'),
             religion=request.form.get('religion'),
-            dept=request.form.get('dept'),       # New Field
-            dept_id=request.form.get('dept_id'),
+            department=request.form.get('department'),  # Matches name="department" in HTML
+            dept_id=request.form.get('dept_id'),        # Matches name="dept_id" in HTML
         )
         db.session.add(new_user)
         db.session.commit()
         flash('Employee Added Successfully.', 'success')
     return redirect(url_for('staff_directory'))
-
+    
 @app.route('/api/notifications')
 def get_notifications():
     role = session.get('role')
@@ -1649,6 +1651,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
