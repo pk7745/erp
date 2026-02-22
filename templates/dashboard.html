@@ -263,7 +263,7 @@
         }
     });
 
-    // Notifications
+    // Notification Intelligence
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
@@ -282,9 +282,16 @@
         });
     }
 
+    /**
+     * FIXED: Clear logic now uses .finally() to ensure UI refresh 
+     * regardless of backend redirect/response style.
+     */
     function clearAllNotifs() {
         if(confirm("Authorize system purge of all notifications?")) {
-            fetch('/api/clear_notifications', {method: 'POST'}).then(res => { if(res.ok) fetchLiveNotifications(); });
+            fetch('/api/clear_notifications', { method: 'POST' })
+            .finally(() => {
+                fetchLiveNotifications();
+            });
         }
     }
 
