@@ -1127,7 +1127,8 @@ from flask import make_response
 # Ensure you have your other imports like User, FPDF, etc.
 
 @app.route('/generate_payslip/<int:uid>')
-def generate_payslip(uid):
+@app.route('/generate_payslip/<int:uid>/<month_str>') # Added secondary route
+def generate_payslip(uid, month_str=None):
     u = User.query.get(uid)
     if not u:
         return "Employee not found", 404
@@ -1152,11 +1153,18 @@ def generate_payslip(uid):
     total_deductions = epf + pt + tds
     net = gross - total_deductions
 
-    # DYNAMIC DATE CALCULATION
+    # DYNAMIC DATE CALCULATION (UPDATED LOGIC)
     now = datetime.now()
-    current_month = now.strftime("%B").upper() # e.g., FEBRUARY
-    current_year = now.strftime("%Y")
-    issue_date = f"26th {now.strftime('%B %Y')}" # e.g., 26th February 2026
+    if month_str:
+        # If a historical month is passed (e.g., "January 2026")
+        current_month_display = month_str.split(' ')[0].upper()
+        current_year = month_str.split(' ')[1]
+        issue_date = f"26th {month_str}"
+    else:
+        # Default to current month if no month_str is provided
+        current_month_display = now.strftime("%B").upper()
+        current_year = now.strftime("%Y")
+        issue_date = f"26th {now.strftime('%B %Y')}"
 
     # 2. PDF Setup
     pdf = FPDF()
@@ -1164,10 +1172,9 @@ def generate_payslip(uid):
     
     # NEW: Add College Logo (Top Left)
     try:
-        # Using the same logo path you provided for the watermark
         pdf.image('https://www.bmsccm.ac.in/img/ll.png', x=10, y=8, w=22)
     except Exception as e:
-        pass # Prevents crashing if the server blocks the image download
+        pass 
     
     # Header - College Branding (UNTOUCHED text)
     pdf.set_font("Arial", 'B', 16)
@@ -1178,16 +1185,16 @@ def generate_payslip(uid):
     pdf.set_fill_color(240, 240, 240)
     pdf.set_font("Arial", 'B', 12)
     
-    # DYNAMIC: Now uses current month and year automatically
-    pdf.cell(190, 10, txt=f"PAYSLIP FOR THE MONTH OF {current_month} {current_year}", border=1, ln=True, align='C', fill=True)
+    # DYNAMIC: Now reflects the selected month correctly
+    pdf.cell(190, 10, txt=f"PAYSLIP FOR THE MONTH OF {current_month_display} {current_year}", border=1, ln=True, align='C', fill=True)
     pdf.ln(5)
 
-    # Employee Info Row (UNTOUCHED layout, added Issue Date)
+    # Employee Info Row (UNTOUCHED layout)
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(40, 8, "Employee Name:", 0); pdf.set_font("Arial", '', 10); pdf.cell(60, 8, u.full_name, 0)
     pdf.set_font("Arial", 'B', 10); pdf.cell(40, 8, "Designation:", 0); pdf.set_font("Arial", '', 10); pdf.cell(50, 8, u.role, 0, 1)
     
-    # NEW: Issue Date Row
+    # Issue Date Row
     pdf.set_font("Arial", 'B', 10)
     pdf.cell(40, 8, "Date of Issue:", 0); pdf.set_font("Arial", '', 10); pdf.cell(150, 8, issue_date, 0, 1)
     pdf.ln(5)
@@ -1201,16 +1208,12 @@ def generate_payslip(uid):
     pdf.cell(30, 10, "Amount", 1, 1, 'C', True)
 
     pdf.set_font("Arial", '', 10)
-    # Row 1
     pdf.cell(65, 8, "Basic Salary", 1); pdf.cell(30, 8, f"{basic}", 1, 0, 'R')
     pdf.cell(65, 8, "Employee PF (12%)", 1); pdf.cell(30, 8, f"{epf}", 1, 1, 'R')
-    # Row 2
     pdf.cell(65, 8, "H.R.A (40%)", 1); pdf.cell(30, 8, f"{hra}", 1, 0, 'R')
     pdf.cell(65, 8, "Professional Tax", 1); pdf.cell(30, 8, f"{pt}", 1, 1, 'R')
-    # Row 3
     pdf.cell(65, 8, "D.A (10%)", 1); pdf.cell(30, 8, f"{da}", 1, 0, 'R')
     pdf.cell(65, 8, f"Income Tax / TDS ({int(tds_rate*100)}%)", 1); pdf.cell(30, 8, f"{tds}", 1, 1, 'R')
-    # Row 4
     pdf.cell(65, 8, "Transport Allowance", 1); pdf.cell(30, 8, f"{ta}", 1, 0, 'R')
     pdf.cell(65, 8, "Other Deductions", 1); pdf.cell(30, 8, "0", 1, 1, 'R')
 
@@ -1236,7 +1239,8 @@ def generate_payslip(uid):
     # Output Fix (UNTOUCHED)
     response = make_response(pdf.output(dest='S').encode('latin-1'))
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}_{current_month}.pdf'
+    # Filename also reflects the month
+    response.headers['Content-Disposition'] = f'attachment; filename=payslip_{u.username}_{current_month_display}.pdf'
     return response
     
 @app.route('/send_payslip_email/<int:uid>')
@@ -1513,18 +1517,14 @@ from datetime import datetime
 def payslip_history():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
-    
-    # Logic Retained: Hardcoded months as per your request
     months = ["September 2025", "October 2025", "November 2025", "December 2025", "January 2026", "February 2026"]
-    
-    # Passing current_date for the header
     today = datetime.now().strftime('%d %B %Y')
     return render_template('payslip_history.html', user=user, months=months, today=today)
 
+# UPDATED: Now passes the month parameter to the main logic
 @app.route('/generate_payslip_historical/<int:uid>/<month>')
 def generate_payslip_historical(uid, month):
-    # Logic Retained: Temporary redirect to main logic
-    return generate_payslip(uid)
+    return generate_payslip(uid, month_str=month)
     
 @app.route('/complete_task/<int:id>', methods=['POST'])
 def complete_task(id):
@@ -1697,6 +1697,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
