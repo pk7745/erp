@@ -128,10 +128,10 @@
             <tbody>
                 {% for l in leaves %}
                 <tr>
-                    <td>
-                        <strong style="font-size: 1rem; font-weight: 950;">{{ l.user.full_name }}</strong><br>
-                        <small style="color:#800000 !important; font-weight: 900; text-transform: uppercase;">{{ l.user.role }}</small>
-                    </td>
+                   <td>
+    <strong style="font-size: 1rem; font-weight: 950;">{{ l.user.full_name }}</strong><br>
+    <small style="color:#800000 !important; font-weight: 900; text-transform: uppercase;">{{ l.user.role }}</small>
+</td>
                     <td style="font-weight: 950;">{{ l.date }}</td>
                     <td style="font-size: 0.85rem; max-width: 250px;">
                         <span style="font-weight: 800;">{{ l.reason }}</span>
@@ -198,3 +198,4 @@ function rejectLeave(id) {
 }
 </script>
 {% endblock %}
+
