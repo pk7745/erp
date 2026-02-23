@@ -338,19 +338,16 @@ def log_action(action_text, target="System"):
     db.session.add(new_log)
     db.session.commit()
 
-# ==========================================
-# 3. HELPER FUNCTIONS
-# ==========================================
+CAMPUS_LAT = 12.9606
+CAMPUS_LON = 77.5735
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371000 
+    R = 6371000  # Radius of Earth in meters
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
-
-# ==========================================
 # 4. ALL ORIGINAL ROUTES + NEW UPDATES
 # ==========================================
 
@@ -888,13 +885,15 @@ def attendance():
     if 'user_id' not in session: return redirect(url_for('login'))
     today = get_ist_time().strftime("%Y-%m-%d")
     user = User.query.get(session['user_id'])
+    
     if request.method == 'POST':
         lat = float(request.form.get('lat', 0))
         lon = float(request.form.get('lon', 0))
         mode = request.form['work_mode']
         
-        # Geofence check for Office mode (Campus coordinates)
-        if mode == 'Office' and calculate_distance(lat, lon, 12.9616, 77.5736) > 300:
+        # UPDATED: Using specific BMS College of Commerce and Management Campus coordinates
+        # Latitude: 12.9606, Longitude: 77.5735
+        if mode == 'Office' and calculate_distance(lat, lon, 12.9606, 77.5735) > 300:
             flash("Verification Failed: You are too far from campus.", "error")
             return redirect(url_for('attendance'))
 
@@ -907,9 +906,10 @@ def attendance():
             att.check_out = t_now
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-OUT"))
         db.session.commit()
+        
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history)
-
+    
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -1697,6 +1697,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
