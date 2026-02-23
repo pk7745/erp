@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
 <div id="toast-container" style="position: fixed; top: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 12px;">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -18,12 +20,15 @@
 
 <style>
     :root {
+        --imp-maroon: #2d000f;
+        --imp-maroon-bright: #800000;
+        --royal-gold: #d4af37;
+        --accent-gold: #C5A059;
         --imp-text: #1b2559; 
         --imp-bg: #f4f7fe; 
         --imp-card: #ffffff;
-        --imp-border: #e0e5f2; 
-        --imp-maroon: #800000;
-        --accent-gold: #C5A059;
+        --imp-border: rgba(212, 175, 55, 0.3);
+        --parchment: #fdfaf5;
     }
     
     body { 
@@ -34,19 +39,21 @@
 
     .dashboard-wrapper { max-width: 1440px; margin: 0 auto; padding: 40px 30px; }
     
-    /* Modernized Royal Card */
+    /* Imperial Elevation Cards */
     .royal-stat-card {
         background: var(--imp-card); 
-        border-radius: 20px; 
+        border-radius: 24px; 
         padding: 30px;
         border: 1px solid var(--imp-border); 
         box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-        transition: all 0.3s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
-    .royal-stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
+    .royal-stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: var(--royal-gold); }
 
     .glass-input {
-        background: #f4f7fe; 
+        background: var(--parchment); 
         border: 1px solid var(--imp-border);
         border-radius: 14px; 
         padding: 15px 20px; 
@@ -55,10 +62,11 @@
         font-size: 1rem;
         transition: 0.2s;
         box-sizing: border-box;
+        color: var(--imp-text);
     }
-    .glass-input:focus { outline: none; border-color: var(--imp-maroon); background: #fff; }
+    .glass-input:focus { outline: none; border-color: var(--imp-maroon-bright); background: #fff; box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.05); }
 
-    .btn-royal {
+    .btn-imperial {
         border-radius: 14px; 
         padding: 14px 28px; 
         font-weight: 800;
@@ -69,16 +77,17 @@
         gap: 10px;
         text-transform: uppercase; 
         text-decoration: none; 
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: all 0.3s ease;
         border: none;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
     }
-    .btn-royal:hover { transform: translateY(-2px); filter: brightness(1.1); }
-    .btn-royal:active { transform: scale(0.98); }
+    .btn-imperial:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 
     .task-item {
-        background: #fff; 
+        background: var(--parchment); 
         border: 1px solid var(--imp-border);
-        padding: 18px 22px; 
+        padding: 20px; 
         border-radius: 18px; 
         display: flex; 
         justify-content: space-between; 
@@ -86,42 +95,58 @@
         margin-bottom: 12px;
         transition: 0.2s;
     }
-    .task-item:hover { background: #fafbff; border-color: var(--accent-gold); }
+    .task-item:hover { background: #fff; border-color: var(--royal-gold); transform: scale(1.01); }
 
-    /* Custom Scrollbar for Intelligence List */
+    .header-logo-box {
+        width: 60px;
+        height: 60px;
+        background: var(--imp-maroon);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        border: 2px solid var(--royal-gold);
+        box-shadow: 0 10px 20px rgba(45, 0, 15, 0.2);
+    }
+
     #notification-list::-webkit-scrollbar { width: 6px; }
-    #notification-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+    #notification-list::-webkit-scrollbar-thumb { background: var(--royal-gold); border-radius: 10px; }
 </style>
 
 <div class="dashboard-wrapper">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px;">
-        <div>
-            <div style="display: inline-block; background: rgba(128, 0, 0, 0.1); color: var(--imp-maroon); padding: 5px 15px; border-radius: 100px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
-                Institutional Command Center
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <div class="header-logo-box">🏰</div>
+            <div>
+                <div style="display: inline-block; background: rgba(128, 0, 0, 0.1); color: var(--imp-maroon-bright); padding: 5px 15px; border-radius: 100px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+                    Institutional Command Center
+                </div>
+                <h1 id="greeting-text" style="font-size: 3rem; font-weight: 800; margin: 0; letter-spacing: -2px; color: var(--imp-text);">Welcome, {{ session['name'] }}</h1>
             </div>
-            <h1 id="greeting-text" style="font-size: 3.2rem; font-weight: 800; margin: 0; letter-spacing: -2px; color: var(--imp-text);">Welcome, {{ session['name'] }}</h1>
         </div>
+        
         <div style="display: flex; gap: 15px; align-items: center;">
-            <a href="{{ url_for('chat') }}" class="btn-royal" style="background: var(--imp-maroon); color: #fff !important; box-shadow: 0 10px 20px rgba(128, 0, 0, 0.2);">
+            <a href="{{ url_for('chat') }}" class="btn-imperial" style="background: var(--imp-maroon); color: var(--royal-gold) !important; border: 1px solid var(--royal-gold);">
                 <span>💬 BMS CONNECT</span>
                 {% if unread_chats and unread_chats > 0 %}
-                    <span style="background: #ff0000; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">{{ unread_chats }}</span>
+                    <span style="background: #ff0000; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; border: 2px solid #fff;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
-            <div style="background: var(--imp-text); color: #fff; border-radius: 14px; padding: 12px 25px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                <span style="opacity: 0.7;">Role:</span> {{ user.role }}
+            <div style="background: var(--imp-text); color: #fff; border-radius: 14px; padding: 12px 25px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);">
+                <span style="color: var(--royal-gold); opacity: 0.9;">RANK:</span> {{ user.role }}
             </div>
         </div>
     </div>
 
     {% if request.args.get('join_meet') %}
-    <div class="royal-stat-card" style="margin-bottom: 45px; padding: 0; overflow: hidden; border: 2px solid var(--imp-maroon);">
+    <div class="royal-stat-card" style="margin-bottom: 45px; padding: 0; overflow: hidden; border: 2px solid var(--imp-maroon-bright);">
         <div style="background: #fff; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--imp-border);">
-            <h3 style="margin:0; font-weight: 800; color: var(--imp-text);">🎥 LIVE SESSION: <span style="color: var(--imp-maroon);">{{ request.args.get('join_meet') }}</span></h3>
+            <h3 style="margin:0; font-weight: 800; color: var(--imp-text);">🎥 LIVE SESSION: <span style="color: var(--imp-maroon-bright);">{{ request.args.get('join_meet') }}</span></h3>
             <div style="display: flex; gap: 15px; align-items: center;">
-                <button onclick="triggerRecording()" class="btn-royal" style="background: #fee2e2; color: #b91c1c !important; font-size: 0.8rem; border: 1px solid #fecaca;">⏺️ RECORDING ALERT</button>
-                <span id="meet-timer" style="background: #1b2559; color: #fff; padding: 10px 20px; border-radius: 10px; font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.2rem;">00:00:00</span>
-                <button onclick="endMeeting()" class="btn-royal" style="background: #000; color: #fff !important; font-size: 0.8rem;">TERMINATE</button>
+                <button onclick="triggerRecording()" class="btn-imperial" style="background: #fee2e2; color: #b91c1c !important; font-size: 0.75rem; border: 1px solid #fecaca;">⏺️ RECORDING ALERT</button>
+                <span id="meet-timer" style="background: var(--imp-maroon); color: var(--royal-gold); padding: 10px 20px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; border: 1px solid var(--royal-gold);">00:00:00</span>
+                <button onclick="endMeeting()" class="btn-imperial" style="background: #000; color: #fff !important; font-size: 0.75rem;">TERMINATE</button>
             </div>
         </div>
         <div id="jitsi-container" style="height: 600px; background: #000;"></div>
@@ -146,17 +171,17 @@
     {% endif %}
 
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 40px;">
-        <div class="royal-stat-card" style="border-bottom: 4px solid var(--imp-maroon);">
-            <h4 style="margin:0; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; color: var(--text-gray);">Campus Attendance</h4>
-            <div style="font-size: 3rem; font-weight: 800; margin: 10px 0; color: var(--imp-text);">{{ office_days or 0 }} <span style="font-size: 1rem; opacity: 0.5;">Days</span></div>
+        <div class="royal-stat-card" style="border-bottom: 5px solid var(--imp-maroon-bright);">
+            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: #707eae; letter-spacing: 1.5px;">Campus Attendance</h4>
+            <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: var(--imp-text); letter-spacing: -2px;">{{ office_days or 0 }} <span style="font-size: 1rem; opacity: 0.5; letter-spacing: 0;">Days</span></div>
         </div>
-        <div class="royal-stat-card" style="border-bottom: 4px solid #065f46;">
-            <h4 style="margin:0; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; color: var(--text-gray);">Remote Sessions</h4>
-            <div style="font-size: 3rem; font-weight: 800; margin: 10px 0; color: #065f46;">{{ wfh_days or 0 }} <span style="font-size: 1rem; opacity: 0.5;">Days</span></div>
+        <div class="royal-stat-card" style="border-bottom: 5px solid #065f46;">
+            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: #707eae; letter-spacing: 1.5px;">Remote Sessions</h4>
+            <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: #065f46; letter-spacing: -2px;">{{ wfh_days or 0 }} <span style="font-size: 1rem; opacity: 0.5; letter-spacing: 0;">Days</span></div>
         </div>
-        <div class="royal-stat-card" style="background: var(--imp-text); border-bottom: 4px solid var(--accent-gold);">
-            <h4 style="margin:0; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; color: rgba(255,255,255,0.6);">Open Objectives</h4>
-            <div style="font-size: 3rem; font-weight: 800; margin: 10px 0; color: #fff;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1rem; opacity: 0.6;">Pending</span></div>
+        <div class="royal-stat-card" style="background: var(--imp-maroon); border-bottom: 5px solid var(--royal-gold);">
+            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: var(--royal-gold); opacity: 0.7; letter-spacing: 1.5px;">Open Objectives</h4>
+            <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: #fff; letter-spacing: -2px;">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }} <span style="font-size: 1rem; opacity: 0.6; letter-spacing: 0;">Pending</span></div>
         </div>
     </div>
 
@@ -164,52 +189,50 @@
         <div style="display: flex; flex-direction: column; gap: 30px;">
             
             <div class="royal-stat-card">
-                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid var(--imp-maroon); padding-left: 15px;">Video Conference Hub</h3>
+                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 6px solid var(--imp-maroon-bright); padding-left: 15px; color: var(--imp-text);">Video Conference Hub</h3>
                 <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
                     <input type="text" name="room_name" class="glass-input" placeholder="Initialize room name..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--imp-text); color: #fff; white-space: nowrap;">CREATE ROOM</button>
+                    <button type="submit" class="btn-imperial" style="background: var(--imp-text); color: #fff; white-space: nowrap;">CREATE ROOM</button>
                 </form>
                 {% for meet in meetings %}
                 <div class="task-item">
-                    <div><strong style="font-size: 1.1rem; color: var(--imp-text);">{{ meet.room_name }}</strong><br><small style="color: var(--text-gray);">Moderator: {{ meet.created_by }}</small></div>
-                    <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-royal" style="background: #065f46; color: #fff; font-size: 0.8rem; padding: 10px 20px;">JOIN BRIEFING</a>
+                    <div><strong style="font-size: 1.1rem; color: var(--imp-text); font-weight: 800;">{{ meet.room_name }}</strong><br><small style="color: #707eae; font-weight: 600;">Moderator: {{ meet.created_by }}</small></div>
+                    <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-imperial" style="background: #065f46; color: #fff; font-size: 0.75rem; padding: 10px 20px;">JOIN BRIEFING</a>
                 </div>
                 {% endfor %}
             </div>
 
             <div class="royal-stat-card">
-    <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid var(--accent-gold); padding-left: 15px;">Mission Objectives</h3>
-    
-    <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
-        <input type="text" name="title" class="glass-input" placeholder="Deploy new objective title..." required>
-        <button type="submit" class="btn-royal" style="background: var(--imp-maroon); color: #fff;">ASSIGN</button>
-    </form>
+                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 6px solid var(--royal-gold); padding-left: 15px; color: var(--imp-text);">Mission Objectives</h3>
+                <form action="{{ url_for('add_task') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
+                    <input type="text" name="title" class="glass-input" placeholder="Deploy new objective title..." required>
+                    <button type="submit" class="btn-imperial" style="background: var(--imp-maroon-bright); color: #fff;">ASSIGN</button>
+                </form>
 
-    {% for task in tasks %}
-    <div class="task-item" style="{% if task.is_done %}opacity: 0.6; background: #f8fafc;{% endif %}">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem;">
-                {{ '✅' if task.is_done else '⭕' }}
-            </a>
-            <span style="font-weight: 600; font-size: 1rem; {% if task.is_done %}text-decoration: line-through;{% endif %}">
-                {{ task.title or task.content }}
-            </span>
-        </div>
-        
-        {% if not task.is_done %}
-            <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="display: flex; gap: 5px;">
-                <input type="hidden" name="reply" value="Completed via Dashboard">
-                <button type="submit" style="background: none; border: none; color: #065f46; font-weight: 800; cursor: pointer; font-size: 0.8rem;">COMPLETE</button>
-            </form>
-        {% else %}
-            <span style="color: #707eae; font-size: 0.8rem; font-weight: 800;">ARCHIVED</span>
-        {% endif %}
-    </div>
-    {% endfor %}
-</div>
+                {% for task in tasks %}
+                <div class="task-item" style="{% if task.is_done %}opacity: 0.5; background: #f1f5f9;{% endif %}">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration: none; font-size: 1.4rem;">
+                            {{ '✅' if task.is_done else '⭕' }}
+                        </a>
+                        <span style="font-weight: 700; font-size: 1rem; color: var(--imp-text); {% if task.is_done %}text-decoration: line-through;{% endif %}">
+                            {{ task.title or task.content }}
+                        </span>
+                    </div>
+                    {% if not task.is_done %}
+                        <form action="{{ url_for('complete_task', id=task.id) }}" method="POST">
+                            <input type="hidden" name="reply" value="Completed via Dashboard">
+                            <button type="submit" style="background: none; border: none; color: #065f46; font-weight: 800; cursor: pointer; font-size: 0.75rem; letter-spacing: 1px;">COMPLETE</button>
+                        </form>
+                    {% else %}
+                        <span style="color: #707eae; font-size: 0.7rem; font-weight: 900; text-transform: uppercase;">ARCHIVED</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
 
             <div class="royal-stat-card">
-                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 5px solid #065f46; padding-left: 15px;">Activity Dispatch</h3>
+                <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 6px solid #065f46; padding-left: 15px; color: var(--imp-text);">Activity Dispatch</h3>
                 <form action="{{ url_for('submit_report') }}" method="POST">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                         <select name="report_to" class="glass-input" required>
@@ -218,8 +241,8 @@
                         </select>
                         <input type="text" name="report_topic" class="glass-input" placeholder="Topic" required>
                     </div>
-                    <textarea name="report_content" class="glass-input" style="height: 100px; resize: none;" placeholder="Provide detailed intelligence report..." required></textarea>
-                    <button type="submit" class="btn-royal" style="background: #065f46; color: #fff; width: 100%; margin-top: 15px;">DISPATCH REPORT</button>
+                    <textarea name="report_content" class="glass-input" style="height: 120px; resize: none;" placeholder="Provide detailed intelligence report..." required></textarea>
+                    <button type="submit" class="btn-imperial" style="background: #065f46; color: #fff; width: 100%; margin-top: 15px; font-weight: 900;">DISPATCH REPORT</button>
                 </form>
             </div>
         </div>
@@ -228,24 +251,24 @@
             
             <div class="royal-stat-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin:0; font-weight: 800; font-size: 1.1rem;">🔔 Intelligence</h3>
-                    <button onclick="clearAllNotifs()" style="background: var(--imp-bg); color: var(--imp-maroon); font-weight: 800; padding: 8px 15px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.7rem;">PURGE ALL</button>
+                    <h3 style="margin:0; font-weight: 800; font-size: 1.1rem; color: var(--imp-text);">🔔 Intelligence</h3>
+                    <button onclick="clearAllNotifs()" style="background: var(--imp-bg); color: var(--imp-maroon-bright); font-weight: 800; padding: 8px 15px; border-radius: 10px; border: none; cursor: pointer; font-size: 0.65rem; text-transform: uppercase;">PURGE ALL</button>
                 </div>
-                <div id="notification-list" style="max-height: 400px; overflow-y: auto; border-radius: 14px;">
+                <div id="notification-list" style="max-height: 400px; overflow-y: auto; border-radius: 14px; border: 1px solid var(--imp-border);">
                     </div>
             </div>
 
             <div class="royal-stat-card">
-                <h4 style="text-align: center; font-weight: 800; text-transform: uppercase; color: var(--imp-maroon); margin-bottom: 20px; font-size: 0.8rem;">Performance Matrix</h4>
+                <h4 style="text-align: center; font-weight: 800; text-transform: uppercase; color: var(--imp-maroon-bright); margin-bottom: 20px; font-size: 0.75rem; letter-spacing: 2px;">Performance Matrix</h4>
                 <div style="height: 250px;"><canvas id="modeChart"></canvas></div>
             </div>
 
             {% if session['role'] in ['HR', 'Principal'] %}
-            <div class="royal-stat-card" style="background: #fff5f5; border: 1px dashed var(--imp-maroon);">
-                <h3 style="color: var(--imp-maroon); font-weight: 800; margin-bottom: 15px; font-size: 1.1rem;">📢 Deploy Broadcast</h3>
+            <div class="royal-stat-card" style="background: #fff5f5; border: 2px dashed var(--imp-maroon-bright);">
+                <h3 style="color: var(--imp-maroon-bright); font-weight: 800; margin-bottom: 15px; font-size: 1rem; text-transform: uppercase; letter-spacing: 1px;">📢 Deploy Broadcast</h3>
                 <form action="{{ url_for('send_broadcast') }}" method="POST">
                     <input type="text" name="message" class="glass-input" style="background: #fff;" placeholder="Global alert message..." required>
-                    <button type="submit" class="btn-royal" style="background: var(--imp-maroon); color: #fff; width: 100%; margin-top: 15px;">SEND TO ALL</button>
+                    <button type="submit" class="btn-imperial" style="background: var(--imp-maroon-bright); color: #fff; width: 100%; margin-top: 15px; font-weight: 900;">SEND TO ALL</button>
                 </form>
             </div>
             {% endif %}
@@ -255,19 +278,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Logic Retained: Notifications
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
             if (!data || data.length === 0) {
-                list.innerHTML = '<div style="padding: 30px; text-align: center; font-weight: 600; opacity: 0.4;">Intelligence Clear.</div>';
+                list.innerHTML = '<div style="padding: 40px; text-align: center; font-weight: 700; opacity: 0.3; font-size: 0.8rem;">INTELLIGENCE CLEAR</div>';
                 return;
             }
             list.innerHTML = data.map(n => `
-                <div style="padding:15px; border-bottom:1px solid var(--imp-border); display:flex; gap:12px; background: #fff;">
-                    <span style="color:var(--imp-maroon); font-weight:800;">⚡</span>
+                <div style="padding:18px; border-bottom:1px solid var(--imp-border); display:flex; gap:12px; background: #fff;">
+                    <span style="color:var(--imp-maroon-bright); font-weight:900;">⚡</span>
                     <div>
-                        <div style="font-weight:700; font-size: 0.9rem; color: var(--imp-text);">${n.msg}</div>
-                        <small style="opacity: 0.5; font-weight: 600;">${n.time}</small>
+                        <div style="font-weight:700; font-size: 0.85rem; color: var(--imp-text); line-height: 1.4;">${n.msg}</div>
+                        <small style="opacity: 0.5; font-weight: 800; font-family: 'JetBrains Mono'; font-size: 0.7rem;">${n.time}</small>
                     </div>
                 </div>
             `).join('');
@@ -280,7 +304,7 @@
         }
     }
 
-    // Performance Chart Logic (Retained)
+    // Logic Retained: Performance Chart
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
@@ -294,16 +318,16 @@
         },
         options: { 
             plugins: { legend: { display: false } },
-            scales: { r: { grid: { color: '#e0e5f2' }, ticks: { display: false }, pointLabels: { font: { weight: '700', family: 'Plus Jakarta Sans' } } } }
+            scales: { r: { grid: { color: 'rgba(212, 175, 55, 0.2)' }, ticks: { display: false }, pointLabels: { font: { weight: '800', family: 'Plus Jakarta Sans', size: 10 } } } }
         }
     });
 
     setInterval(fetchLiveNotifications, 5000);
     fetchLiveNotifications();
 
+    // Logic Retained: Dynamic Greeting
     const hour = new Date().getHours();
     const greet = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
     document.getElementById('greeting-text').innerText = `${greet}, {{ session['name'] }}`;
 </script>
 {% endblock %}
-
