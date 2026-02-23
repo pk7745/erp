@@ -612,8 +612,8 @@ from datetime import datetime, date
 
 @app.route('/leave_calendar')
 def leave_calendar():
-    # 1. Strict Access Control: Only Principal allowed
-    if session.get('role') != 'Principal':
+    # 1. Strict Access Control: Only Principal and HR allowed (Updated to match sidebar access)
+    if session.get('role') not in ['Principal', 'HR']:
         return redirect(url_for('dashboard'))
     
     today_date = date.today()
@@ -621,27 +621,34 @@ def leave_calendar():
     
     # SAFETY CHECK & DATE OBJECT CONVERSION
     for leave in approved_leaves:
-        if isinstance(leave.start_date, str):
-            leave.start_date = datetime.strptime(leave.start_date, '%Y-%m-%d').date()
-        if isinstance(leave.end_date, str):
-            leave.end_date = datetime.strptime(leave.end_date, '%Y-%m-%d').date()
+        # Use leave.date (the existing column) for both start and end logic
+        if isinstance(leave.date, str):
+            # Converting string date to python date object
+            leave_date_obj = datetime.strptime(leave.date, '%Y-%m-%d').date()
+        else:
+            leave_date_obj = leave.date
+
+        # We attach these temporary attributes so the rest of your logic stays identical
+        leave.start_date = leave_date_obj
+        leave.end_date = leave_date_obj
         
         # Pull the actual role from the user relationship if leave.role is missing
         if not hasattr(leave, 'role') or leave.role is None:
             leave.role = leave.user.role if leave.user else "Staff"
 
     # 2. IDENTIFY ABSENT & PRESENT STAFF (All Roles)
+    # Logic retained: checks if today falls between start and end (which are now the same day)
     absent_records = [
         l for l in approved_leaves 
         if l.start_date <= today_date <= l.end_date
     ]
     
     absent_user_ids = [l.user_id for l in absent_records]
-    # Filter out the Principal from the absent list just in case
-    absent_staff = [l.user for l in absent_records if l.user.role != 'Principal']
+    
+    # Filter out the Principal from the absent list
+    absent_staff = [l.user for l in absent_records if l.user and l.user.role != 'Principal']
 
     # Get ALL staff (HOD, Faculty, Accountant, Admin) NOT in the absent list
-    # We exclude 'Principal' so the Principal doesn't track themselves
     present_staff = User.query.filter(
         User.role != 'Principal',
         User.id.notin_(absent_user_ids) if absent_user_ids else True
@@ -1710,6 +1717,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
