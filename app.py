@@ -427,6 +427,24 @@ def view_audit_logs():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
 
+@app.route('/clear_audit_logs', methods=['POST'])
+def clear_audit_logs():
+    # SECURITY: Only allow Principal to purge the records
+    if session.get('role') != 'Principal':
+        flash("Access Denied: You do not have permission to purge system logs.", "error")
+        return redirect(url_for('dashboard'))
+
+    try:
+        # Deletes all entries in the AuditLog table
+        AuditLog.query.delete()
+        db.session.commit()
+        flash("Imperial records have been purged successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error purging logs: {str(e)}", "error")
+        
+    return redirect(url_for('view_audit_logs'))
+
 @app.route('/timetable', methods=['GET'])
 @login_required
 def view_timetable():
@@ -1675,6 +1693,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
