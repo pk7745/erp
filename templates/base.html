@@ -167,59 +167,56 @@
     {% endif %}
 
     <div class="sidebar">
-        <div class="sidebar-content">
-            <div class="sidebar-brand">
-                <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM Logo" class="brand-logo">
-                <a href="{{ url_for('about') }}" style="text-decoration: none;">
-                    <h2 style="margin: 0; font-weight: 950; letter-spacing: 1px;">BMS COLLEGE OF COMMERCE<br>AND MANAGEMENT</h2>
-                </a>
-            </div>
-
-            <a href="{{ url_for('dashboard') }}" class="sidebar-link" onclick="clearBadge(this)">
-                <span>📊 DASHBOARD</span>
-                {% if global_notif_count and global_notif_count > 0 %}
-                    <span class="pulse-badge">{{ global_notif_count }}</span>
-                {% endif %}
+    <div class="sidebar-content">
+        <div class="sidebar-brand">
+            <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM Logo" class="brand-logo">
+            <a href="{{ url_for('about') }}" style="text-decoration: none;">
+                <h2 style="margin: 0; font-weight: 950; letter-spacing: 1px;">BMS COLLEGE OF COMMERCE<br>AND MANAGEMENT</h2>
             </a>
-
-            <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ TIMETABLE</a>
-            <a href="{{ url_for('chat') }}" class="sidebar-link">💬 GROUP CHAT</a> 
-            <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ ATTENDANCE</a>
-            <a href="{{ url_for('performance') }}" class="sidebar-link">📈 PERFORMANCE</a> 
-
-            {% if session['role'] in ['Principal', 'HR'] %}
-                <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="border-left: 8px solid var(--imp-crimson);">📅 LEAVE CALENDAR</a>
-            {% else %}
-                <a href="{{ url_for('leave') }}" class="sidebar-link">📅 LEAVE MGMT</a>
-            {% endif %}
-
-            {% if session.get('role') in ['HR', 'Principal'] %}
-                <a href="{{ url_for('digital_vault') }}" class="sidebar-link">📁 DIGITAL VAULT</a>
-            {% endif %}
-
-            <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 EXPENSES</a>
-            <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 DIRECTORY</a>
-
-            <a href="{{ url_for('activity_room') }}" class="sidebar-link" onclick="clearBadge(this)">
-                <span>📝 ACTIVITY ROOM</span>
-                {% if pending_tasks_count and pending_tasks_count > 0 %}
-                    <span class="pulse-badge" style="background: #000; border-color: var(--imp-gold);">{{ pending_tasks_count }}</span>
-                {% endif %}
-            </a>
-
-            <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 MY PROFILE</a>
-
-            {% if session['role'] == 'Principal' %}
-                <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fee2e2; color: #991b1b !important; border-bottom: 4px solid #991b1b;">🛡️ AUDIT LOGS</a>
-            {% endif %}
-            
-            <button onclick="toggleDarkMode()" class="btn" style="width: 85%; margin: 30px auto; display: block; background: #000; color: #fff; font-weight: 950; border: 3px solid var(--imp-gold); padding: 12px; cursor: pointer;">🌙 TOGGLE THEME</button>
         </div>
+
+        <a href="{{ url_for('dashboard') }}" class="sidebar-link" onclick="clearBadge(this)">
+            <span>📊 DASHBOARD</span>
+            {% if global_notif_count and global_notif_count > 0 %}
+                <span class="pulse-badge">{{ global_notif_count }}</span>
+            {% endif %}
+        </a>
+
+        <a href="{{ url_for('view_timetable') }}" class="sidebar-link">🗓️ TIMETABLE</a>
+        <a href="{{ url_for('chat') }}" class="sidebar-link">💬 GROUP CHAT</a> 
+        <a href="{{ url_for('attendance') }}" class="sidebar-link">⏰ ATTENDANCE</a>
+        <a href="{{ url_for('performance') }}" class="sidebar-link">📈 PERFORMANCE</a> 
+
+        <a href="{{ url_for('leave') }}" class="sidebar-link">📅 LEAVE MGMT</a>
+
+        {% if session['role'] in ['Principal', 'HR'] %}
+            <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="border-left: 8px solid var(--imp-crimson);">🗓️ LEAVE CALENDAR</a>
+            <a href="{{ url_for('digital_vault') }}" class="sidebar-link">📁 DIGITAL VAULT</a>
+        {% endif %}
+
+        <a href="{{ url_for('expenses') }}" class="sidebar-link">💰 EXPENSES</a>
+        <a href="{{ url_for('staff_directory') }}" class="sidebar-link">👥 DIRECTORY</a>
+
+        <a href="{{ url_for('activity_room') }}" class="sidebar-link" onclick="clearBadge(this)">
+            <span>📝 ACTIVITY ROOM</span>
+            {% if pending_tasks_count and pending_tasks_count > 0 %}
+                <span class="pulse-badge" style="background: #000; border-color: var(--imp-gold);">{{ pending_tasks_count }}</span>
+            {% endif %}
+        </a>
+
+        <a href="{{ url_for('my_profile') }}" class="sidebar-link">👤 MY PROFILE</a>
+
+        {% if session['role'] == 'Principal' %}
+            <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="background: #fee2e2; color: #991b1b !important; border-bottom: 4px solid #991b1b;">🛡️ AUDIT LOGS</a>
+        {% endif %}
         
-        <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #fff !important; background: var(--imp-crimson) !important; text-align: center; border: none; justify-content: center; font-size: 1.1rem;">LOGOUT</a>
-        </div>
+        <button onclick="toggleDarkMode()" class="btn" style="width: 85%; margin: 30px auto; display: block; background: #000; color: #fff; font-weight: 950; border: 3px solid var(--imp-gold); padding: 12px; cursor: pointer;">🌙 TOGGLE THEME</button>
     </div>
+    
+    <div class="sidebar-footer">
+        <a href="{{ url_for('logout') }}" class="sidebar-link" style="color: #fff !important; background: var(--imp-crimson) !important; text-align: center; border: none; justify-content: center; font-size: 1.1rem;">LOGOUT</a>
+    </div>
+</div>
 
     <div class="main">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
@@ -303,5 +300,6 @@
     </script>
 </body>
 </html>
+
 
 
