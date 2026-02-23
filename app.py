@@ -930,17 +930,30 @@ def leave():
 
 @app.route('/approve_leave/<int:id>/<action>')
 def approve_leave(id, action):
+    # Retrieve the request using the 'id'
     leave_req = Leave.query.get(id)
+    if not leave_req:
+        flash("Leave request not found.", "error")
+        return redirect(url_for('leave'))
+        
     role = session.get('role')
+    
     if action == 'approve':
         if role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD':
             leave_req.status = 'Pending Principal'
         elif role == 'Principal' and leave_req.status == 'Pending Principal':
             leave_req.status = 'Approved'
+            
     elif action == 'reject':
-        leave_req.status, leave_req.rejection_reason = 'Rejected', request.args.get('reason', 'No reason provided')
+        leave_req.status = 'Rejected'
+        leave_req.rejection_reason = request.args.get('reason', 'No reason provided')
+    
     db.session.commit()
-    log_action("Approved Leave Request", target=leave_request.user_name)
+    
+    # FIXED: Changed 'leave_request' to 'leave_req' and ensured we access the user's name correctly
+    # Note: Using leave_req.user.full_name to match your template's usage
+    log_action(f"{action.capitalize()}d Leave Request", target=leave_req.user.full_name)
+    
     return redirect(url_for('leave'))
 
 @app.route('/expenses', methods=['GET', 'POST'])
@@ -1697,6 +1710,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
