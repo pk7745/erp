@@ -1507,21 +1507,25 @@ def clear_broadcast():
     db.session.commit()
     return redirect(url_for('dashboard'))
 
+from datetime import datetime
+
 @app.route('/payslip_history')
 def payslip_history():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     
-    # Generate list of past 6 months
+    # Logic Retained: Hardcoded months as per your request
     months = ["September 2025", "October 2025", "November 2025", "December 2025", "January 2026", "February 2026"]
-    return render_template('payslip_history.html', user=user, months=months)
+    
+    # Passing current_date for the header
+    today = datetime.now().strftime('%d %B %Y')
+    return render_template('payslip_history.html', user=user, months=months, today=today)
 
 @app.route('/generate_payslip_historical/<int:uid>/<month>')
 def generate_payslip_historical(uid, month):
-    # This uses your existing generate_payslip logic but injects the specific month name
-    # (Reuse your generate_payslip logic here, replacing "FEBRUARY 2026" with the month variable)
-    return generate_payslip(uid) # Temporary redirect to main logic for now
-
+    # Logic Retained: Temporary redirect to main logic
+    return generate_payslip(uid)
+    
 @app.route('/complete_task/<int:id>', methods=['POST'])
 def complete_task(id):
     task = Task.query.get_or_404(id)
@@ -1693,6 +1697,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
