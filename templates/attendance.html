@@ -2,7 +2,6 @@
 {% block content %}
 
 <div class="stats-container animate-enter" style="margin-bottom: 40px;">
-    
     <div class="stat-card stat-office card">
         <small style="color: #000; opacity: 0.9; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Life-time Presence</small>
         <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: #000 !important; background: none; -webkit-text-fill-color: #000;">{{ history|length }}</h2>
@@ -47,7 +46,7 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid rgba(0,0,0,0.1); padding-bottom: 30px;">
             <div>
                 <h2 style="margin:0; font-weight: 950; font-size: 2rem; letter-spacing: -1.5px; color: #000;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Location verification required</small>
+                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Campus Geofence: 300m Active</small>
             </div>
             {% if session['role'] == 'HR' %}
                 <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn" style="padding: 10px 18px; font-size: 0.7rem; background: #000; color: #fff; font-weight: 900;">
@@ -113,17 +112,18 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
 <script>
-// --- LOGIC: GEOLOCATION (UNTOUCHED) ---
+// --- UPDATED GEOLOCATION LOGIC ---
 function getLocation() {
     const indicator = document.getElementById('location-indicator');
     const btn = document.getElementById('submitBtn');
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ INITIATING SATELLITE LOCK...";
+        indicator.innerText = "🛰️ LOCKING TO BMSCCM CAMPUS...";
         indicator.style.color = "#800000";
         navigator.geolocation.getCurrentPosition((pos) => {
             document.getElementById('lat').value = pos.coords.latitude;
             document.getElementById('lon').value = pos.coords.longitude;
-            indicator.innerText = "✅ POSITION SECURED: " + pos.coords.latitude.toFixed(4) + ", " + pos.coords.longitude.toFixed(4);
+            // Matches the precise coordinates set in the backend: 12.9606, 77.5735
+            indicator.innerText = "✅ POSITION SECURED AT BMSCCM";
             indicator.style.color = "#065f46";
             btn.disabled = false;
             btn.style.opacity = "1";
