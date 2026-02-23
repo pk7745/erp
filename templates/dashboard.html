@@ -7,8 +7,8 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="toast-msg {{ category }}" style="background: #fff; border: 4px solid #000; padding: 20px 30px; border-radius: 20px; box-shadow: 10px 10px 0px #000; border-left: 12px solid {% if category == 'success' %}#065f46{% else %}#800000{% endif %}; font-weight: 950; min-width: 350px;">
-            <div style="display: flex; align-items: center; gap: 15px; color: #000;">
+          <div class="toast-msg {{ category }}" style="background: var(--imp-card); border: 2px solid var(--imp-border); padding: 20px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-left: 8px solid {% if category == 'success' %}#059669{% else %}#ef4444{% endif %}; font-weight: 700; min-width: 350px; color: var(--imp-text);">
+            <div style="display: flex; align-items: center; gap: 15px;">
                 <span style="font-size: 1.8rem;">{% if category == 'success' %}✨{% else %}🔔{% endif %}</span>
                 {{ message }}
             </div>
@@ -20,15 +20,17 @@
 
 <style>
     :root {
-        --imp-maroon: #2d000f;
-        --imp-maroon-bright: #800000;
+        /* NEW DARK MODE PALETTE */
+        --imp-maroon: #4a0f24; 
+        --imp-maroon-bright: #e11d48; /* Brighter for dark background contrast */
         --royal-gold: #d4af37;
-        --accent-gold: #C5A059;
-        --imp-text: #1b2559; 
-        --imp-bg: #f4f7fe; 
-        --imp-card: #ffffff;
-        --imp-border: rgba(212, 175, 55, 0.3);
-        --parchment: #fdfaf5;
+        --accent-gold: #fbbf24;
+        --imp-text: #f1f5f9; /* Off-white text */
+        --imp-text-muted: #94a3b8;
+        --imp-bg: #0f1117; /* Deep dark background */
+        --imp-card: #1e212b; /* Dark card background */
+        --imp-border: rgba(212, 175, 55, 0.15);
+        --parchment: #272a37; /* Dark inputs/tasks */
     }
     
     body { 
@@ -44,16 +46,16 @@
         border-radius: 24px; 
         padding: 30px;
         border: 1px solid var(--imp-border); 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
     }
-    .royal-stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: var(--royal-gold); }
+    .royal-stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-color: var(--royal-gold); }
 
     .glass-input {
         background: var(--parchment); 
-        border: 1px solid var(--imp-border);
+        border: 1px solid rgba(255,255,255,0.1);
         border-radius: 14px; 
         padding: 15px 20px; 
         font-weight: 600; 
@@ -63,7 +65,8 @@
         box-sizing: border-box;
         color: var(--imp-text);
     }
-    .glass-input:focus { outline: none; border-color: var(--imp-maroon-bright); background: #fff; box-shadow: 0 0 0 4px rgba(128, 0, 0, 0.05); }
+    .glass-input:focus { outline: none; border-color: var(--royal-gold); background: #323644; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1); }
+    .glass-input::placeholder { color: var(--imp-text-muted); }
 
     .btn-imperial {
         border-radius: 14px; 
@@ -81,7 +84,7 @@
         font-size: 0.8rem;
         letter-spacing: 1px;
     }
-    .btn-imperial:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    .btn-imperial:hover { transform: translateY(-2px); filter: brightness(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
 
     .task-item {
         background: var(--parchment); 
@@ -94,6 +97,7 @@
         margin-bottom: 12px;
         transition: 0.2s;
     }
+    .task-item:hover { border-color: var(--royal-gold); background: #2f3342; }
 
     .header-logo-box {
         width: 60px; height: 60px;
@@ -102,8 +106,14 @@
         display: flex; align-items: center; justify-content: center;
         font-size: 1.8rem;
         border: 2px solid var(--royal-gold);
-        box-shadow: 0 10px 20px rgba(45, 0, 15, 0.2);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
     }
+
+    /* Scrollbar for Dark Mode */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--imp-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--parchment); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--royal-gold); }
 </style>
 
 <div class="dashboard-wrapper">
@@ -111,7 +121,7 @@
         <div style="display: flex; align-items: center; gap: 25px;">
             <div class="header-logo-box">🏰</div>
             <div>
-                <div style="display: inline-block; background: rgba(128, 0, 0, 0.1); color: var(--imp-maroon-bright); padding: 5px 15px; border-radius: 100px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
+                <div style="display: inline-block; background: rgba(225, 29, 72, 0.15); color: var(--imp-maroon-bright); padding: 5px 15px; border-radius: 100px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; border: 1px solid rgba(225, 29, 72, 0.3);">
                     Institutional Command Center
                 </div>
                 <h1 id="greeting-text" style="font-size: 3rem; font-weight: 800; margin: 0; letter-spacing: -2px; color: var(--imp-text);">Welcome</h1>
@@ -122,10 +132,10 @@
             <a href="{{ url_for('chat') }}" class="btn-imperial" style="background: var(--imp-maroon); color: var(--royal-gold) !important; border: 1px solid var(--royal-gold);">
                 <span>💬 BMS CONNECT</span>
                 {% if unread_chats and unread_chats > 0 %}
-                    <span style="background: #ff0000; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; border: 2px solid #fff;">{{ unread_chats }}</span>
+                    <span style="background: var(--imp-maroon-bright); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; border: 2px solid #fff; font-weight: 900;">{{ unread_chats }}</span>
                 {% endif %}
             </a>
-            <div style="background: var(--imp-text); color: #fff; border-radius: 14px; padding: 12px 25px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="background: var(--parchment); color: var(--imp-text); border-radius: 14px; padding: 12px 25px; font-weight: 700; font-size: 0.85rem; border: 1px solid var(--imp-border);">
                 <span style="color: var(--royal-gold); opacity: 0.9;">RANK:</span> {{ user.role }}
             </div>
         </div>
@@ -133,11 +143,11 @@
 
     {% if request.args.get('join_meet') %}
     <div class="royal-stat-card" style="margin-bottom: 45px; padding: 0; overflow: hidden; border: 2px solid var(--imp-maroon-bright);">
-        <div style="background: #fff; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--imp-border);">
+        <div style="background: var(--imp-card); padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
             <h3 style="margin:0; font-weight: 800; color: var(--imp-text);">🎥 LIVE SESSION: <span style="color: var(--imp-maroon-bright);">{{ request.args.get('join_meet') }}</span></h3>
             <div style="display: flex; gap: 15px; align-items: center;">
                 <span id="meet-timer" style="background: var(--imp-maroon); color: var(--royal-gold); padding: 10px 20px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; border: 1px solid var(--royal-gold);">00:00:00</span>
-                <button onclick="endMeeting()" class="btn-imperial" style="background: #000; color: #fff !important; font-size: 0.75rem;">TERMINATE</button>
+                <button onclick="endMeeting()" class="btn-imperial" style="background: #000; color: #fff !important; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.2);">TERMINATE</button>
             </div>
         </div>
         <div id="jitsi-container" style="height: 600px; background: #000;"></div>
@@ -154,12 +164,12 @@
 
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 40px;">
         <div class="royal-stat-card" style="border-bottom: 5px solid var(--imp-maroon-bright);">
-            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: #707eae;">Campus Attendance</h4>
+            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: var(--imp-text-muted);">Campus Attendance</h4>
             <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: var(--imp-text);">{{ office_days or 0 }} <span style="font-size: 1rem; opacity: 0.5;">Days</span></div>
         </div>
-        <div class="royal-stat-card" style="border-bottom: 5px solid #065f46;">
-            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: #707eae;">Remote Sessions</h4>
-            <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: #065f46;">{{ wfh_days or 0 }} <span style="font-size: 1rem; opacity: 0.5;">Days</span></div>
+        <div class="royal-stat-card" style="border-bottom: 5px solid #10b981;">
+            <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: var(--imp-text-muted);">Remote Sessions</h4>
+            <div style="font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: #10b981;">{{ wfh_days or 0 }} <span style="font-size: 1rem; opacity: 0.5;">Days</span></div>
         </div>
         <div class="royal-stat-card" style="background: var(--imp-maroon); border-bottom: 5px solid var(--royal-gold);">
             <h4 style="margin:0; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; color: var(--royal-gold);">Open Objectives</h4>
@@ -173,12 +183,12 @@
                 <h3 style="margin-bottom: 25px; font-weight: 800; border-left: 6px solid var(--imp-maroon-bright); padding-left: 15px;">Video Conference Hub</h3>
                 <form action="{{ url_for('create_meeting') }}" method="POST" style="display: flex; gap: 12px; margin-bottom: 25px;">
                     <input type="text" name="room_name" class="glass-input" placeholder="Room Name..." required>
-                    <button type="submit" class="btn-imperial" style="background: var(--imp-text); color: #fff;">CREATE</button>
+                    <button type="submit" class="btn-imperial" style="background: var(--imp-text); color: var(--imp-bg);">CREATE</button>
                 </form>
                 {% for meet in meetings %}
                 <div class="task-item">
-                    <div><strong style="font-weight: 800;">{{ meet.room_name }}</strong></div>
-                    <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-imperial" style="background: #065f46; color: #fff; font-size: 0.7rem;">JOIN</a>
+                    <div><strong style="font-weight: 800; color: var(--royal-gold);">{{ meet.room_name }}</strong></div>
+                    <a href="{{ url_for('dashboard', join_meet=meet.room_name) }}" class="btn-imperial" style="background: #10b981; color: #fff; font-size: 0.7rem;">JOIN</a>
                 </div>
                 {% endfor %}
             </div>
@@ -191,29 +201,31 @@
                 </form>
                 {% for task in tasks %}
                 <div class="task-item">
-                    <span style="font-weight: 700;">{{ task.title or task.content }}</span>
-                    <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration:none;">{{ '✅' if task.is_done else '⭕' }}</a>
+                    <span style="font-weight: 700; color: {% if task.is_done %}var(--imp-text-muted){% else %}var(--imp-text){% endif %}; {% if task.is_done %}text-decoration: line-through;{% endif %}">{{ task.title or task.content }}</span>
+                    <a href="{{ url_for('toggle_task', id=task.id) }}" style="text-decoration:none; font-size: 1.2rem;">{{ '✅' if task.is_done else '⭕' }}</a>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 30px;">
-            
-            <div class="royal-stat-card" style="border: 2px solid var(--royal-gold); background: linear-gradient(145deg, #ffffff, #fffdf8);">
+            <div class="royal-stat-card" style="border: 1px solid var(--royal-gold); background: var(--parchment);">
                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                     <span style="font-size: 1.5rem;">📜</span>
                     <h3 style="margin:0; font-weight: 800; font-size: 1.1rem; color: var(--imp-text);">Financial Records</h3>
                 </div>
-                <p style="font-size: 0.85rem; color: #707eae; font-weight: 600; margin-bottom: 20px;">Access your historical payslips and institutional financial disbursements.</p>
+                <p style="font-size: 0.85rem; color: var(--imp-text-muted); font-weight: 600; margin-bottom: 20px;">Access your historical payslips and institutional financial disbursements.</p>
                 <a href="{{ url_for('payslip_history') }}" class="btn-imperial" style="background: var(--imp-maroon); color: var(--royal-gold) !important; width: 100%; border: 1px solid var(--royal-gold);">
                     VIEW PAYSLIP HISTORY
                 </a>
             </div>
 
             <div class="royal-stat-card">
-                <h3 style="margin-bottom: 20px; font-weight: 800; font-size: 1.1rem;">🔔 Intelligence</h3>
-                <div id="notification-list" style="max-height: 300px; overflow-y: auto;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin:0; font-weight: 800; font-size: 1.1rem;">🔔 Intelligence</h3>
+                    <button onclick="clearAllNotifs()" style="background: transparent; color: var(--imp-maroon-bright); font-weight: 800; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--imp-maroon-bright); cursor: pointer; font-size: 0.65rem; text-transform: uppercase;">Clear All</button>
+                </div>
+                <div id="notification-list" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
             </div>
 
             <div class="royal-stat-card">
@@ -226,17 +238,36 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Notifications Logic
+    // FIXED: Notifications Logic Restored Fully
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
-            list.innerHTML = data.map(n => `<div style="padding:10px; border-bottom:1px solid #eee; font-size:0.8rem;"><b>⚡</b> ${n.msg}</div>`).join('');
-        });
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--imp-text-muted); font-size: 0.8rem; font-weight: 600;">System Clear. No alerts.</div>';
+                return;
+            }
+            list.innerHTML = data.map(n => `
+                <div style="padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background: var(--parchment); margin-bottom: 10px; border-radius: 12px; display: flex; gap: 12px; align-items: start;">
+                    <span style="font-size: 1.2rem;">⚡</span>
+                    <div>
+                        <div style="font-size:0.85rem; font-weight: 600; color: var(--imp-text); line-height: 1.4;">${n.msg}</div>
+                        ${n.time ? `<div style="font-size:0.7rem; color: var(--imp-text-muted); margin-top: 5px;">${n.time}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }).catch(err => console.error(err));
     }
     setInterval(fetchLiveNotifications, 5000);
     fetchLiveNotifications();
 
-    // Chart Logic
+    // RESTORED: Clear Notifications Function
+    function clearAllNotifs() {
+        if(confirm("Are you sure you want to clear all notifications?")) {
+            window.location.href = '/clear_notifications';
+        }
+    }
+
+    // Chart Logic (Colors adjusted for dark mode visibility)
     const ctx = document.getElementById('modeChart').getContext('2d');
     new Chart(ctx, {
         type: 'radar',
@@ -244,10 +275,22 @@
             labels: ['Office', 'WFH', 'Tasks', 'Updates', 'Activity'],
             datasets: [{
                 data: [{{ office_days or 0 }}, {{ wfh_days or 0 }}, {{ tasks|length }}, 5, 8],
-                borderColor: '#800000', backgroundColor: 'rgba(128, 0, 0, 0.05)'
+                borderColor: '#e11d48', 
+                backgroundColor: 'rgba(225, 29, 72, 0.2)',
+                pointBackgroundColor: '#d4af37'
             }]
         },
-        options: { plugins: { legend: { display: false } } }
+        options: { 
+            plugins: { legend: { display: false } },
+            scales: {
+                r: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                    pointLabels: { color: '#94a3b8', font: { family: 'Plus Jakarta Sans', weight: '700' } },
+                    ticks: { display: false }
+                }
+            }
+        }
     });
 
     const hour = new Date().getHours();
