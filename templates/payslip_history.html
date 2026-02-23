@@ -166,7 +166,7 @@
                 Financial Records Vault
             </div>
             <h2>📄 Payslip History</h2>
-            <p style="opacity: 0.8; font-weight: 600; margin: 0;">Records for Academic Year 2025-26 • Welcome, {{ user.name }}</p>
+            <p style="opacity: 0.8; font-weight: 600; margin: 0;">Records for Academic Year 2025-26 • Welcome, {{ user.full_name or user.name }}</p>
         </div>
         <div class="header-logo">
             🏰
@@ -194,7 +194,7 @@
                         </div>
                     </td>
                     <td style="font-weight: 700; color: #707eae;">
-                        01 {{ month.split(' ')[0][:3] }} 2026
+                        26 {{ month }}
                     </td>
                     <td>
                         <span class="status-badge">✅ Released</span>
