@@ -22,12 +22,13 @@
     :root {
         --imp-maroon: #3a0d1d; 
         --imp-maroon-bright: #be123c; 
-        --royal-gold: #b8912e; /* Slightly deeper gold */
+        --royal-gold: #b8912e;
         --accent-gold: #d97706;
         --imp-text: #e2e8f0; 
-        --imp-text-muted: #64748b; /* DARKENED muted text for better hierarchy */
-        --imp-bg: #0a0c10; /* Darker background */
-        --imp-card: #13161f; /* Darker card background */
+        --imp-text-header: #cbd5e1; /* SPECIFIC DARKER TEXT FOR HEADER */
+        --imp-text-muted: #64748b;
+        --imp-bg: #0a0c10; 
+        --imp-card: #13161f; 
         --imp-border: rgba(184, 145, 46, 0.2);
         --parchment: #1c1f2b; 
     }
@@ -65,7 +66,7 @@
         color: var(--imp-text);
     }
     .glass-input:focus { outline: none; border-color: var(--royal-gold); background: #252936; }
-    .glass-input::placeholder { color: #475569; } /* Darker placeholder */
+    .glass-input::placeholder { color: #475569; }
 
     .btn-imperial {
         border-radius: 14px; 
@@ -118,7 +119,7 @@
                 <div style="display: inline-block; background: rgba(190, 18, 60, 0.2); color: #fb7185; padding: 5px 15px; border-radius: 100px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;">
                     Institutional Command Center
                 </div>
-                <h1 id="greeting-text" style="font-size: 3rem; font-weight: 800; margin: 0; letter-spacing: -2px; color: var(--imp-text);">Welcome</h1>
+                <h1 id="greeting-text" style="font-size: 3rem; font-weight: 800; margin: 0; letter-spacing: -2px; color: var(--imp-text-header);">Welcome</h1>
             </div>
         </div>
         
