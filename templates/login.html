@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | BMS COLLEGE OF COMMERCE AND MANAGEMENT</title>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #000000;         /* High Contrast Black */
-            --accent: #800000;          /* Imperial Red */
+            --primary: #000000;
+            --imp-crimson: #800000;
+            --imp-crimson-bright: #be123c;
+            --imp-gold: #D4AF37;
             --bg-body: #ffffff;
+            --grain: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+            --shadow-neo: 15px 15px 0px #000000;
         }
 
         body {
@@ -19,36 +23,37 @@
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            font-family: 'Manrope', sans-serif;
+            font-family: 'Plus Jakarta Sans', 'Manrope', sans-serif;
             overflow: hidden;
-            perspective: 1000px;
+            perspective: 1500px;
             position: relative;
         }
 
-        /* --- UPDATED: IMPERIAL WATERMARK --- */
+        /* --- REFINED: IMPERIAL WATERMARK --- */
         .watermark-bg {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80vh; /* Scaled up for better visibility */
-            height: 80vh;
+            width: 85vh;
+            height: 85vh;
             background: url('https://www.bmsccm.ac.in/img/ll.png') no-repeat center;
             background-size: contain;
-            opacity: 0.08; /* Increased opacity slightly for visibility */
-            z-index: -2; /* Placed behind everything */
+            opacity: 0.05;
+            z-index: -2;
             pointer-events: none;
+            filter: grayscale(100%);
         }
 
-        /* --- IMPERIAL 3D CARD --- */
+        /* --- HYPER-REAL NEOTERIC CARD --- */
         .login-card {
             background: #ffffff;
-            padding: 50px;
-            border-radius: 12px;
-            border: 4px solid #000;
-            box-shadow: 15px 15px 0px #000;
+            padding: 55px;
+            border-radius: 16px;
+            border: 5px solid #000;
+            box-shadow: var(--shadow-neo);
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             text-align: center;
             transition: transform 0.1s ease-out;
             transform-style: preserve-3d;
@@ -57,32 +62,40 @@
             z-index: 1;
         }
 
-        /* Logo inside Login Card */
-        .login-logo {
-            width: 100px;
-            height: auto;
-            margin-bottom: 20px;
-            filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.1));
-            transform: translateZ(50px);
+        /* Subtle Grain Overlay on Card */
+        .login-card::after {
+            content: ""; position: absolute; inset: 0; 
+            background-image: var(--grain); opacity: 0.03; 
+            pointer-events: none; border-radius: 11px;
         }
 
-        .brand-name, .login-form, .footer-text {
+        .login-logo {
+            width: 110px;
+            height: auto;
+            margin-bottom: 25px;
+            filter: drop-shadow(6px 6px 0px rgba(0,0,0,0.15));
+            transform: translateZ(60px);
+        }
+
+        .brand-name, .login-form, .footer-text, .portal-label {
             transform: translateZ(40px);
         }
 
+        /* RETAINED: Flash Alert System */
         .alert-box {
             background: #000;
             color: #fff !important;
-            padding: 14px;
-            border-radius: 4px;
-            margin-bottom: 25px;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 30px;
             font-size: 0.9rem;
-            font-weight: 900;
+            font-weight: 800;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            border: 2px solid #800000;
+            gap: 12px;
+            border: 3px solid var(--imp-crimson);
+            box-shadow: 5px 5px 0px var(--imp-crimson);
             animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
 
@@ -94,64 +107,80 @@
         }
 
         .brand-name {
-            font-size: 1.25rem;
-            font-weight: 950;
+            font-size: 1.35rem;
+            font-weight: 900;
             color: #000;
-            margin-bottom: 5px;
-            letter-spacing: -1px;
+            margin-bottom: 8px;
+            letter-spacing: -1.5px;
             line-height: 1.1;
             text-transform: uppercase;
         }
 
         .brand-highlight {
-            color: var(--accent);
-            font-size: 1.45rem;
+            color: var(--imp-crimson);
+            font-size: 1.55rem;
             display: block;
             margin-top: 5px;
             font-weight: 950;
+            background: linear-gradient(180deg, var(--imp-crimson), #4a0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .portal-label {
+            color: #000; 
+            margin-bottom: 40px; 
+            font-weight: 800; 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            opacity: 0.8;
         }
 
         input {
             width: 100%;
-            padding: 18px;
-            margin: 12px 0;
-            border: 3px solid #000;
+            padding: 20px;
+            margin: 14px 0;
+            border: 4px solid #000;
             background: #fff;
-            border-radius: 4px;
+            border-radius: 8px;
             box-sizing: border-box;
             font-size: 1rem;
             font-family: inherit;
             font-weight: 800;
             outline: none;
-            transition: 0.2s;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         input:focus {
-            background: #fff;
-            box-shadow: 6px 6px 0px #800000;
-            transform: translate(-3px, -3px);
+            box-shadow: 8px 8px 0px var(--imp-crimson);
+            transform: translate(-4px, -4px);
+            border-color: var(--imp-crimson);
         }
 
+        /* RETAINED: Login Button Logic */
         .btn-login {
             width: 100%;
             background: #000;
             color: white !important;
-            padding: 20px;
+            padding: 22px;
             border: none;
-            border-radius: 4px;
-            font-weight: 950;
+            border-radius: 8px;
+            font-weight: 900;
             font-size: 1.2rem;
             cursor: pointer;
-            margin-top: 20px;
-            transition: 0.2s;
+            margin-top: 25px;
+            transition: 0.3s;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-login:hover {
-            background: #800000;
-            transform: translate(-4px, -4px);
-            box-shadow: 6px 6px 0px #000;
+            background: var(--imp-crimson);
+            transform: translate(-6px, -6px);
+            box-shadow: 10px 10px 0px #000;
         }
 
         .btn-login:active {
@@ -160,33 +189,46 @@
         }
 
         .forgot-link {
-            display: block;
-            margin-top: 25px;
+            display: inline-block;
+            margin-top: 30px;
             color: #000;
-            text-decoration: underline;
-            text-decoration-thickness: 2px;
+            text-decoration: none;
+            border-bottom: 3px solid var(--imp-crimson);
+            padding-bottom: 2px;
             font-size: 0.85rem;
             font-weight: 900;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+
+        .forgot-link:hover {
+            background: var(--imp-crimson);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
         }
 
         .footer-text {
-            margin-top: 35px;
-            font-size: 0.75rem;
+            margin-top: 45px;
+            font-size: 0.7rem;
             color: #000;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 950;
-            opacity: 0.4;
+            letter-spacing: 3px;
+            font-weight: 900;
+            opacity: 0.3;
         }
 
+        /* Background Dynamic Elements */
         .bg-stripe {
             position: absolute;
             width: 100%;
-            height: 30vh;
-            background: #f0f0f0;
+            height: 35vh;
+            background: rgba(0,0,0,0.02);
             z-index: -1;
-            transform: skewY(-5deg);
+            transform: skewY(-6deg);
+            border-top: 2px solid rgba(0,0,0,0.05);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
         }
     </style>
 </head>
@@ -194,8 +236,8 @@
 
     <div class="watermark-bg"></div>
 
-    <div class="bg-stripe" style="top: -15vh;"></div>
-    <div class="bg-stripe" style="bottom: -15vh;"></div>
+    <div class="bg-stripe" style="top: -10vh;"></div>
+    <div class="bg-stripe" style="bottom: -10vh;"></div>
 
     <div class="login-card">
         <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM Logo" class="login-logo">
@@ -204,7 +246,8 @@
             BMS COLLEGE OF <br> 
             <span class="brand-highlight">COMMERCE AND MANAGEMENT</span>
         </div>
-        <p style="color: #000; margin-bottom: 35px; font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+        
+        <p class="portal-label">
             Faculty & Staff Enterprise Portal
         </p>
 
@@ -212,6 +255,7 @@
           {% if messages %}
             {% for message in messages %}
               <div class="alert-box">
+                <span style="font-size: 1.2rem;">⚠️</span>
                 {{ message }}
               </div>
             {% endfor %}
@@ -219,19 +263,20 @@
         {% endwith %}
 
         <form method="POST" class="login-form">
-            <input type="text" name="username" placeholder="USERNAME" required>
-            <input type="password" name="password" placeholder="PASSWORD" required>
-            <button type="submit" class="btn-login">Sign Into Portal</button>
+            <input type="text" name="username" placeholder="IDENTIFICATION ID" required autocomplete="username">
+            <input type="password" name="password" placeholder="SECURITY ACCESS KEY" required autocomplete="current-password">
+            <button type="submit" class="btn-login">Authorize Entry</button>
         </form>
 
         <a href="{{ url_for('forgot_password') }}" class="forgot-link">Request Access Recovery</a>
 
         <div class="footer-text">
-            SECURE ACCESS &copy; 2026 BMSCCM
+            ENCRYPTED ACCESS &copy; 2026 BMSCCM COMMAND
         </div>
     </div>
 
     <script>
+        // RETAINED: 3D Mouse Motion Logic
         const card = document.querySelector('.login-card');
         const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
 
@@ -241,14 +286,20 @@
             const { clientX, clientY } = e;
             const { innerWidth, innerHeight } = window;
 
-            const xRotation = ((clientY / innerHeight) - 0.5) * -15; 
-            const yRotation = ((clientX / innerWidth) - 0.5) * 15;
+            // Refined rotation degrees for a smoother "premium" feel
+            const xRotation = ((clientY / innerHeight) - 0.5) * -12; 
+            const yRotation = ((clientX / innerWidth) - 0.5) * 12;
 
             card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
         });
 
         document.addEventListener('mouseleave', () => {
             card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+            card.style.transition = `transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)`;
+        });
+
+        document.addEventListener('mouseenter', () => {
+            card.style.transition = `transform 0.1s ease-out`;
         });
     </script>
 </body>
