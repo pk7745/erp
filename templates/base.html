@@ -95,9 +95,14 @@
     <div class="sidebar">
         <div class="sidebar-content" style="overflow-y: auto; flex-grow: 1; padding: 10px;">
             <div class="sidebar-brand" style="text-align: center; padding: 20px 0;">
-                <img src="https://www.bmsccm.ac.in/img/ll.png" alt="Logo" style="max-width: 140px;">
-                <h2 style="font-size: 0.75rem; margin-top: 10px;">BMS COLLEGE <span style="color: var(--imp-crimson);">OF COMMERCE AND MANAGEMENT</span></h2>
-            </div>
+    <img src="https://www.bmsccm.ac.in/img/ll.png" alt="Logo" style="max-width: 140px;">
+    
+    <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
+        <h2 style="font-size: 0.75rem; margin-top: 10px; cursor: pointer;">
+            BMS COLLEGE <span style="color: var(--imp-crimson);">OF COMMERCE AND MANAGEMENT</span>
+        </h2>
+    </a>
+</div>
 
             <nav>
                 <a href="{{ url_for('dashboard') }}" class="sidebar-link">
@@ -208,4 +213,5 @@
     </script>
 </body>
 </html>
+
 
