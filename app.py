@@ -343,12 +343,13 @@ CAMPUS_LAT = 12.9606
 CAMPUS_LON = 77.5735
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    import math
+    """Haversine formula to calculate distance in meters."""
     R = 6371000  # Radius of Earth in meters
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    a = (math.sin(dphi/2)**2 + 
+         math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2)
     return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
 # 4. ALL ORIGINAL ROUTES + NEW UPDATES
 # ==========================================
@@ -891,40 +892,67 @@ def edit_salary(uid):
 
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session: 
+        return redirect(url_for('login'))
+        
     today = get_ist_time().strftime("%Y-%m-%d")
     user = User.query.get(session['user_id'])
     
     if request.method == 'POST':
-        lat = float(request.form.get('lat', 0))
-        lon = float(request.form.get('lon', 0))
-        mode = request.form['work_mode']
+        # Matching HTML hidden fields 'lat' and 'lon'
+        try:
+            lat = float(request.form.get('lat', 0))
+            lon = float(request.form.get('lon', 0))
+        except ValueError:
+            lat, lon = 0.0, 0.0
+            
+        # Matching HTML select name 'work_mode'
+        mode = request.form.get('work_mode')
         
-        # VALIDATION: Check if coordinates were actually captured
+        # 1. GEOLOCATION VALIDATION
         if mode == 'Office' and (lat == 0 or lon == 0):
-            flash("Location Error: Please enable GPS and allow browser permissions.", "error")
+            flash("GPS Error: Could not verify location. Please try again.", "error")
             return redirect(url_for('attendance'))
 
-        # CALIBRATION: Increased radius to 1000m to account for GPS drift in BLR
+        # 2. GEOFENCE CALIBRATION (1000m radius)
         distance = calculate_distance(lat, lon, CAMPUS_LAT, CAMPUS_LON)
         
         if mode == 'Office' and distance > 1000:
-            flash(f"Verification Failed: You are {round(distance)}m away from BMSCCM.", "error")
+            flash(f"Verification Failed: You are {round(distance)}m away from the BMSCCM perimeter.", "error")
             return redirect(url_for('attendance'))
 
-        # Existing Attendance Logic
+        # 3. ATTENDANCE LOGIC (Check-in / Check-out)
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         t_now = get_ist_time().strftime("%I:%M %p")
+        
         if not att:
-            db.session.add(Attendance(user_id=session['user_id'], date=today, check_in=t_now, work_mode=mode, lat=lat, lon=lon))
-            db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-IN"))
+            # New Check-in
+            new_entry = Attendance(
+                user_id=session['user_id'], 
+                date=today, 
+                check_in=t_now, 
+                work_mode=mode, 
+                lat=lat, 
+                lon=lon
+            )
+            db.session.add(new_entry)
+            db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-IN ({mode})"))
         else:
+            # Update existing record with Check-out
             att.check_out = t_now
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-OUT"))
+            
         db.session.commit()
         flash("Record Synchronized Successfully.", "success")
+        return redirect(url_for('attendance'))
         
-    history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
+    # --- GET REQUEST LOGIC ---
+    # HR sees everything, Staff sees only their own history
+    if session.get('role') == 'HR':
+        history = Attendance.query.order_by(Attendance.date.desc()).all()
+    else:
+        history = Attendance.query.filter_by(user_id=session['user_id']).order_by(Attendance.date.desc()).all()
+        
     return render_template('attendance.html', history=history)
     
 @app.route('/leave', methods=['GET', 'POST'])
@@ -1741,6 +1769,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
