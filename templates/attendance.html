@@ -41,13 +41,13 @@
 <div class="stats-container animate-enter" style="margin-bottom: 40px;">
     <div class="stat-card stat-office card imperial-card">
         <small style="color: #000; opacity: 0.9; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Life-time Presence</small>
-        <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: #000 !important; background: none; -webkit-text-fill-color: #000;">{{ history|length }}</h2>
+        <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: #000 !important;">{{ history|length }}</h2>
         <div style="font-size: 0.75rem; background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; color: #000 !important;">Total Check-ins</div>
     </div>
 
     <div class="stat-card card imperial-card" style="background: linear-gradient(135deg, #ef4444, #991b1b);">
         <small style="color: #fff; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Month Analytics</small>
-        <h2 id="abs-count-display" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">0</h2>
+        <h2 id="abs-count-display" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important;">0</h2>
         <div style="font-size: 0.75rem; background: rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; color: white !important;">Days Absent</div>
     </div>
 
@@ -63,14 +63,6 @@
         <h3 style="margin:0; font-weight: 950; letter-spacing: -1px; display: flex; align-items: center; gap: 12px; color: #000;">
             <span style="font-size: 1.4rem;">📊</span> Last 7 Days Performance Matrix
         </h3>
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: #000;">
-                <div style="width: 12px; height: 12px; background: #800000; border-radius: 3px;"></div> Present
-            </span>
-            <span style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 900; color: #000;">
-                <div style="width: 12px; height: 12px; background: #ef4444; border-radius: 3px;"></div> Missed
-            </span>
-        </div>
     </div>
     <div style="height: 250px; width: 100%;">
         <canvas id="weeklyChart"></canvas>
@@ -82,7 +74,7 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 4px solid #000; padding-bottom: 30px;">
             <div>
                 <h2 style="margin:0; font-weight: 950; font-size: 2rem; letter-spacing: -1.5px; color: #000;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Geofence: Restricted to Campus</small>
+                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Geofence: Restricted to Campus (2km)</small>
             </div>
             {% if session['role'] == 'HR' %}
                 <a href="{{ url_for('export_csv', rtype='attendance') }}" class="imp-btn" style="background: #000; color: #fff; font-size: 0.7rem; box-shadow: 4px 4px 0px var(--imp-crimson);">📥 EXPORT DATA</a>
@@ -94,7 +86,7 @@
             <input type="hidden" name="lon" id="lon">
             
             <div style="flex: 1; min-width: 200px;">
-                <select name="work_mode" id="work_mode" style="width: 100%; height: 50px; border-radius: 12px; padding: 0 15px; font-weight: 900; border: 3px solid #000; color: #000; appearance: none; background: white url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 1rem center; background-size: 0.65rem auto;">
+                <select name="work_mode" id="work_mode" style="width: 100%; height: 50px; border-radius: 12px; padding: 0 15px; font-weight: 900; border: 3px solid #000; color: #000; background: white;">
                     <option value="Office">🏢 OFFICE CAMPUS</option>
                     <option value="WFH">🏠 REMOTE WORK (WFH)</option>
                 </select>
@@ -120,11 +112,11 @@
                         <td style="padding: 20px; font-weight: 800; border-radius: 12px 0 0 12px; border: 3px solid #000; border-right: none;">{{ row.date }}</td>
                         <td style="padding: 20px; font-weight: 900; border-top: 3px solid #000; border-bottom: 3px solid #000;">{{ row.user.full_name }}</td>
                         <td style="padding: 20px; border-top: 3px solid #000; border-bottom: 3px solid #000;">
-                            <span style="background: #000; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 900; font-size: 0.65rem; border: 2px solid var(--imp-crimson);">{{ row.work_mode }}</span>
+                            <span style="background: #000; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 900; font-size: 0.65rem;">{{ row.work_mode }}</span>
                         </td>
                         <td style="padding: 20px; border-radius: 0 12px 12px 0; border: 3px solid #000; border-left: none;">
                             <span style="color: #065f46; font-weight: 950;">{{ row.check_in }}</span>
-                            <span style="margin: 0 8px; opacity: 0.5; color: #000;">→</span>
+                            <span style="margin: 0 8px; opacity: 0.5;">→</span>
                             <span style="color: #800000; font-weight: 950;">{{ row.check_out or '--:--' }}</span>
                         </td>
                     </tr>
@@ -135,10 +127,8 @@
     </div>
 
     <div class="card imperial-card animate-enter" style="animation-delay: 0.3s; border-bottom: 8px solid #000; padding: 30px;">
-        <h3 style="font-weight: 950; margin-bottom: 30px; display: flex; align-items: center; gap: 12px; color: #000;">
-            <span style="color: #800000 !important; font-size: 1.3rem;">📅</span> Monthly Overview
-        </h3>
-        <div id='calendar' style="background: white; border-radius: 20px; padding: 15px; border: 3px solid #000; overflow: hidden;"></div>
+        <h3 style="font-weight: 950; margin-bottom: 30px; color: #000;">📅 Monthly Overview</h3>
+        <div id='calendar' style="background: white; border-radius: 20px; padding: 15px; border: 3px solid #000;"></div>
     </div>
 </div>
 
@@ -146,10 +136,9 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
 <script>
-// --- GEOLOCATION & GEOFENCING LOGIC ---
 const CAMPUS_LAT = 12.9606;
 const CAMPUS_LON = 77.5735;
-const MAX_RADIUS = 1000; // 1km radius
+const MAX_RADIUS = 2000; // Updated to 2000 meters
 
 function calcDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; 
@@ -167,7 +156,7 @@ function getLocation() {
     const mode = document.getElementById('work_mode').value;
     
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ SCANNING CAMPUS PERIMETER...";
+        indicator.innerText = "🛰️ SCANNING RADIUS (2000M)...";
         indicator.style.color = "#800000";
         
         navigator.geolocation.getCurrentPosition((pos) => {
@@ -178,9 +167,8 @@ function getLocation() {
             document.getElementById('lat').value = userLat;
             document.getElementById('lon').value = userLon;
 
-            // If mode is WFH, skip geofence check. If Office, enforce it.
             if (mode === "Office" && dist > MAX_RADIUS) {
-                indicator.innerText = `❌ OUTSIDE CAMPUS (${Math.round(dist)}m AWAY)`;
+                indicator.innerText = `❌ OUTSIDE RADIUS (${Math.round(dist)}m AWAY)`;
                 indicator.style.color = "#ef4444";
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
@@ -198,7 +186,7 @@ function getLocation() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- WEEKLY CHART ---
+    // --- CHART LOGIC (RETAINED) ---
     const ctx = document.getElementById('weeklyChart').getContext('2d');
     const labels = []; const dataValues = []; const backgroundColors = [];
     const now = new Date();
@@ -210,9 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
         {% for row in history %} if ('{{ row.date }}' === dStr) { found = true; } {% endfor %}
         dataValues.push(1); backgroundColors.push(found ? '#800000' : '#ef4444'); 
     }
-    new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10, barThickness: 35 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false, max: 1.2 }, x: { grid: { display: false }, ticks: { color: '#000', font: { weight: '900' } } } }, plugins: { legend: { display: false } } } });
+    new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#000', font: { weight: '900' } } } }, plugins: { legend: { display: false } } } });
 
-    // --- FULLCALENDAR ---
+    // --- CALENDAR LOGIC (RETAINED) ---
     var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         headerToolbar: { left: 'prev', center: 'title', right: 'next' },
