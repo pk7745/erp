@@ -62,7 +62,7 @@ def send_notification_email(receiver_email, sender_name):
 # ==========================================
 basedir = os.path.abspath(os.path.dirname(__file__))
 data_dir = "/app/data" 
-db_name = 'bms_college_v29.db'
+db_name = 'bms_college_v30.db'
 
 if not os.path.exists(data_dir):
     data_dir = os.path.join(basedir, 'data')
@@ -415,6 +415,34 @@ def my_profile():
     # Fetch the logged-in user's full data
     user = User.query.get(session['user_id'])
     return render_template('my_profile.html', user=user)
+
+@app.context_processor
+def inject_counts():
+    if 'user_id' in session:
+        try:
+            user_id = session['user_id']
+            user_role = session.get('role')
+            
+            # Universal counts for every staff member
+            counts = {
+                'tasks': Task.query.filter_by(assigned_to=user_id, is_done=False).count(),
+                'chats': Message.query.filter_by(receiver_id=user_id, is_read=False).count(),
+                'timetable': Timetable.query.filter_by(user_id=user_id, status='pending').count(),
+                'expenses': ExpenseClaim.query.filter_by(user_id=user_id, status='Pending').count(),
+                'my_leaves': Leave.query.filter_by(user_id=user_id, status='Pending').count(),
+                'activity': ActivityReport.query.filter_by(user_id=user_id).count(),
+                'salary_pending': SalaryUpdate.query.filter_by(user_id=user_id, status='Pending Admin Approval').count(),
+                'to_approve': 0
+            }
+
+            # Principal, HOD, and HR get the "To Approve" count for the Leave Calendar
+            if user_role in ['Principal', 'HR', 'HOD - BCA Dept']:
+                counts['to_approve'] = Leave.query.filter_by(status='Pending').count()
+                
+            return dict(counts=counts)
+        except Exception:
+            return dict(counts={})
+    return dict(counts={})
     
 @app.route('/audit_logs')
 def view_audit_logs():
@@ -1765,6 +1793,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
