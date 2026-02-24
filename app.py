@@ -252,6 +252,7 @@ class ExpenseClaim(db.Model):
     description = db.Column(db.String(255))
     payment_date = db.Column(db.String(50))
     processed_by = db.Column(db.String(100))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class PerformanceKPI(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -963,15 +964,29 @@ def approve_leave(id, action):
     
     return redirect(url_for('leave'))
 
+from datetime import datetime
+
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
+    
     if request.method == 'POST':
         amt = float(request.form['amount'])
-        db.session.add(ExpenseClaim(user_id=session['user_id'], category=request.form['category'], amount=amt, description=request.form['desc']))
+        # Added 'timestamp' to the ExpenseClaim creation
+        new_claim = ExpenseClaim(
+            user_id=session['user_id'], 
+            category=request.form['category'], 
+            amount=amt, 
+            description=request.form['desc'],
+            timestamp=datetime.now() # Captures current institutional time
+        )
+        db.session.add(new_claim)
+        
+        # Existing Notification Logic
         db.session.add(Notification(message=f"EXPENSE: {user.full_name} claimed INR {amt}"))
         db.session.commit()
+        
     claims = ExpenseClaim.query.all() if session['role'] in ['HR', 'Accountant'] else ExpenseClaim.query.filter_by(user_id=session['user_id']).all()
     return render_template('expenses.html', claims=claims)
 
@@ -1717,6 +1732,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
