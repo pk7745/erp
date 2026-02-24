@@ -343,6 +343,7 @@ CAMPUS_LAT = 12.9606
 CAMPUS_LON = 77.5735
 
 def calculate_distance(lat1, lon1, lat2, lon2):
+    import math
     R = 6371000  # Radius of Earth in meters
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
@@ -899,12 +900,19 @@ def attendance():
         lon = float(request.form.get('lon', 0))
         mode = request.form['work_mode']
         
-        # UPDATED: Using specific BMS College of Commerce and Management Campus coordinates
-        # Latitude: 12.9606, Longitude: 77.5735
-        if mode == 'Office' and calculate_distance(lat, lon, 12.9606, 77.5735) > 300:
-            flash("Verification Failed: You are too far from campus.", "error")
+        # VALIDATION: Check if coordinates were actually captured
+        if mode == 'Office' and (lat == 0 or lon == 0):
+            flash("Location Error: Please enable GPS and allow browser permissions.", "error")
             return redirect(url_for('attendance'))
 
+        # CALIBRATION: Increased radius to 1000m to account for GPS drift in BLR
+        distance = calculate_distance(lat, lon, CAMPUS_LAT, CAMPUS_LON)
+        
+        if mode == 'Office' and distance > 1000:
+            flash(f"Verification Failed: You are {round(distance)}m away from BMSCCM.", "error")
+            return redirect(url_for('attendance'))
+
+        # Existing Attendance Logic
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         t_now = get_ist_time().strftime("%I:%M %p")
         if not att:
@@ -914,6 +922,7 @@ def attendance():
             att.check_out = t_now
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-OUT"))
         db.session.commit()
+        flash("Record Synchronized Successfully.", "success")
         
     history = Attendance.query.all() if session['role'] == 'HR' else Attendance.query.filter_by(user_id=session['user_id']).all()
     return render_template('attendance.html', history=history)
@@ -1732,6 +1741,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
