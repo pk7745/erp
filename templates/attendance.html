@@ -9,7 +9,6 @@
         --shadow-hover: 15px 15px 0px #000000;
     }
 
-    /* --- UPDATED IMPERIAL EFFECTS (Grain Removed) --- */
     .imperial-card {
         background: #ffffff; 
         border: 4px solid #000; 
@@ -35,8 +34,6 @@
     }
 
     .stat-card { border: 4px solid #000 !important; box-shadow: 6px 6px 0px #000; }
-    
-    /* Table Enhancements */
     .imp-row { transition: 0.2s; }
     .imp-row:hover { background: rgba(128, 0, 0, 0.05) !important; transform: scale(1.01); }
 </style>
@@ -50,7 +47,7 @@
 
     <div class="stat-card card imperial-card" style="background: linear-gradient(135deg, #ef4444, #991b1b);">
         <small style="color: #fff; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Month Analytics</small>
-        <h2 id="absent-stat-count" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">0</h2>
+        <h2 id="abs-count-display" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important; background: none; -webkit-text-fill-color: white;">0</h2>
         <div style="font-size: 0.75rem; background: rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; color: white !important;">Days Absent</div>
     </div>
 
@@ -81,17 +78,14 @@
 </div>
 
 <div class="main-content-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 35px; align-items: start; margin-top: 35px;">
-    
     <div class="card imperial-card animate-enter" style="animation-delay: 0.2s; padding: 30px;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 4px solid #000; padding-bottom: 30px;">
             <div>
                 <h2 style="margin:0; font-weight: 950; font-size: 2rem; letter-spacing: -1.5px; color: #000;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Campus Geofence: 1km Active</small>
+                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Geofence: Restricted to Campus</small>
             </div>
             {% if session['role'] == 'HR' %}
-                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="imp-btn" style="background: #000; color: #fff; font-size: 0.7rem; box-shadow: 4px 4px 0px var(--imp-crimson);">
-                    📥 EXPORT DATA
-                </a>
+                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="imp-btn" style="background: #000; color: #fff; font-size: 0.7rem; box-shadow: 4px 4px 0px var(--imp-crimson);">📥 EXPORT DATA</a>
             {% endif %}
         </div>
 
@@ -152,107 +146,93 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
 <script>
-// --- GEOLOCATION LOGIC ---
+// --- GEOLOCATION & GEOFENCING LOGIC ---
+const CAMPUS_LAT = 12.9606;
+const CAMPUS_LON = 77.5735;
+const MAX_RADIUS = 1000; // 1km radius
+
+function calcDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; 
+    const p1 = lat1 * Math.PI/180;
+    const p2 = lat2 * Math.PI/180;
+    const dp = (lat2-lat1) * Math.PI/180;
+    const dl = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 function getLocation() {
     const indicator = document.getElementById('location-indicator');
     const btn = document.getElementById('submitBtn');
+    const mode = document.getElementById('work_mode').value;
     
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ CALIBRATING HIGH-PRECISION GPS...";
+        indicator.innerText = "🛰️ SCANNING CAMPUS PERIMETER...";
         indicator.style.color = "#800000";
         
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        };
-
         navigator.geolocation.getCurrentPosition((pos) => {
-            document.getElementById('lat').value = pos.coords.latitude;
-            document.getElementById('lon').value = pos.coords.longitude;
+            const userLat = pos.coords.latitude;
+            const userLon = pos.coords.longitude;
+            const dist = calcDistance(userLat, userLon, CAMPUS_LAT, CAMPUS_LON);
             
-            indicator.innerText = "✅ POSITION SECURED AT BMSCCM";
-            indicator.style.color = "#065f46";
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            btn.style.cursor = "pointer";
+            document.getElementById('lat').value = userLat;
+            document.getElementById('lon').value = userLon;
+
+            // If mode is WFH, skip geofence check. If Office, enforce it.
+            if (mode === "Office" && dist > MAX_RADIUS) {
+                indicator.innerText = `❌ OUTSIDE CAMPUS (${Math.round(dist)}m AWAY)`;
+                indicator.style.color = "#ef4444";
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+            } else {
+                indicator.innerText = (mode === "Office") ? "✅ WITHIN CAMPUS RADIUS" : "🏠 REMOTE MODE VERIFIED";
+                indicator.style.color = "#065f46";
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+            }
         }, (err) => {
-            indicator.innerText = "❌ ERROR: " + err.message.toUpperCase();
-            indicator.style.color = "#ef4444";
-        }, options);
+            indicator.innerText = "❌ GPS ERROR: " + err.message.toUpperCase();
+        }, { enableHighAccuracy: true });
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- LOGIC: WEEKLY CHART ---
+    // --- WEEKLY CHART ---
     const ctx = document.getElementById('weeklyChart').getContext('2d');
-    const labels = [];
-    const dataValues = [];
-    const backgroundColors = [];
+    const labels = []; const dataValues = []; const backgroundColors = [];
     const now = new Date();
-
     for (let i = 6; i >= 0; i--) {
-        let d = new Date();
-        d.setDate(now.getDate() - i);
+        let d = new Date(); d.setDate(now.getDate() - i);
         labels.push(d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' }));
-        let found = false;
         let dStr = d.toISOString().split('T')[0];
-        {% for row in history %}
-            if ('{{ row.date }}' === dStr) { found = true; }
-        {% endfor %}
-        dataValues.push(1); 
-        backgroundColors.push(found ? '#800000' : '#ef4444'); 
+        let found = false;
+        {% for row in history %} if ('{{ row.date }}' === dStr) { found = true; } {% endfor %}
+        dataValues.push(1); backgroundColors.push(found ? '#800000' : '#ef4444'); 
     }
+    new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10, barThickness: 35 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false, max: 1.2 }, x: { grid: { display: false }, ticks: { color: '#000', font: { weight: '900' } } } }, plugins: { legend: { display: false } } } });
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10, barThickness: 35 }] },
-        options: { 
-            responsive: true, maintainAspectRatio: false, 
-            scales: { 
-                y: { display: false, max: 1.2 }, 
-                x: { 
-                    grid: { display: false }, 
-                    border: { display: false }, 
-                    ticks: { color: '#000', font: { weight: '900' } } 
-                } 
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
-
-    // --- LOGIC: FULLCALENDAR ---
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+    // --- FULLCALENDAR ---
+    var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         headerToolbar: { left: 'prev', center: 'title', right: 'next' },
         dayCellDidMount: function(info) {
             let cellDate = info.date.toISOString().split('T')[0];
             let today = new Date().toISOString().split('T')[0];
-            let dayOfWeek = info.date.getDay();
-            let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
             let isPresent = false;
-            {% for row in history %}
-                if ('{{ row.date }}' === cellDate) { isPresent = true; }
-            {% endfor %}
-            if (!isPresent && !isWeekend && cellDate < today) {
-                info.el.style.backgroundColor = 'rgba(239, 68, 68, 0.05)'; 
+            {% for row in history %} if ('{{ row.date }}' === cellDate) { isPresent = true; } {% endfor %}
+            if (!isPresent && info.date.getDay() !== 0 && info.date.getDay() !== 6 && cellDate < today) {
                 let mark = document.createElement('div');
                 mark.innerHTML = '<span style="background:#ef4444; color:white; font-size:0.55rem; padding:3px 8px; border-radius:6px; margin-top:8px; display:inline-block; font-weight:950;">ABSENT</span>';
                 mark.style.textAlign = 'center';
                 info.el.querySelector('.fc-daygrid-day-frame').appendChild(mark);
-                let statCounter = document.getElementById('absent-stat-count');
-                let currentCount = parseInt(statCounter.innerText);
                 if (info.date.getMonth() === new Date().getMonth()) {
-                    statCounter.innerText = currentCount + 1;
+                    let counter = document.getElementById('abs-count-display');
+                    counter.innerText = parseInt(counter.innerText) + 1;
                 }
             }
         },
-        events: [
-            {% for row in history %}
-            { title: '{{ row.work_mode }}', start: '{{ row.date }}', color: '{% if row.work_mode == "WFH" %}#065f46{% else %}#800000{% endif %}' },
-            {% endfor %}
-        ]
+        events: [{% for row in history %}{ title: '{{ row.work_mode }}', start: '{{ row.date }}', color: '{% if row.work_mode == "WFH" %}#065f46{% else %}#800000{% endif %}' },{% endfor %}]
     });
     calendar.render();
 });
