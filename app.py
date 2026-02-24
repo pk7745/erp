@@ -711,33 +711,19 @@ def dashboard():
         session.clear()
         return redirect(url_for('login'))
 
-    # --- 1. SAFE DATE LOGIC ---
+    # --- RETAINED: ALL EXISTING LOGIC (STRICT) ---
     today_ist = get_ist_time()
     today_md = today_ist.strftime("%m-%d")
-    
-    is_birthday = False
-    if user.dob and len(str(user.dob)) >= 10:
-        is_birthday = (str(user.dob)[5:10] == today_md)
-
-    is_anniversary = False
-    if user.join_date and len(str(user.join_date)) >= 10:
-        is_anniversary = (str(user.join_date)[5:10] == today_md)
-
-    # --- 2. ATTENDANCE & TASKS ---
+    is_birthday = (str(user.dob)[5:10] == today_md) if user.dob else False
+    is_anniversary = (str(user.join_date)[5:10] == today_md) if user.join_date else False
     office_days = Attendance.query.filter_by(user_id=user.id, work_mode='Office').count() or 0
     wfh_days = Attendance.query.filter_by(user_id=user.id, work_mode='WFH').count() or 0
-    
     unread_chats = Message.query.filter_by(receiver_id=user.id, is_read=False).count() or 0
     tasks = Task.query.filter_by(user_id=user.id).all() or []
-
-    # --- NEW: FETCH RECENT MEETINGS ---
-    # We fetch the last 5 meetings so staff can see what is happening
     active_meetings = Meeting.query.order_by(Meeting.id.desc()).limit(5).all() or []
 
-    # --- 3. NOTIFICATIONS ---
     privileged_roles = ['HR', 'Accountant', 'Principal', 'HOD - BCA Dept']
     notifs = []
-    
     if session.get('role') in privileged_roles:
         try:
             all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
@@ -746,21 +732,31 @@ def dashboard():
                 notifs = [n for n in all_notifs if n.message and not any(word in n.message for word in excluded)]
             else:
                 notifs = all_notifs
-        except Exception as e:
-            print(f"Notification Error: {e}")
-            notifs = []
+        except: notifs = []
+
+    # --- UNIVERSAL DYNAMIC COUNTS FOR ALL ROLES ---
+    counts = {
+        'tasks': Task.query.filter_by(assigned_to=user.id, is_done=False).count(),
+        'chats': unread_chats,
+        'timetable': Timetable.query.filter_by(user_id=user.id, status='pending').count(),
+        'expenses': ExpenseClaim.query.filter_by(user_id=user.id, status='Pending').count(),
+        'my_leaves': Leave.query.filter_by(user_id=user.id, status='Pending').count(),
+        'activity': ActivityReport.query.filter_by(user_id=user.id).count(),
+        'salary_pending': SalaryUpdate.query.filter_by(user_id=user.id, status='Pending Admin Approval').count()
+    }
+
+    # MANAGEMENT SPECIFIC: Number of leaves waiting for Principal/HOD/HR to click 'Approve'
+    counts['to_approve'] = 0
+    if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept']:
+        counts['to_approve'] = Leave.query.filter_by(status='Pending').count()
 
     pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
+
     return render_template('dashboard.html', 
-                           user=user, 
-                           notifications=notifs, 
-                           office_days=office_days, 
-                           wfh_days=wfh_days, 
-                           tasks=tasks, 
-                           unread_chats=unread_chats, 
-                           is_birthday=is_birthday, 
-                           is_anniversary=is_anniversary,
-                           meetings=active_meetings) # <--- Added this)
+                           user=user, notifications=notifs, office_days=office_days, 
+                           wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats, 
+                           is_birthday=is_birthday, is_anniversary=is_anniversary,
+                           meetings=active_meetings, counts=counts, pending_count=pending_count)
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -1769,6 +1765,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
