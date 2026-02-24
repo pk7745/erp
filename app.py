@@ -917,7 +917,7 @@ def attendance():
         # 2. GEOFENCE CALIBRATION (1000m radius)
         distance = calculate_distance(lat, lon, CAMPUS_LAT, CAMPUS_LON)
         
-        if mode == 'Office' and distance > 1000:
+        if mode == 'Office' and distance > 2000:
             flash(f"Verification Failed: You are {round(distance)}m away from the BMSCCM perimeter.", "error")
             return redirect(url_for('attendance'))
 
@@ -1769,6 +1769,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
 
 
 
