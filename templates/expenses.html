@@ -1,198 +1,104 @@
 {% extends "base.html" %}
+{% block title %}Expense Claims - BMS College ERP{% endblock %}
+
 {% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Expense Claims</span>
+</div>
 
-<style>
-    :root {
-        --imp-crimson: #800000;
-        --imp-crimson-bright: #be123c;
-        --grain: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
-        --shadow-neo: 10px 10px 0px #000000;
-        --shadow-hover: 15px 15px 0px #000000;
-    }
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Expense Claim Authorization</h1>
+        <div class="page-subtitle">Submit official reimbursement claims and track disbursement status</div>
+    </div>
+    <div class="page-actions">
+        {% if session['role'] in ['HR', 'Accountant'] %}
+        <a href="{{ url_for('export_csv', rtype='expenses') }}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV Ledger</a>
+        {% endif %}
+    </div>
+</div>
 
-    /* --- FEATURE: LIVE DATA PULSE --- */
-    @keyframes dataPulse {
-        0% { box-shadow: 10px 10px 0px #000000; }
-        50% { box-shadow: 10px 10px 20px rgba(128, 0, 0, 0.4); }
-        100% { box-shadow: 10px 10px 0px #000000; }
-    }
+<div class="grid grid-cols-3">
+    <!-- Submit Expense Form (1 Col) -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-file-invoice-dollar" style="margin-right: 6px;"></i> Submit New Claim</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" class="form">
+                <div class="form-group">
+                    <label class="form-label">Expense Category</label>
+                    <input type="text" name="category" placeholder="e.g. Travel, Office Supplies, WiFi" class="form-control" required>
+                </div>
 
-    /* --- STAGGERED ANIMATIONS --- */
-    @keyframes snapIn {
-        0% { opacity: 0; transform: translateY(30px) scale(0.98); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
+                <div class="form-group">
+                    <label class="form-label">Amount (INR ₹)</label>
+                    <input type="number" step="0.01" name="amount" placeholder="₹ 0.00" class="form-control" required>
+                </div>
 
-    .stagger-1 { animation: snapIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    .stagger-2 { 
-        opacity: 0; 
-        animation: snapIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards, 
-                   dataPulse 4s infinite ease-in-out 1s; /* Subtle glow added here */
-    }
-    
-    .expense-row { 
-        opacity: 0; 
-        animation: snapIn 0.4s ease-out forwards;
-    }
+                <div class="form-group">
+                    <label class="form-label">Description & Justification</label>
+                    <textarea name="desc" rows="3" placeholder="Provide justification..." class="form-control" required></textarea>
+                </div>
 
-    /* --- UI REFINEMENTS --- */
-    h2, h3, h4, strong, span, p, label, td, th { color: #000000 !important; }
-    
-    .imperial-layout { 
-        display: grid; 
-        grid-template-columns: 380px 1fr; 
-        gap: 35px; 
-        padding: 20px;
-        perspective: 1200px;
-    }
-    
-    .imperial-card {
-        background: #ffffff; 
-        border: 4px solid #000; 
-        border-radius: 16px;
-        padding: 30px; 
-        box-shadow: var(--shadow-neo);
-        position: relative;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        overflow: hidden;
-    }
-
-    .imperial-card:hover {
-        transform: translateY(-5px) rotateX(2deg);
-        box-shadow: var(--shadow-hover);
-    }
-
-    .imperial-card::before {
-        content: ""; position: absolute; inset: 0; 
-        background-image: var(--grain); opacity: 0.03; 
-        pointer-events: none;
-    }
-
-    /* --- TACTILE BUTTONS --- */
-    .imp-btn {
-        padding: 12px 20px; font-weight: 950; text-transform: uppercase;
-        border: 4px solid #000; border-radius: 8px; cursor: pointer;
-        transition: 0.15s; text-decoration: none; display: inline-block; 
-        text-align: center; letter-spacing: 1px;
-    }
-    
-    .imp-btn-maroon { 
-        background: linear-gradient(135deg, var(--imp-crimson), #4a0000); 
-        color: #fff !important; 
-        box-shadow: 4px 4px 0px #000;
-    }
-
-    .imp-btn-maroon:active {
-        transform: translate(4px, 4px);
-        box-shadow: 0px 0px 0px #000;
-    }
-
-    .imp-btn-black { background: #000; color: #fff !important; box-shadow: 4px 4px 0px var(--imp-crimson); }
-    .imp-btn-black:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0px var(--imp-crimson); }
-
-    /* Imperial Table Logic */
-    .imperial-table { width: 100%; border-collapse: separate; border-spacing: 0 12px; }
-    .imperial-table th { 
-        padding: 18px; text-align: left; font-weight: 950; 
-        text-transform: uppercase; font-size: 0.75rem; 
-        border-bottom: 4px solid #000;
-    }
-    .expense-row td { 
-        background: white; padding: 18px; 
-        border-top: 3px solid #000; border-bottom: 3px solid #000;
-        transition: transform 0.2s;
-    }
-    .expense-row:hover td { transform: scaleY(1.02); background: #f9f9f9; }
-    
-    .expense-row td:first-child { border-left: 3px solid #000; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-    .expense-row td:last-child { border-right: 3px solid #000; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-
-    .status-pill {
-        padding: 6px 12px; border: 3px solid #000; border-radius: 6px;
-        font-weight: 950; font-size: 0.7rem; text-transform: uppercase;
-        display: inline-block;
-    }
-
-    .brand-gradient {
-        background: linear-gradient(180deg, var(--imp-crimson), #000);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-</style>
-
-<div class="imperial-layout">
-    <div class="imperial-card stagger-1">
-        <h3 style="margin-top:0; font-weight: 950; text-transform: uppercase; border-bottom: 4px solid #000; padding-bottom: 15px; margin-bottom: 25px;">
-            💰 <span class="brand-gradient">Authorize Claim</span>
-        </h3>
-        <form method="POST">
-            <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Expense Category</label>
-            <input type="text" name="category" placeholder="e.g. WiFi, Travel" required 
-                   style="width: 100%; padding: 15px; margin-bottom: 20px; border: 3px solid #000; border-radius: 8px; font-weight: 800; color: #000;">
-            
-            <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Amount (INR)</label>
-            <input type="number" name="amount" placeholder="₹ 0.00" required
-                   style="width: 100%; padding: 15px; margin-bottom: 20px; border: 3px solid #000; border-radius: 8px; font-weight: 800; color: #000;">
-            
-            <label style="font-weight: 900; font-size: 0.75rem; text-transform: uppercase;">Description</label>
-            <textarea name="desc" rows="4" placeholder="Justify expenditure..." required
-                      style="width: 100%; padding: 15px; margin-bottom: 20px; border: 3px solid #000; border-radius: 8px; font-weight: 800; color: #000;"></textarea>
-            
-            <button type="submit" class="imp-btn imp-btn-maroon" style="width: 100%;">Finalize Entry</button>
-        </form>
+                <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-paper-plane"></i> Finalize Claim Entry</button>
+            </form>
+        </div>
     </div>
 
-    <div class="imperial-card stagger-2">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <h3 style="margin:0; font-weight: 950; text-transform: uppercase;">📋 <span class="brand-gradient">Command Ledger</span></h3>
-            <div style="display: flex; gap: 12px;">
-                <input type="text" id="expenseSearch" placeholder="Filter Ledger..." 
-                       style="padding: 10px; border: 3px solid #000; border-radius: 8px; font-weight: 800; width: 200px; color: #000;">
-                
-                {% if session['role'] in ['HR', 'Accountant'] %}
-                <a href="{{ url_for('export_csv', rtype='expenses') }}" class="imp-btn imp-btn-black" style="font-size: 0.7rem;">EXPORT</a>
-                {% endif %}
-            </div>
+    <!-- Expense Claims Table (2 Cols) -->
+    <div class="card" style="grid-column: span 2;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-list-alt" style="margin-right: 6px;"></i> Command Expense Ledger</h3>
+            <input type="text" id="expenseSearch" placeholder="Filter Ledger..." class="form-control" style="width: 200px; font-size: 0.8rem; padding: 4px 10px;">
         </div>
-
-        <table class="imperial-table">
-            <thead>
-                <tr>
-                    <th>Personnel</th>
-                    <th>Category</th>
-                    <th>Submission Time</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="expenseTable">
-                {% for claim in claims %}
-                <tr class="expense-row" style="animation-delay: {{ loop.index0 * 0.05 + 0.4 }}s;">
-                    <td><strong style="font-weight: 950;">{{ claim.rel_user.full_name }}</strong></td>
-                    <td><span style="font-weight: 800; font-size: 0.85rem;">{{ claim.category }}</span></td>
-                    <td>
-                        <div style="font-size: 0.75rem; font-weight: 900; color: #000;">{{ claim.timestamp.strftime('%d %b %Y') }}</div>
-                        <div style="font-size: 0.65rem; opacity: 0.5; font-weight: 800; color: #000;">{{ claim.timestamp.strftime('%H:%M') }} HRS</div>
-                    </td>
-                    <td><strong style="color: var(--imp-crimson) !important; font-size: 1.1rem;">₹{{ claim.amount }}</strong></td>
-                    <td>
-                        {% if claim.status == 'Finalized' %}
-                            <span class="status-pill" style="background: #000; color: #fff !important;">PAID</span>
-                        {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
-                            <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="imp-btn imp-btn-maroon" style="font-size: 0.6rem; padding: 5px 10px;">APPROVE</a>
-                        {% else %}
-                            <span class="status-pill">{{ claim.status }}</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Personnel</th>
+                        <th>Category</th>
+                        <th>Submission Date</th>
+                        <th>Amount</th>
+                        <th style="text-align: right;">Status / Action</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseTable">
+                    {% for claim in claims %}
+                    <tr>
+                        <td><strong>{{ claim.rel_user.full_name }}</strong></td>
+                        <td><span class="badge badge-info">{{ claim.category }}</span></td>
+                        <td>
+                            <div>{{ claim.timestamp.strftime('%d %b %Y') }}</div>
+                            <small class="text-muted">{{ claim.timestamp.strftime('%H:%M') }} HRS</small>
+                        </td>
+                        <td><strong style="color: var(--danger); font-size: 1rem;">₹{{ claim.amount }}</strong></td>
+                        <td style="text-align: right;">
+                            {% if claim.status == 'Finalized' %}
+                                <span class="badge badge-success">PAID</span>
+                            {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
+                                <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="btn btn-success btn-sm">Approve</a>
+                            {% else %}
+                                <span class="badge badge-warning">{{ claim.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted p-2">No expense claims recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-    // Search Filter Logic
     document.getElementById('expenseSearch').addEventListener('keyup', function() {
         let filter = this.value.toLowerCase();
         let rows = document.querySelectorAll('#expenseTable tr');

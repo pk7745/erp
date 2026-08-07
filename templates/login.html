@@ -3,304 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | BMS COLLEGE OF COMMERCE AND MANAGEMENT</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Manrope:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <title>Executive Login | BMS College ERP</title>
+    
+    <!-- Professional Office Portal CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        :root {
-            --primary: #000000;
-            --imp-crimson: #800000;
-            --imp-crimson-bright: #be123c;
-            --imp-gold: #D4AF37;
-            --bg-body: #ffffff;
-            --grain: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
-            --shadow-neo: 15px 15px 0px #000000;
-        }
-
         body {
-            margin: 0;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #ffffff;
-            font-family: 'Plus Jakarta Sans', 'Manrope', sans-serif;
-            overflow: hidden;
-            perspective: 1500px;
-            position: relative;
+            background: linear-gradient(135deg, #0d47a1 0%, #08308e 50%, #121824 100%);
+            padding: 20px;
         }
 
-        /* --- REFINED: IMPERIAL WATERMARK --- */
-        .watermark-bg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 85vh;
-            height: 85vh;
-            background: url('https://www.bmsccm.ac.in/img/ll.png') no-repeat center;
-            background-size: contain;
-            opacity: 0.05;
-            z-index: -2;
-            pointer-events: none;
-            filter: grayscale(100%);
-        }
-
-        /* --- HYPER-REAL NEOTERIC CARD --- */
-        .login-card {
-            background: #ffffff;
-            padding: 55px;
-            border-radius: 16px;
-            border: 5px solid #000;
-            box-shadow: var(--shadow-neo);
+        .auth-container {
             width: 100%;
             max-width: 440px;
-            text-align: center;
-            transition: transform 0.1s ease-out;
-            transform-style: preserve-3d;
-            will-change: transform;
-            position: relative;
-            z-index: 1;
+            background: #ffffff;
+            border-radius: var(--radius-2xl);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            padding: 40px;
+            animation: slideUp 0.3s ease;
         }
 
-        /* Subtle Grain Overlay on Card */
-        .login-card::after {
-            content: ""; position: absolute; inset: 0; 
-            background-image: var(--grain); opacity: 0.03; 
-            pointer-events: none; border-radius: 11px;
+        body.dark-mode .auth-container {
+            background: #1a2234;
+            border: 1px solid #242f47;
         }
 
-        .login-logo {
-            width: 110px;
-            height: auto;
-            margin-bottom: 25px;
-            filter: drop-shadow(6px 6px 0px rgba(0,0,0,0.15));
-            transform: translateZ(60px);
-        }
-
-        .brand-name, .login-form, .footer-text, .portal-label {
-            transform: translateZ(40px);
-        }
-
-        /* RETAINED: Flash Alert System */
-        .alert-box {
-            background: #000;
-            color: #fff !important;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            font-size: 0.9rem;
-            font-weight: 800;
+        .auth-logo-badge {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-xl);
+            background: var(--primary);
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            border: 3px solid var(--imp-crimson);
-            box-shadow: 5px 5px 0px var(--imp-crimson);
-            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+            font-size: 1.75rem;
+            margin: 0 auto 16px auto;
         }
 
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 28px;
         }
 
-        .brand-name {
-            font-size: 1.35rem;
-            font-weight: 900;
-            color: #000;
-            margin-bottom: 8px;
-            letter-spacing: -1.5px;
-            line-height: 1.1;
-            text-transform: uppercase;
-        }
-
-        .brand-highlight {
-            color: var(--imp-crimson);
-            font-size: 1.55rem;
-            display: block;
-            margin-top: 5px;
-            font-weight: 950;
-            background: linear-gradient(180deg, var(--imp-crimson), #4a0000);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .portal-label {
-            color: #000; 
-            margin-bottom: 40px; 
-            font-weight: 800; 
-            font-size: 0.8rem; 
-            text-transform: uppercase; 
-            letter-spacing: 2px;
-            opacity: 0.8;
-        }
-
-        input {
-            width: 100%;
-            padding: 20px;
-            margin: 14px 0;
-            border: 4px solid #000;
-            background: #fff;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            font-family: inherit;
+        .auth-header h2 {
+            font-size: 1.5rem;
             font-weight: 800;
-            outline: none;
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 4px;
         }
 
-        input:focus {
-            box-shadow: 8px 8px 0px var(--imp-crimson);
-            transform: translate(-4px, -4px);
-            border-color: var(--imp-crimson);
-        }
-
-        /* RETAINED: Login Button Logic */
-        .btn-login {
-            width: 100%;
-            background: #000;
-            color: white !important;
-            padding: 22px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 1.2rem;
-            cursor: pointer;
-            margin-top: 25px;
-            transition: 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-login:hover {
-            background: var(--imp-crimson);
-            transform: translate(-6px, -6px);
-            box-shadow: 10px 10px 0px #000;
-        }
-
-        .btn-login:active {
-            transform: translate(0, 0);
-            box-shadow: none;
-        }
-
-        .forgot-link {
-            display: inline-block;
-            margin-top: 30px;
-            color: #000;
-            text-decoration: none;
-            border-bottom: 3px solid var(--imp-crimson);
-            padding-bottom: 2px;
+        .auth-header p {
             font-size: 0.85rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.2s;
-        }
-
-        .forgot-link:hover {
-            background: var(--imp-crimson);
-            color: #fff;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-
-        .footer-text {
-            margin-top: 45px;
-            font-size: 0.7rem;
-            color: #000;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            font-weight: 900;
-            opacity: 0.3;
-        }
-
-        /* Background Dynamic Elements */
-        .bg-stripe {
-            position: absolute;
-            width: 100%;
-            height: 35vh;
-            background: rgba(0,0,0,0.02);
-            z-index: -1;
-            transform: skewY(-6deg);
-            border-top: 2px solid rgba(0,0,0,0.05);
-            border-bottom: 2px solid rgba(0,0,0,0.05);
+            color: var(--text-muted);
+            margin: 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="watermark-bg"></div>
-
-    <div class="bg-stripe" style="top: -10vh;"></div>
-    <div class="bg-stripe" style="bottom: -10vh;"></div>
-
-    <div class="login-card">
-        <img src="https://www.bmsccm.ac.in/img/ll.png" alt="BMSCCM Logo" class="login-logo">
-
-        <div class="brand-name">
-            BMS COLLEGE OF <br> 
-            <span class="brand-highlight">COMMERCE AND MANAGEMENT</span>
-        </div>
-        
-        <p class="portal-label">
-            Faculty & Staff Enterprise Portal
-        </p>
-
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert-box">
-                <span style="font-size: 1.2rem;">⚠️</span>
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form method="POST" class="login-form">
-            <input type="text" name="username" placeholder="IDENTIFICATION ID" required autocomplete="username">
-            <input type="password" name="password" placeholder="SECURITY ACCESS KEY" required autocomplete="current-password">
-            <button type="submit" class="btn-login">Authorize Entry</button>
-        </form>
-
-        <a href="{{ url_for('forgot_password') }}" class="forgot-link">Request Access Recovery</a>
-
-        <div class="footer-text">
-            ENCRYPTED ACCESS &copy; 2026 BMSCCM COMMAND
-        </div>
+<div class="auth-container">
+    <div class="auth-logo-badge">🏛️</div>
+    
+    <div class="auth-header">
+        <h2>BMS College ERP</h2>
+        <p>Enterprise Management Portal</p>
     </div>
 
-    <script>
-        // RETAINED: 3D Mouse Motion Logic
-        const card = document.querySelector('.login-card');
-        const motionQuery = window.matchMedia('(prefers-reduced-motion: no-preference)');
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' or category == 'error' else 'primary' }}" style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
-        document.addEventListener('mousemove', (e) => {
-            if (!motionQuery.matches) return;
+    <form method="POST" action="{{ url_for('login') }}" class="form">
+        <div class="form-group">
+            <label class="form-label" for="username">Username or Institutional ID</label>
+            <div style="position: relative;">
+                <input type="text" id="username" name="username" class="form-control" style="padding-left: 38px;" placeholder="e.g. admin" required autofocus>
+                <i class="fas fa-user" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+            </div>
+        </div>
 
-            const { clientX, clientY } = e;
-            const { innerWidth, innerHeight } = window;
+        <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="form-label" for="password" style="margin: 0;">Password</label>
+                <a href="{{ url_for('forgot_password') }}" style="font-size: 0.75rem; color: var(--primary);">Forgot Password?</a>
+            </div>
+            <div style="position: relative;">
+                <input type="password" id="password" name="password" class="form-control" style="padding-left: 38px;" placeholder="••••••••" required>
+                <i class="fas fa-lock" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+            </div>
+        </div>
 
-            // Refined rotation degrees for a smoother "premium" feel
-            const xRotation = ((clientY / innerHeight) - 0.5) * -12; 
-            const yRotation = ((clientX / innerWidth) - 0.5) * 12;
+        <button type="submit" class="btn btn-primary btn-block" style="padding: 12px; font-size: 0.95rem; margin-top: 8px;">
+            Sign In to Portal <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
+    </form>
 
-            card.style.transform = `rotateX(${xRotation}deg) rotateY(${yRotation}deg)`;
-        });
+    <div style="text-align: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted);">
+        BMS College of Commerce & Management &copy; 2026<br>
+        Encrypted Executive Session
+    </div>
+</div>
 
-        document.addEventListener('mouseleave', () => {
-            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-            card.style.transition = `transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)`;
-        });
-
-        document.addEventListener('mouseenter', () => {
-            card.style.transition = `transform 0.1s ease-out`;
-        });
-    </script>
 </body>
 </html>

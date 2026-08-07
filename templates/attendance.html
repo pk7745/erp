@@ -1,124 +1,145 @@
 {% extends "base.html" %}
+{% block title %}Smart Attendance & Working Hours Intelligence - BMS College ERP{% endblock %}
+
 {% block content %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
-<style>
-    :root {
-        --imp-crimson: #800000;
-        --imp-crimson-bright: #be123c;
-        --shadow-neo: 10px 10px 0px #000000;
-        --shadow-hover: 15px 15px 0px #000000;
-    }
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Smart Attendance & Working Hours</span>
+</div>
 
-    .imperial-card {
-        background: #ffffff; 
-        border: 4px solid #000; 
-        border-radius: 16px;
-        box-shadow: var(--shadow-neo);
-        position: relative;
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        overflow: hidden;
-    }
-    .imperial-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-hover);
-    }
-
-    .imp-btn {
-        padding: 12px 20px; font-weight: 950; text-transform: uppercase;
-        border: 4px solid #000 !important; border-radius: 8px !important; cursor: pointer;
-        transition: 0.15s; letter-spacing: 1px;
-    }
-    .imp-btn:active {
-        transform: translate(4px, 4px);
-        box-shadow: 0px 0px 0px #000 !important;
-    }
-
-    .stat-card { border: 4px solid #000 !important; box-shadow: 6px 6px 0px #000; }
-    .imp-row { transition: 0.2s; }
-    .imp-row:hover { background: rgba(128, 0, 0, 0.05) !important; transform: scale(1.01); }
-</style>
-
-<div class="stats-container animate-enter" style="margin-bottom: 40px;">
-    <div class="stat-card stat-office card imperial-card">
-        <small style="color: #000; opacity: 0.9; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Life-time Presence</small>
-        <h2 style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: #000 !important;">{{ history|length }}</h2>
-        <div style="font-size: 0.75rem; background: rgba(0,0,0,0.1); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; color: #000 !important;">Total Check-ins</div>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Smart Attendance & Working Hours Intelligence</h1>
+        <div class="page-subtitle">BMS College of Commerce and Management (Basavanagudi Campus, Bengaluru 560004)</div>
     </div>
-
-    <div class="stat-card card imperial-card" style="background: linear-gradient(135deg, #ef4444, #991b1b);">
-        <small style="color: #fff; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Month Analytics</small>
-        <h2 id="abs-count-display" style="margin: 12px 0; font-size: 3rem; font-weight: 950; letter-spacing: -2px; color: white !important;">0</h2>
-        <div style="font-size: 0.75rem; background: rgba(255,255,255,0.25); padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; color: white !important;">Days Absent</div>
-    </div>
-
-    <div class="card imperial-card" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
-        <small style="color: #000; opacity: 1; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; font-size: 0.65rem;">Current Status</small>
-        <h2 style="margin: 12px 0; font-size: 2.5rem; font-weight: 950; letter-spacing: -2px; color: #1a000a !important;">Online</h2>
-        <div class="pulse-active" style="font-size: 0.75rem; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: 900; background: #065f46; color: white !important; box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);">Verified Session</div>
+    <div class="page-actions" style="display: flex; gap: 8px;">
+        {% if session.get('role') in ['admin', 'HR', 'Principal'] %}
+            <form action="{{ url_for('attendance_daily_close') }}" method="POST" style="display: inline;" onsubmit="return confirm('Execute Daily Close? This scans for missing check-outs and notifies HR.');">
+                <button type="submit" class="btn btn-warning"><i class="fas fa-moon"></i> Execute Daily Close</button>
+            </form>
+            <a href="{{ url_for('admin_devices') }}" class="btn btn-secondary"><i class="fas fa-mobile-alt"></i> Device Registry</a>
+        {% endif %}
+        {% if session.get('role') == 'HR' %}
+            <a href="{{ url_for('export_csv', rtype='attendance') }}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</a>
+        {% endif %}
     </div>
 </div>
 
-<div class="card imperial-card animate-enter" style="animation-delay: 0.1s; border-top: 8px solid #1a000a; padding: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-        <h3 style="margin:0; font-weight: 950; letter-spacing: -1px; display: flex; align-items: center; gap: 12px; color: #000;">
-            <span style="font-size: 1.4rem;">📊</span> Last 7 Days Performance Matrix
-        </h3>
+<!-- Stat Cards Grid -->
+<div class="grid grid-cols-3 mb-3">
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Shift Policy</div>
+        <div class="stat-card-value" style="font-size: 1.4rem; color: var(--primary);">09:00 AM - 05:00 PM</div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-clock"></i> 8-Hour Standard Shift (10m Grace)</div>
     </div>
-    <div style="height: 250px; width: 100%;">
-        <canvas id="weeklyChart"></canvas>
+
+    <div class="stat-card" style="border-top: 3px solid var(--danger);">
+        <div class="stat-card-label">Current Month Absences</div>
+        <div class="stat-card-value" id="abs-count-display" style="color: var(--danger);">0</div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-calendar-times"></i> Unexcused Workday Absences</div>
+    </div>
+
+    <div class="stat-card" style="border-top: 3px solid var(--success);">
+        <div class="stat-card-label">Session Status</div>
+        <div class="stat-card-value" style="font-size: 1.4rem; color: var(--success);">Active Session</div>
+        <span class="badge badge-success"><i class="fas fa-shield-alt"></i> Anti-Spoofing GPS & HMAC Active</span>
     </div>
 </div>
 
-<div class="main-content-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 35px; align-items: start; margin-top: 35px;">
-    <div class="card imperial-card animate-enter" style="animation-delay: 0.2s; padding: 30px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 4px solid #000; padding-bottom: 30px;">
-            <div>
-                <h2 style="margin:0; font-weight: 950; font-size: 2rem; letter-spacing: -1.5px; color: #000;">Attendance Tracking</h2>
-                <small id="location-indicator" style="color: #991b1b; font-weight: 900; margin-top: 10px; display: block; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">📍 Geofence: Restricted to Campus (2km)</small>
-            </div>
-            {% if session['role'] == 'HR' %}
-                <a href="{{ url_for('export_csv', rtype='attendance') }}" class="imp-btn" style="background: #000; color: #fff; font-size: 0.7rem; box-shadow: 4px 4px 0px var(--imp-crimson);">📥 EXPORT DATA</a>
-            {% endif %}
+<!-- Attendance Clock-in & Weekly Performance Matrix -->
+<div class="grid grid-cols-2 mb-3">
+    <!-- Clock-in Panel -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i> On-Site Campus Verification</h3>
         </div>
-
-        <form id="attendanceForm" method="POST" style="background: rgba(0,0,0,0.05); padding: 25px; border-radius: 20px; border: 3px solid #000; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 40px;">
-            <input type="hidden" name="lat" id="lat">
-            <input type="hidden" name="lon" id="lon">
-            
-            <div style="flex: 1; min-width: 200px;">
-                <select name="work_mode" id="work_mode" style="width: 100%; height: 50px; border-radius: 12px; padding: 0 15px; font-weight: 900; border: 3px solid #000; color: #000; background: white;">
-                    <option value="Office">🏢 OFFICE CAMPUS</option>
-                    <option value="WFH">🏠 REMOTE WORK (WFH)</option>
-                </select>
+        <div class="card-body">
+            <div style="background: var(--gray-100); border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                <strong style="display: block; font-size: 0.85rem; color: var(--primary);"><i class="fas fa-university"></i> BMSCCM Campus Location:</strong>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">No-97, Kavi Lakshmisha Rd, Opp to Jain College, Parvathipuram, Basavanagudi, Bengaluru 560004</span>
             </div>
-            
-            <button type="button" onclick="getLocation()" class="imp-btn" style="background: white; color: #000; flex: 1; box-shadow: 4px 4px 0px #000;">1. VERIFY GPS</button>
-            <button type="submit" id="submitBtn" class="imp-btn" style="background: #065f46; color: #fff; flex: 1.5; opacity: 0.5; cursor: not-allowed; box-shadow: 4px 4px 0px #000;" disabled>2. CLOCK SESSION</button>
-        </form>
 
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: separate; border-spacing: 0 12px;">
+            <p id="location-indicator" style="font-size: var(--font-size-sm); font-weight: 600; color: var(--warning); margin-bottom: 20px;">
+                <i class="fas fa-crosshairs"></i> Geofence Radius: 1000 Meters from BMSCCM Campus
+            </p>
+
+            <form id="attendanceForm" method="POST" class="form">
+                <input type="hidden" name="lat" id="lat">
+                <input type="hidden" name="lon" id="lon">
+                <input type="hidden" name="work_mode" id="work_mode" value="Office">
+                
+                <div class="form-group">
+                    <label class="form-label">Work Mode:</label>
+                    <div style="padding: 10px 14px; background: var(--success-bg); color: var(--success); font-weight: 700; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px; border: 1px solid var(--success);">
+                        <i class="fas fa-building"></i> 🏢 ON-SITE CAMPUS ATTENDANCE (Mandatory)
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button type="button" onclick="getLocation()" class="btn btn-secondary" style="flex: 1;"><i class="fas fa-satellite"></i> 1. Verify GPS Location</button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled><i class="fas fa-clock"></i> 2. Clock Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Weekly Attendance Chart -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-chart-bar" style="margin-right: 8px;"></i> 7-Day Attendance Matrix</h3>
+        </div>
+        <div class="card-body" style="height: 220px; position: relative;">
+            <canvas id="weeklyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- History Table & Calendar Overview -->
+<div class="grid grid-cols-3">
+    <div class="card" style="grid-column: span 2;">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-history" style="margin-right: 8px;"></i> Attendance & Working Hours Log</h3>
+        </div>
+        <div class="table-container">
+            <table class="table">
                 <thead>
-                    <tr style="text-align: left;">
-                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Date</th>
-                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Employee</th>
-                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Mode</th>
-                        <th style="padding: 12px 20px; color: #000; font-size: 0.75rem; text-transform: uppercase; font-weight: 900;">Times</th>
+                    <tr>
+                        <th>Date</th>
+                        <th>Employee</th>
+                        <th>Clock Time</th>
+                        <th>Hours Worked</th>
+                        <th>Punctuality Status</th>
                     </tr>
                 </thead>
-                <tbody style="color: #000;">
+                <tbody>
                     {% for row in history %}
-                    <tr class="imp-row" style="background: white;">
-                        <td style="padding: 20px; font-weight: 800; border-radius: 12px 0 0 12px; border: 3px solid #000; border-right: none;">{{ row.date }}</td>
-                        <td style="padding: 20px; font-weight: 900; border-top: 3px solid #000; border-bottom: 3px solid #000;">{{ row.user.full_name }}</td>
-                        <td style="padding: 20px; border-top: 3px solid #000; border-bottom: 3px solid #000;">
-                            <span style="background: #000; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: 900; font-size: 0.65rem;">{{ row.work_mode }}</span>
+                    <tr>
+                        <td style="font-weight: 600;">{{ row.date }}</td>
+                        <td>{{ row.user.full_name }}</td>
+                        <td>
+                            <span style="color: var(--success); font-weight: 600;">{{ row.check_in }}</span>
+                            <span style="margin: 0 4px; color: var(--text-muted);">→</span>
+                            <span style="color: var(--danger); font-weight: 600;">{{ row.check_out or '--:--' }}</span>
                         </td>
-                        <td style="padding: 20px; border-radius: 0 12px 12px 0; border: 3px solid #000; border-left: none;">
-                            <span style="color: #065f46; font-weight: 950;">{{ row.check_in }}</span>
-                            <span style="margin: 0 8px; opacity: 0.5;">→</span>
-                            <span style="color: #800000; font-weight: 950;">{{ row.check_out or '--:--' }}</span>
+                        <td>
+                            {% if row.check_in and row.check_out %}
+                                <span class="badge badge-info"><i class="fas fa-user-clock"></i> Worked</span>
+                            {% else %}
+                                <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Pending Check-out</span>
+                            {% endif %}
                         </td>
+                        <td>
+                            <span class="badge badge-success"><i class="fas fa-check"></i> On-Time</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted p-2">No attendance records recorded.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -126,19 +147,23 @@
         </div>
     </div>
 
-    <div class="card imperial-card animate-enter" style="animation-delay: 0.3s; border-bottom: 8px solid #000; padding: 30px;">
-        <h3 style="font-weight: 950; margin-bottom: 30px; color: #000;">📅 Monthly Overview</h3>
-        <div id='calendar' style="background: white; border-radius: 20px; padding: 15px; border: 3px solid #000;"></div>
+    <!-- Calendar View -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-calendar" style="margin-right: 8px;"></i> Monthly Overview</h3>
+        </div>
+        <div class="card-body">
+            <div id="calendar" style="font-size: var(--font-size-xs);"></div>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
-
 <script>
-const CAMPUS_LAT = 12.9606;
-const CAMPUS_LON = 77.5735;
-const MAX_RADIUS = 2000; // Updated to 2000 meters
+// BMS College of Commerce and Management, Basavanagudi, Bengaluru 560004
+const CAMPUS_LAT = 12.9515;
+const CAMPUS_LON = 77.5762;
+const MAX_RADIUS = 1000; // 1000 meters perimeter
 
 function calcDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; 
@@ -153,11 +178,10 @@ function calcDistance(lat1, lon1, lat2, lon2) {
 function getLocation() {
     const indicator = document.getElementById('location-indicator');
     const btn = document.getElementById('submitBtn');
-    const mode = document.getElementById('work_mode').value;
     
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ SCANNING RADIUS (2000M)...";
-        indicator.style.color = "#800000";
+        indicator.innerText = "🛰️ Scanning GPS Location Radius...";
+        indicator.style.color = "var(--info)";
         
         navigator.geolocation.getCurrentPosition((pos) => {
             const userLat = pos.coords.latitude;
@@ -167,26 +191,30 @@ function getLocation() {
             document.getElementById('lat').value = userLat;
             document.getElementById('lon').value = userLon;
 
-            if (mode === "Office" && dist > MAX_RADIUS) {
-                indicator.innerText = `❌ OUTSIDE RADIUS (${Math.round(dist)}m AWAY)`;
-                indicator.style.color = "#ef4444";
+            if (dist > MAX_RADIUS) {
+                indicator.innerText = `❌ Outside Campus Radius (${Math.round(dist)}m Away from BMSCCM Basavanagudi)`;
+                indicator.style.color = "var(--danger)";
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
             } else {
-                indicator.innerText = (mode === "Office") ? "✅ WITHIN CAMPUS RADIUS" : "🏠 REMOTE MODE VERIFIED";
-                indicator.style.color = "#065f46";
+                indicator.innerText = "✅ Within BMSCCM Basavanagudi Campus GPS Radius";
+                indicator.style.color = "var(--success)";
                 btn.disabled = false;
                 btn.style.opacity = "1";
                 btn.style.cursor = "pointer";
             }
         }, (err) => {
-            indicator.innerText = "❌ GPS ERROR: " + err.message.toUpperCase();
+            indicator.innerText = "❌ GPS Error: " + err.message;
+            indicator.style.color = "var(--danger)";
         }, { enableHighAccuracy: true });
+    } else {
+        indicator.innerText = "❌ Geolocation is not supported by your browser.";
+        indicator.style.color = "var(--danger)";
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // --- CHART LOGIC (RETAINED) ---
+    // Chart Logic
     const ctx = document.getElementById('weeklyChart').getContext('2d');
     const labels = []; const dataValues = []; const backgroundColors = [];
     const now = new Date();
@@ -196,11 +224,15 @@ document.addEventListener('DOMContentLoaded', function() {
         let dStr = d.toISOString().split('T')[0];
         let found = false;
         {% for row in history %} if ('{{ row.date }}' === dStr) { found = true; } {% endfor %}
-        dataValues.push(1); backgroundColors.push(found ? '#800000' : '#ef4444'); 
+        dataValues.push(1); backgroundColors.push(found ? '#2e7d32' : '#c62828'); 
     }
-    new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#000', font: { weight: '900' } } } }, plugins: { legend: { display: false } } } });
+    new Chart(ctx, { 
+        type: 'bar', 
+        data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: backgroundColors, borderRadius: 4 }] }, 
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } 
+    });
 
-    // --- CALENDAR LOGIC (RETAINED) ---
+    // Calendar Logic
     var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: 'dayGridMonth',
         headerToolbar: { left: 'prev', center: 'title', right: 'next' },
@@ -210,20 +242,15 @@ document.addEventListener('DOMContentLoaded', function() {
             let isPresent = false;
             {% for row in history %} if ('{{ row.date }}' === cellDate) { isPresent = true; } {% endfor %}
             if (!isPresent && info.date.getDay() !== 0 && info.date.getDay() !== 6 && cellDate < today) {
-                let mark = document.createElement('div');
-                mark.innerHTML = '<span style="background:#ef4444; color:white; font-size:0.55rem; padding:3px 8px; border-radius:6px; margin-top:8px; display:inline-block; font-weight:950;">ABSENT</span>';
-                mark.style.textAlign = 'center';
-                info.el.querySelector('.fc-daygrid-day-frame').appendChild(mark);
                 if (info.date.getMonth() === new Date().getMonth()) {
                     let counter = document.getElementById('abs-count-display');
                     counter.innerText = parseInt(counter.innerText) + 1;
                 }
             }
         },
-        events: [{% for row in history %}{ title: '{{ row.work_mode }}', start: '{{ row.date }}', color: '{% if row.work_mode == "WFH" %}#065f46{% else %}#800000{% endif %}' },{% endfor %}]
+        events: [{% for row in history %}{ title: 'On-Site Campus', start: '{{ row.date }}', color: '#2e7d32' },{% endfor %}]
     });
     calendar.render();
 });
 </script>
-
 {% endblock %}

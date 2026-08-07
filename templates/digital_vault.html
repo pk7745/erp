@@ -1,45 +1,106 @@
 {% extends "base.html" %}
+{% block title %}Digital Vault & AI OCR Scanner - BMS College ERP{% endblock %}
+
 {% block content %}
-<div class="card" style="background: white; border-radius: 20px; padding: 30px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-    <h2 style="color: #1b2559; font-family: 'DM Sans', sans-serif;">📁 AI Document Vault</h2>
-    <p style="color: #a3aed0;">Upload staff ID cards to auto-generate profiles using OCR.</p>
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Digital Vault & AI OCR Scanner</span>
+</div>
 
-    <div id="drop-zone" style="border: 2px dashed #4318ff; border-radius: 15px; padding: 50px; text-align: center; margin-top: 20px; background: #f4f7fe; transition: 0.3s;">
-        <input type="file" id="docUpload" hidden accept="image/*">
-        <label for="docUpload" style="cursor: pointer;">
-            <div style="font-size: 3rem; margin-bottom: 10px;">📸</div>
-            <p style="color: #4318ff; font-weight: bold; margin: 0;">Click to Upload Staff ID</p>
-            <span style="color: #a3aed0; font-size: 0.8rem;">(Supports PAN, Aadhar, or College ID)</span>
-        </label>
-    </div>
-
-    <div id="loader" style="display: none; text-align: center; margin-top: 30px;">
-        <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #4318ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-        <p style="color: #4318ff; font-weight: 600; margin-top: 15px;">🤖 AI is reading document... please wait...</p>
-    </div>
-
-    <div id="result-area" style="display: none; margin-top: 30px; padding: 20px; background: #f0fff4; border-radius: 12px; border: 1px solid #c6f6d5;">
-        <h3 style="color: #2f855a; margin-top: 0;">✅ Profile Created Successfully!</h3>
-        <p style="color: #48bb78;">The AI extracted the following details and added them to the Staff Directory:</p>
-        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <strong>Detected Name:</strong> <span id="display-name" style="color: #1b2559;"></span><br>
-            <strong>Default Role:</strong> Faculty
-        </div>
-        <a href="{{ url_for('staff_directory') }}" class="btn" style="display: inline-block; margin-top: 15px; background: #4318ff; text-decoration: none; padding: 10px 20px; border-radius: 8px; color: white;">View Directory</a>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Digital Document Vault & AI OCR Scanner</h1>
+        <div class="page-subtitle">Restricted to Admin Department • Instant document scanning & staff profile extraction</div>
     </div>
 </div>
 
-<style>
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    #drop-zone:hover { background: #edf2ff; border-color: #3b10da; }
-</style>
+<div class="card" style="max-width: 850px; margin: 0 auto;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-camera" style="margin-right: 8px; color: var(--primary);"></i> Scan Staff Identification Document</h3>
+        <span class="badge badge-info"><i class="fas fa-user-shield"></i> Admin Department Access</span>
+    </div>
+    <div class="card-body text-center">
+        <div id="drop-zone" style="border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 48px 24px; background: var(--gray-50); cursor: pointer; transition: background-color var(--transition-fast);">
+            <input type="file" id="docUpload" hidden accept="image/*">
+            <label for="docUpload" style="cursor: pointer; display: block;">
+                <div style="font-size: 3.5rem; color: var(--primary); margin-bottom: 12px;"><i class="fas fa-id-card"></i></div>
+                <h3 style="color: var(--primary); font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">Click to Upload Staff ID / Document</h3>
+                <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Supports Institutional ID Card, PAN Card, Aadhar Card, or Certificate Image</p>
+            </label>
+        </div>
+
+        <div id="loader" style="display: none; padding: 40px 0;">
+            <div class="loading-spinner" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto;"></div>
+            <p style="color: var(--primary); font-weight: 700; margin-top: 16px;">🤖 AI OCR Engine is reading document data... please wait...</p>
+        </div>
+
+        <!-- Result Card after Scanning -->
+        <div id="result-area" style="display: none; flex-direction: column; text-align: left; margin-top: 24px; background: var(--white); border: 2px solid var(--success); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <h3 style="color: var(--success); margin: 0; font-size: 1.15rem; font-weight: 800;"><i class="fas fa-check-circle"></i> Profile Extracted Successfully!</h3>
+                <span class="badge badge-success">OCR Verified</span>
+            </div>
+
+            <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted);">
+                The AI OCR Scanner extracted the following staff credentials from the document:
+            </p>
+
+            <div style="background: var(--gray-100); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
+                <div><strong>Full Name:</strong> <span id="res-name" style="color: var(--primary); font-weight: 700;"></span></div>
+                <div><strong>Suggested Username:</strong> <span id="res-username" style="font-weight: 600;"></span></div>
+                <div><strong>Suggested Email:</strong> <span id="res-email" style="font-weight: 600;"></span></div>
+                <div><strong>Phone Number:</strong> <span id="res-phone" style="font-weight: 600;"></span></div>
+                <div><strong>Department:</strong> <span id="res-dept" style="font-weight: 600;"></span></div>
+                <div><strong>Suggested Salary:</strong> <span id="res-salary" style="color: var(--success); font-weight: 700;"></span></div>
+            </div>
+
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary" onclick="openAddEmployeeModal()" style="flex: 1;"><i class="fas fa-user-plus"></i> ➕ Add Employee to Database</button>
+                <a href="{{ url_for('staff_directory') }}" class="btn btn-secondary"><i class="fas fa-list"></i> Staff Directory</a>
+                <button type="button" class="btn btn-secondary" onclick="resetScanner()"><i class="fas fa-redo"></i> Scan Another</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form for Pre-filled Add Employee -->
+<div id="addEmployeeModal" class="card" style="display: none; max-width: 850px; margin: 24px auto 0 auto; border: 2px solid var(--primary);">
+    <div class="card-header" style="background: var(--primary-bg);">
+        <h3 class="card-title" style="color: var(--primary);"><i class="fas fa-user-plus"></i> Confirm & Save New Personnel</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeAddEmployeeModal()">✕ Close</button>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('add_employee') }}" method="POST" enctype="multipart/form-data" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div class="form-group mb-0"><label class="form-label">Full Name</label><input type="text" id="m_full_name" name="full_name" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Email</label><input type="email" id="m_email" name="email" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Phone</label><input type="text" id="m_phone" name="phone" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Username</label><input type="text" id="m_username" name="username" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Password</label><input type="password" id="m_password" name="password" value="bms2026pass" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Department</label><input type="text" id="m_department" name="department" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Department ID</label><input type="text" id="m_dept_id" name="dept_id" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Religion</label><input type="text" name="religion" value="General" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Caste</label><input type="text" name="caste" value="General" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Date of Birth</label><input type="date" name="dob" value="1992-05-15" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Joining Date</label><input type="date" name="join_date" value="2026-08-01" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Basic Salary (₹)</label><input type="number" id="m_salary" name="salary" class="form-control" required></div>
+
+            <div style="grid-column: span 3; margin-top: 12px;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700;"><i class="fas fa-save"></i> Save Scanned Employee to Database</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
+let scanData = {};
+
 document.getElementById('docUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Show loader, hide others
     document.getElementById('drop-zone').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
 
@@ -50,21 +111,59 @@ document.getElementById('docUpload').addEventListener('change', function(e) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
         document.getElementById('loader').style.display = 'none';
         if(data.success) {
-            document.getElementById('result-area').style.display = 'block';
-            document.getElementById('display-name').innerText = data.extracted_name;
+            scanData = data;
+            document.getElementById('result-area').style.display = 'flex';
+            document.getElementById('res-name').innerText = data.extracted_name;
+            document.getElementById('res-username').innerText = data.suggested_username;
+            document.getElementById('res-email').innerText = data.suggested_email;
+            document.getElementById('res-phone').innerText = data.suggested_phone;
+            document.getElementById('res-dept').innerText = data.suggested_department;
+            document.getElementById('res-salary').innerText = '₹' + data.suggested_salary.toLocaleString('en-IN');
         } else {
-            alert("Scanning failed. Please try a clearer image.");
-            document.getElementById('drop-zone').style.display = 'block';
+            alert(data.error || "Scanning failed. Please upload a clearer image.");
+            resetScanner();
         }
     })
     .catch(err => {
-        console.error(err);
-        alert("Error connecting to AI Engine.");
+        console.error("Scan error:", err);
+        alert("Error connecting to AI Scan Engine. Please try again.");
+        resetScanner();
     });
 });
+
+function openAddEmployeeModal() {
+    document.getElementById('addEmployeeModal').style.display = 'block';
+    if(scanData.extracted_name) {
+        document.getElementById('m_full_name').value = scanData.extracted_name;
+        document.getElementById('m_username').value = scanData.suggested_username || 'newstaff';
+        document.getElementById('m_email').value = scanData.suggested_email || 'staff@bms.edu.in';
+        document.getElementById('m_phone').value = scanData.suggested_phone || '+91 9876543210';
+        document.getElementById('m_department').value = scanData.suggested_department || 'Computer Science';
+        document.getElementById('m_dept_id').value = scanData.suggested_dept_id || 'CS-2026';
+        document.getElementById('m_salary').value = scanData.suggested_salary || 65000;
+    }
+    window.scrollTo({ top: document.getElementById('addEmployeeModal').offsetTop - 20, behavior: 'smooth' });
+}
+
+function closeAddEmployeeModal() {
+    document.getElementById('addEmployeeModal').style.display = 'none';
+}
+
+function resetScanner() {
+    document.getElementById('result-area').style.display = 'none';
+    document.getElementById('addEmployeeModal').style.display = 'none';
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('drop-zone').style.display = 'block';
+    document.getElementById('docUpload').value = '';
+}
 </script>
 {% endblock %}

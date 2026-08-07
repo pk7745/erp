@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Operational AI Assistant - BMS College ERP{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>AI Operations Assistant</span>
+    </div>
+
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+                <span class="badge badge-primary" style="font-weight: 800; text-transform: uppercase;">
+                    🤖 Gemini Operational AI Assistant
+                </span>
+                <span class="badge badge-success" style="font-weight: 800; text-transform: uppercase;">
+                    🛡️ Secure by Design
+                </span>
+            </div>
+            <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0;">Campus Operations AI Assistant</h1>
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-top: 4px;">
+                Ask natural-language questions about attendance, timetables, check-in times, leave statuses, and notification logs.
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 0.8rem;">
+            <i class="fas fa-user-shield" style="color: var(--primary); margin-right: 6px;"></i> Active User: <strong>{{ user.full_name }}</strong> (Role: <span class="badge badge-info">{{ user.role }}</span>)
+        </div>
+    </div>
+
+    <!-- Main Container: 2 Grid Layout (Chat + Security Control Panel) -->
+    <div style="display: grid; grid-template-columns: 2.2fr 1fr; gap: 24px;">
+        
+        <!-- Left: Interactive Chat Window -->
+        <div class="card" style="display: flex; flex-direction: column; height: 680px; border-top: 3px solid var(--primary);">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border-bottom: 1px solid var(--border);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #06b6d4); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; font-weight: bold;">
+                        🤖
+                    </div>
+                    <div>
+                        <strong style="font-size: 1rem; display: block;">BMS ERP Operational Assistant</strong>
+                        <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">● Online • Whitelisted Read-Only Engine</span>
+                    </div>
+                </div>
+                <button type="button" onclick="clearChat()" class="btn btn-secondary btn-sm" style="font-size: 0.75rem;">
+                    <i class="fas fa-trash-alt"></i> Clear Chat
+                </button>
+            </div>
+
+            <!-- Chat Message Thread -->
+            <div id="chatThread" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: var(--bg-body);">
+                
+                <!-- Initial Welcome Message -->
+                <div style="display: flex; gap: 12px; max-width: 85%;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0;">
+                        🤖
+                    </div>
+                    <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 0 16px 16px 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); font-size: 0.88rem; line-height: 1.5;">
+                        Hello <strong>{{ user.full_name }}</strong>! I am your BMS ERP Operational AI Assistant.<br><br>
+                        I can help you answer day-to-day operational questions like:
+                        <ul style="margin: 8px 0 8px 18px; padding: 0;">
+                            <li><em>"Who is absent today?"</em></li>
+                            <li><em>"What time did Ramesh check in?"</em></li>
+                            <li><em>"Which class is Dr. Kiran taking today?"</em></li>
+                            {% if user.role in ['admin', 'HR', 'Accountant', 'Principal', 'HOD'] %}
+                            <li><em>"Why is Ramesh on leave?"</em></li>
+                            <li><em>"Was check-out reminder email sent to staff?"</em></li>
+                            {% endif %}
+                        </ul>
+                        <div style="margin-top: 10px; padding: 8px 12px; background: var(--gray-100); border-radius: var(--radius-sm); font-size: 0.78rem; color: var(--text-muted); border-left: 3px solid var(--primary);">
+                            🔒 <strong>Security Guarantee:</strong> Salary figures and personal markers (DOB, address, bank/tax IDs) are <strong>forbidden by design</strong> and unaccessible through the assistant.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suggested Quick Question Chips -->
+            <div style="padding: 10px 16px; background: var(--bg-card); border-top: 1px solid var(--border); overflow-x: auto; white-space: nowrap; display: flex; gap: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; align-self: center;">Try Asking:</span>
+                <button type="button" onclick="askPreset('Who is absent today?')" class="chip">Who is absent today?</button>
+                <button type="button" onclick="askPreset('Who is present today?')" class="chip">Who is present today?</button>
+                <button type="button" onclick="askPreset('What time did Balaram check in?')" class="chip">What time did Balaram check in?</button>
+                <button type="button" onclick="askPreset('Which class is Dr. Kiran taking today?')" class="chip">Which class is Dr. Kiran taking?</button>
+                {% if user.role in ['admin', 'HR', 'Accountant', 'Principal', 'HOD'] %}
+                <button type="button" onclick="askPreset('Was check-out email sent to staff?')" class="chip chip-mgmt">Was check-out email sent?</button>
+                {% endif %}
+                <button type="button" onclick="askPreset('What is Ramesh\'s salary?')" class="chip chip-forbidden">Test Tier 3 Forbidden Refusal</button>
+            </div>
+
+            <!-- Input Box Form -->
+            <div style="padding: 14px 16px; background: var(--bg-card); border-top: 1px solid var(--border);">
+                <form id="chatForm" style="display: flex; gap: 10px;" onsubmit="sendMessage(event)">
+                    <input type="text" id="userInput" class="form-control" placeholder="Ask a natural-language operational question..." required autocomplete="off" style="flex: 1;">
+                    <button type="submit" id="sendBtn" class="btn btn-primary" style="font-weight: 700; padding: 0 20px;">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: Security & Whitelist Transparency Panel -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Card 1: 3-Tier Security Architecture -->
+            <div class="card" style="border-top: 3px solid var(--success);">
+                <div class="card-header">
+                    <h3 class="card-title" style="font-size: 1rem;"><i class="fas fa-shield-alt" style="color: var(--success); margin-right: 8px;"></i> 3-Tier Security Model</h3>
+                </div>
+                <div class="card-body" style="font-size: 0.82rem; line-height: 1.5;">
+                    <div style="margin-bottom: 12px; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: var(--radius-sm); border-left: 3px solid var(--success);">
+                        <strong style="color: var(--success);">TIER 1 — Open to All Staff</strong><br>
+                        Presence, check-in times, lecture schedules, class locations, headcount totals.
+                    </div>
+                    <div style="margin-bottom: 12px; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-sm); border-left: 3px solid var(--primary);">
+                        <strong style="color: var(--primary);">TIER 2 — Management Only</strong><br>
+                        Leave reasons, late arrivals, overtime records, notification delivery logs.
+                    </div>
+                    <div style="padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: var(--radius-sm); border-left: 3px solid var(--danger);">
+                        <strong style="color: var(--danger);">TIER 3 — FORBIDDEN BY DESIGN</strong><br>
+                        Salary, PF/tax, bank IDs, DOB, caste, address, personal phone/email. Completely unaccessible.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Whitelisted Tools for Current Role -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title" style="font-size: 0.95rem;"><i class="fas fa-list-check" style="color: var(--primary); margin-right: 8px;"></i> Available Whitelisted Tools ({{ tools|length }})</h3>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto; padding: 0;">
+                    <ul style="list-style: none; margin: 0; padding: 0;">
+                        {% for tool in tools %}
+                        <li style="padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 0.8rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                                <code style="font-weight: 700; color: var(--primary);">{{ tool.name }}()</code>
+                                <span class="badge {% if tool.tier == 1 %}badge-success{% else %}badge-info{% endif %}" style="font-size: 0.65rem;">Tier {{ tool.tier }}</span>
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.75rem;">{{ tool.desc }}</div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.chip {
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.chip:hover {
+    background: var(--primary-bg);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.chip-mgmt {
+    border-color: var(--info);
+    color: var(--info);
+}
+.chip-forbidden {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+</style>
+
+<script>
+function askPreset(text) {
+    document.getElementById('userInput').value = text;
+    document.getElementById('chatForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+}
+
+function clearChat() {
+    const thread = document.getElementById('chatThread');
+    thread.innerHTML = `
+        <div style="display: flex; gap: 12px; max-width: 85%;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0;">🤖</div>
+            <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 0 16px 16px 16px; border: 1px solid var(--border); font-size: 0.88rem;">
+                Chat cleared. Ask a new operational query!
+            </div>
+        </div>
+    `;
+}
+
+function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('userInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    const thread = document.getElementById('chatThread');
+    input.value = '';
+
+    // Append User Message
+    const userHtml = `
+        <div style="display: flex; gap: 12px; max-width: 80%; align-self: flex-end; flex-direction: row-reverse;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.85rem; font-weight: bold; flex-shrink: 0;">👤</div>
+            <div style="background: var(--primary); color: white; padding: 12px 16px; border-radius: 16px 0 16px 16px; font-size: 0.88rem; line-height: 1.4;">
+                ${escapeHtml(question)}
+            </div>
+        </div>
+    `;
+    thread.insertAdjacentHTML('beforeend', userHtml);
+    thread.scrollTop = thread.scrollHeight;
+
+    // Append Loading Indicator
+    const loadId = 'load_' + Date.now();
+    const loadingHtml = `
+        <div id="${loadId}" style="display: flex; gap: 12px; max-width: 85%;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0;">🤖</div>
+            <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 0 16px 16px 16px; border: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted);">
+                <i class="fas fa-spinner fa-spin"></i> Querying whitelisted Python functions...
+            </div>
+        </div>
+    `;
+    thread.insertAdjacentHTML('beforeend', loadingHtml);
+    thread.scrollTop = thread.scrollHeight;
+
+    // AJAX Request to API
+    fetch("{{ url_for('assistant_ask_api') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById(loadId).remove();
+
+        let badgeHtml = '';
+        if (data.function_used === 'FORBIDDEN_TIER3_REFUSAL') {
+            badgeHtml = `<span class="badge badge-danger" style="margin-bottom: 8px;"><i class="fas fa-ban"></i> TIER 3 FORBIDDEN BY DESIGN</span>`;
+        } else if (data.function_used) {
+            badgeHtml = `<span class="badge badge-primary" style="margin-bottom: 8px;"><i class="fas fa-code"></i> Executed: ${data.function_used}() [Tier ${data.tier}]</span>`;
+        }
+
+        const formattedAnswer = data.answer.replace(/\n/g, '<br>');
+
+        const botHtml = `
+            <div style="display: flex; gap: 12px; max-width: 85%;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #4f46e5; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0;">🤖</div>
+                <div style="background: var(--bg-card); padding: 14px 18px; border-radius: 0 16px 16px 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); font-size: 0.88rem; line-height: 1.5;">
+                    ${badgeHtml}
+                    <div>${formattedAnswer}</div>
+                </div>
+            </div>
+        `;
+        thread.insertAdjacentHTML('beforeend', botHtml);
+        thread.scrollTop = thread.scrollHeight;
+    })
+    .catch(err => {
+        document.getElementById(loadId).remove();
+        const errHtml = `
+            <div style="display: flex; gap: 12px; max-width: 85%;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0;">⚠️</div>
+                <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 0 16px 16px 16px; border: 1px solid var(--danger); font-size: 0.85rem; color: var(--danger);">
+                    Assistant temporary connection issue. Please try again.
+                </div>
+            </div>
+        `;
+        thread.insertAdjacentHTML('beforeend', errHtml);
+        thread.scrollTop = thread.scrollHeight;
+    });
+}
+
+function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+</script>
+{% endblock %}

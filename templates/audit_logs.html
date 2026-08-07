@@ -1,221 +1,73 @@
 {% extends "base.html" %}
+{% block title %}System Audit Logs - BMS College ERP{% endblock %}
+
 {% block content %}
-
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<style>
-    :root {
-        --imperial-maroon: #2d000f;
-        --royal-gold: #d4af37;
-        --accent-gold: #C5A059;
-        --log-text-primary: #1a0008; 
-        --log-text-secondary: #2d000f;
-        --glass-bg: rgba(45, 0, 15, 0.96);
-        --imperial-border: rgba(212, 175, 55, 0.3);
-    }
-
-    body {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    .audit-card {
-        background: var(--glass-bg);
-        border-radius: 24px;
-        padding: 40px;
-        border: 1px solid var(--royal-gold);
-        /* Modernized Imperial Elevation */
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(10px);
-        margin-top: 20px;
-    }
-
-    /* Refined Imperial Table */
-    .imperial-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0 10px;
-        margin-top: 30px;
-    }
-
-    .imperial-table th {
-        padding: 20px;
-        color: var(--royal-gold);
-        font-weight: 800;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        text-align: left;
-        opacity: 0.8;
-    }
-
-    .imperial-table td {
-        padding: 20px;
-        background: #fdfaf5; /* High-contrast Imperial parchment */
-        color: var(--log-text-primary);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-top: 1px solid var(--imperial-border);
-        border-bottom: 1px solid var(--imperial-border);
-    }
-
-    .log-row td:first-child { 
-        border-left: 1px solid var(--imperial-border); 
-        border-radius: 16px 0 0 16px; 
-    }
-    
-    .log-row td:last-child { 
-        border-right: 1px solid var(--imperial-border); 
-        border-radius: 0 16px 16px 0; 
-    }
-
-    .log-row:hover td {
-        background: #ffffff;
-        transform: scale(1.005);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        border-color: var(--royal-gold);
-        z-index: 10;
-    }
-
-    /* Action Badges - Modernized */
-    .action-pill {
-        background: var(--imperial-maroon);
-        color: var(--royal-gold); 
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        letter-spacing: 1px;
-        border: 1px solid var(--royal-gold);
-    }
-
-    .btn-imperial {
-        padding: 14px 28px;
-        border-radius: 14px;
-        font-weight: 800;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        font-size: 0.8rem;
-        border: none;
-    }
-
-    .btn-export {
-        background: var(--royal-gold);
-        color: var(--imperial-maroon);
-    }
-
-    .btn-export:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
-        filter: brightness(1.1);
-    }
-
-    .btn-purge {
-        background: transparent;
-        color: #ff4d4d;
-        border: 1px solid rgba(255, 77, 77, 0.4);
-    }
-
-    .btn-purge:hover {
-        background: rgba(255, 77, 77, 0.1);
-        border-color: #ff4d4d;
-        color: #ff4d4d;
-    }
-
-    .timestamp-text {
-        color: var(--log-text-secondary);
-        font-weight: 700;
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        font-size: 0.85rem;
-    }
-
-    .admin-name {
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .admin-avatar-dot {
-        width: 8px;
-        height: 8px;
-        background: var(--royal-gold);
-        border-radius: 50%;
-        box-shadow: 0 0 10px var(--royal-gold);
-    }
-</style>
-
-<div class="audit-card">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
-        <div>
-            <div style="color: var(--royal-gold); font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; opacity: 0.8;">
-                Security Protocol: Black Box
-            </div>
-            <h2 style="color: #fff; margin: 0; font-weight: 800; letter-spacing: -1.5px; font-size: 2.5rem; text-transform: uppercase;">
-                System Audit Logs
-            </h2>
-        </div>
-        
-        <div style="display: flex; gap: 12px; margin-bottom: 5px;">
-            <form action="{{ url_for('clear_audit_logs') }}" method="POST" onsubmit="return confirm('EXTREME WARNING: You are about to permanently delete all imperial audit records. This action cannot be undone. Proceed?');">
-                <button type="submit" class="btn-imperial btn-purge">
-                    <span>🗑️ Purge Records</span>
-                </button>
-            </form>
-
-            <button onclick="window.print()" class="btn-imperial btn-export">
-                <span>🖨️ Export Intelligence</span>
-            </button>
-        </div>
-    </div>
-
-    <table class="imperial-table">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Administrator</th>
-                <th>Action Detail</th>
-                <th>Target Subject</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr class="log-row">
-                <td class="timestamp-text">
-                    {{ log.timestamp.strftime('%d %b %Y • %I:%M %p') }}
-                </td>
-                <td>
-                    <div class="admin-name">
-                        <div class="admin-avatar-dot"></div>
-                        {{ log.user_name }}
-                    </div>
-                </td>
-                <td>
-                    <span class="action-pill">
-                        <span style="font-size: 0.9rem;">⚡</span> {{ log.action }}
-                    </span>
-                </td>
-                <td style="font-weight: 700; color: var(--log-text-secondary); opacity: 0.8;">
-                    {{ log.target_user }}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="4" style="padding: 80px; text-align: center; color: var(--royal-gold); font-style: italic; background: transparent; border: none; opacity: 0.6;">
-                    <div style="font-size: 3rem; margin-bottom: 20px;">🏰</div>
-                    The Imperial records are currently pristine.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>System Audit Trail</span>
 </div>
 
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Institutional Audit & Security Logs</h1>
+        <div class="page-subtitle">Encrypted tracking of administrative operations and access logs</div>
+    </div>
+    <div class="page-actions">
+        <form action="{{ url_for('clear_audit_logs') }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Permanently purge all system audit logs?');">
+            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Purge Logs</button>
+        </form>
+        <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print"></i> Export Log Report</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-shield-alt" style="margin-right: 6px;"></i> System Operations Ledger</h3>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Administrator / User</th>
+                    <th>Action Detail</th>
+                    <th>Target Subject</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="font-family: var(--font-family-mono); font-size: 0.85rem;">
+                        {{ log.timestamp.strftime('%d %b %Y • %I:%M %p') }}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge badge-success" style="width: 8px; height: 8px; padding: 0;"></span>
+                            <strong>{{ log.user_name }}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-info">
+                            ⚡ {{ log.action }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 600;">
+                        {{ log.target_user }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted p-3">
+                        <i class="fas fa-shield-halved" style="font-size: 2rem; display: block; margin-bottom: 8px;"></i>
+                        No audit log entries recorded. System is pristine.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

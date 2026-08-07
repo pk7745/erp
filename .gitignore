@@ -1,0 +1,26 @@
+# Environments & Secrets
+.env
+venv/
+ENV/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Databases & Backups
+*.db
+*.sqlite3
+data/*.db
+backups/
+
+# Logs & Temporary Files
+*.log
+static/temp_payslips/*
+!static/temp_payslips/.gitkeep
+.vercel/
+
+# OS Specific
+.DS_Store
+Thumbs.db

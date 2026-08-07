@@ -1,274 +1,175 @@
 {% extends "base.html" %}
+{% block title %}Activity Room & Directives - BMS College ERP{% endblock %}
+
 {% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Activity Room & Tasks</span>
+</div>
 
-<style>
-    :root {
-        --royal-maroon: #4a0404;
-        --deep-wine: #2d0202;
-        --gold-primary: #d4af37;
-        --gold-glow: #ffdf00;
-        --text-bright: #ffffff;
-        --text-muted: #e0cc9d;
-    }
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Activity Room & Command Directives</h1>
+        <div class="page-subtitle">Strategic task dispatching, personnel assignments, and execution monitoring</div>
+    </div>
+</div>
 
-    /* Royal Dark Container Styles */
-    .activity-container {
-        background: var(--deep-wine);
-        border-radius: 24px;
-        padding: 30px;
-        border: 1px solid var(--gold-primary);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-        color: white;
-    }
-
-    .section-title {
-        font-size: 1.4rem;
-        font-weight: 900;
-        letter-spacing: -0.5px;
-        margin-bottom: 24px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--gold-primary);
-        text-transform: uppercase;
-    }
-
-    /* Task Bubbles - Royal Dark */
-    .task-bubble {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 16px;
-        border-left: 5px solid var(--gold-primary);
-        transition: 0.3s;
-    }
-    .task-bubble:hover { 
-        background: rgba(255, 255, 255, 0.08);
-        transform: translateX(5px);
-        border-color: var(--gold-glow);
-    }
-
-    .task-meta {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-top: 8px;
-        display: block;
-        font-weight: 600;
-    }
-
-    /* Forms & Inputs - Updated for Dark Text in Dropdowns */
-    input, select, textarea {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border: 1px solid var(--gold-primary) !important;
-        color: white !important;
-        border-radius: 10px !important;
-        padding: 12px !important;
-        margin-bottom: 15px !important;
-    }
-    
-    /* Specific Dropdown Option Styling */
-    select option {
-        background-color: white !important;
-        color: var(--deep-wine) !important; /* Dark text for options */
-    }
-
-    input::placeholder { color: rgba(255, 255, 255, 0.4); }
-
-    .premium-label { 
-        font-size: 0.75rem; 
-        font-weight: 900; 
-        color: var(--gold-primary); 
-        margin-bottom: 8px; 
-        display: block; 
-        text-transform: uppercase;
-    }
-
-    /* History & Feed */
-    .feed-table { width: 100%; border-collapse: collapse; }
-    .feed-table th { 
-        text-align: left; 
-        color: var(--royal-maroon); /* Darkened for light background */
-        padding: 15px; 
-        font-size: 0.8rem; 
-        text-transform: uppercase;
-        border-bottom: 2px solid var(--royal-maroon);
-    }
-    .feed-table td { padding: 15px; border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
-
-    .history-item { 
-        padding: 16px; 
-        border-radius: 12px; 
-        background: rgba(255, 255, 255, 0.03); 
-        margin-bottom: 12px; 
-        border: 1px solid rgba(212, 175, 55, 0.2); 
-    }
-
-    .history-reply { 
-        font-size: 0.85rem; 
-        color: white; 
-        background: var(--royal-maroon); 
-        padding: 12px; 
-        border-radius: 8px; 
-        margin-top: 10px; 
-        border-left: 3px solid var(--gold-primary);
-        font-style: italic;
-    }
-    
-    .scroll-container { max-height: 480px; overflow-y: auto; padding-right: 8px; }
-    .scroll-container::-webkit-scrollbar { width: 5px; }
-    .scroll-container::-webkit-scrollbar-thumb { background: var(--gold-primary); border-radius: 10px; }
-
-    .btn-royal {
-        background: var(--gold-primary);
-        color: var(--royal-maroon);
-        font-weight: 900;
-        text-transform: uppercase;
-        border: none;
-        transition: 0.3s;
-    }
-    .btn-royal:hover { background: var(--gold-glow); transform: translateY(-2px); }
-</style>
-
-<div class="activity-container">
-    <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 35px;">
-        
-        <div class="animate-enter">
-            {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-            <div class="task-bubble" style="border-top: 4px solid var(--gold-primary); background: var(--royal-maroon);">
-                <div class="section-title">
-                    <i class="fas fa-paper-plane"></i> 📤 Issue Command
-                </div>
-                <form action="{{ url_for('assign_task') }}" method="POST">
-                    <span class="premium-label">Strategic Objective</span>
-                    <input type="text" name="title" style="width: 100%;" placeholder="Describe the required action..." required>
+<div class="grid grid-cols-2 mb-3">
+    <!-- Dispatch & Assigned Tasks (1 Col) -->
+    <div>
+        {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-paper-plane" style="margin-right: 6px;"></i> Issue Command Directive</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('assign_task') }}" method="POST" class="form">
+                    <div class="form-group">
+                        <label class="form-label">Strategic Objective Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="Describe required action..." required>
+                    </div>
                     
-                    <span class="premium-label">Assign To Personnel</span>
-                    <select name="staff_id" style="width: 100%;" required>
-                        <option value="" disabled selected>Search Staff...</option>
-                        {% if session['role'] == 'Principal' %}
-                            {% for u in all_staff %}
-                                <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role }})</option>
-                            {% endfor %}
-                        {% elif 'HOD' in session['role'] %}
-                            {% for faculty in faculty_members %}
-                                <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
-                            {% endfor %}
-                        {% endif %}
-                    </select>
+                    <div class="form-group">
+                        <label class="form-label">Assign To Personnel</label>
+                        <select name="staff_id" class="form-control" required>
+                            <option value="" disabled selected>Select Staff...</option>
+                            {% if session['role'] == 'Principal' %}
+                                {% for u in all_staff %}
+                                    <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role }})</option>
+                                {% endfor %}
+                            {% elif 'HOD' in session['role'] %}
+                                {% for faculty in faculty_members %}
+                                    <option value="{{ faculty.id }}">{{ faculty.full_name }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
                     
-                    <button type="submit" class="btn btn-royal" style="width: 100%; padding: 15px; margin-top: 10px;">
-                        Execute Dispatch
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-paper-plane"></i> Execute Dispatch</button>
                 </form>
             </div>
-            {% endif %}
-
-            <div class="task-bubble" style="background: rgba(0,0,0,0.2);">
-                <div class="section-title" style="color: #00ffcc;">
-                    <i class="fas fa-inbox"></i> 📥 Assigned to Me
-                </div>
-                <div class="scroll-container">
-                    {% for task in my_tasks if not task.is_done %}
-                    <div class="history-item" style="border-left: 4px solid #00ffcc;">
-                        <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 5px;">{{ task.title }}</div>
-                        <span class="task-meta">Origin: <span style="color: var(--gold-primary);">{{ task.task_sender.full_name if task.task_sender else 'System/Principal' }}</span></span>
-                        
-                        <form action="{{ url_for('complete_task', id=task.id) }}" method="POST" style="margin-top: 15px;">
-                            <textarea name="reply" rows="2" style="width: 100%;" placeholder="Provide execution report..." required></textarea>
-                            <button type="submit" class="btn" style="background: #00ffcc; color: black; font-weight: 800; width: 100%;">
-                                Mark as Accomplished
-                            </button>
-                        </form>
-                    </div>
-                    {% else %}
-                    <div style="text-align: center; padding: 30px 0; color: var(--text-muted);">
-                        <i class="fas fa-check-circle" style="font-size: 2rem; display: block; margin-bottom: 10px;"></i>
-                        All objectives met.
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
         </div>
+        {% endif %}
 
-        <div class="animate-enter">
-            <div class="task-bubble" style="background: var(--royal-maroon);">
-                <div class="section-title" style="color: white; margin-bottom: 15px;">
-                    <i class="fas fa-chart-line"></i> Efficiency Metrics
-                </div>
-                <canvas id="growthChart" style="max-height: 200px;"></canvas>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-inbox" style="margin-right: 6px;"></i> Assigned to Me</h3>
             </div>
-
-            <div class="task-bubble" style="background: rgba(0,0,0,0.2);">
-                <div class="section-title" style="color: var(--gold-primary);">
-                    <i class="fas fa-history"></i> Command History
-                </div>
-                <div class="scroll-container">
-                    {% for task in my_tasks if task.is_done %}
-                    <div class="history-item">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 700; font-size: 0.95rem;">{{ task.title }}</span>
-                            <span style="color: #00ffcc; font-size: 0.7rem; font-weight: 900;">✓ SECURED</span>
-                        </div>
-                        {% if task.reply_content %}
-                        <div class="history-reply">{{ task.reply_content }}</div>
-                        {% endif %}
+            <div class="card-body" style="max-height: 380px; overflow-y: auto;">
+                {% for task in my_tasks if not task.is_done %}
+                <div style="padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--gray-50); margin-bottom: 12px;">
+                    <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">{{ task.title }}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">
+                        Origin: <strong>{{ task.task_sender.full_name if task.task_sender else 'System/Principal' }}</strong>
                     </div>
-                    {% endfor %}
+                    
+                    <form action="{{ url_for('complete_task', id=task.id) }}" method="POST">
+                        <textarea name="reply" rows="2" class="form-control mb-2" placeholder="Provide execution report..." required style="font-size: 0.8rem;"></textarea>
+                        <button type="submit" class="btn btn-success btn-block btn-sm"><i class="fas fa-check"></i> Mark as Accomplished</button>
+                    </form>
                 </div>
+                {% else %}
+                <div class="text-center text-muted p-3">
+                    <i class="fas fa-check-circle" style="font-size: 1.5rem; display: block; margin-bottom: 6px;"></i>
+                    All assigned objectives accomplished.
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
-    {% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
-    <div class="task-bubble" style="margin-top: 25px; background: var(--text-muted); border: 1px solid var(--gold-primary);">
-        <div class="section-title" style="color: var(--royal-maroon);">
-            <i class="fas fa-broadcast-tower" style="color: #4a0404;"></i> Live Command Monitoring
+    <!-- Efficiency Chart & History (1 Col) -->
+    <div>
+        <div class="card mb-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-chart-line" style="margin-right: 6px;"></i> Efficiency Metrics</h3>
+            </div>
+            <div class="card-body" style="height: 180px; position: relative;">
+                <canvas id="growthChart"></canvas>
+            </div>
         </div>
-        <div style="overflow-x: auto;">
-            <table class="feed-table">
-                <thead>
-                    <tr>
-                        <th>Personnel</th>
-                        <th>Objective</th>
-                        <th>Status</th>
-                        <th>Latest Report</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in global_feed %}
-                    <tr>
-                        <td>
-                            <div style="font-weight: 800; color: var(--deep-wine);">{{ task.task_recipient.full_name if task.task_recipient else 'Staff member' }}</div>
-                            <div style="font-size: 0.65rem; color: #4a0404; font-weight: 900; opacity: 0.7;">{{ task.task_recipient.role if task.task_recipient else 'STAFF' }}</div>
-                        </td>
-                        <td style="color: var(--royal-maroon); font-size: 0.85rem; font-weight: 600;">{{ task.title }}</td>
-                        <td>
-                            {% if task.is_done %}
-                                <span style="color: #008f71; font-weight: 900; font-size: 0.7rem;">● COMPLETED</span>
-                            {% else %}
-                                <span style="color: #b30000; font-weight: 900; font-size: 0.7rem;">● IN PROGRESS</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if task.reply_content %}
-                                <div class="history-reply" style="margin: 0; font-size: 0.75rem; background: rgba(0,0,0,0.1); color: var(--deep-wine); border-left-color: var(--royal-maroon);">"{{ task.reply_content }}"</div>
-                            {% else %}
-                                <span style="color: rgba(0,0,0,0.4); font-style: italic; font-size: 0.75rem;">Awaiting report...</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-history" style="margin-right: 6px;"></i> Accomplished Objectives</h3>
+            </div>
+            <div class="card-body" style="max-height: 280px; overflow-y: auto;">
+                {% for task in my_tasks if task.is_done %}
+                <div style="padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 8px; background: var(--gray-50);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.85rem;">{{ task.title }}</strong>
+                        <span class="badge badge-success">✓ SECURED</span>
+                    </div>
+                    {% if task.reply_content %}
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; font-style: italic;">
+                        "{{ task.reply_content }}"
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted p-2">No completed history.</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
+
+{% if session['role'] == 'Principal' or 'HOD' in session['role'] %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-tower-cell" style="margin-right: 6px;"></i> Live Institutional Command Monitoring</h3>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Personnel</th>
+                    <th>Objective</th>
+                    <th>Status</th>
+                    <th>Latest Report</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in global_feed %}
+                <tr>
+                    <td>
+                        <strong>{{ task.task_recipient.full_name if task.task_recipient else 'Staff Member' }}</strong>
+                        <span class="badge badge-info" style="display: block; width: fit-content; margin-top: 2px;">{{ task.task_recipient.role if task.task_recipient else 'STAFF' }}</span>
+                    </td>
+                    <td>{{ task.title }}</td>
+                    <td>
+                        {% if task.is_done %}
+                            <span class="badge badge-success">● COMPLETED</span>
+                        {% else %}
+                            <span class="badge badge-warning">● IN PROGRESS</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.reply_content %}
+                            <div style="font-size: 0.8rem; font-style: italic;">"{{ task.reply_content }}"</div>
+                        {% else %}
+                            <span class="text-muted" style="font-size: 0.8rem;">Awaiting report...</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted p-2">No active commands tracked.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('growthChart').getContext('2d');
+    const isDark = document.body.classList.contains('dark-mode');
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -276,20 +177,21 @@
             datasets: [{
                 label: 'Efficiency',
                 data: {{ growth_data|tojson }},
-                borderColor: '#d4af37',
-                backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                borderWidth: 3,
-                pointRadius: 4,
-                tension: 0.4,
+                borderColor: '#0d47a1',
+                backgroundColor: 'rgba(13, 71, 161, 0.1)',
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.3,
                 fill: true
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: {
-                y: { grid: { color: 'rgba(212, 175, 55, 0.1)' }, ticks: { color: '#e0cc9d' } },
-                x: { grid: { display: false }, ticks: { color: '#e0cc9d' } }
+                y: { grid: { color: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)' }, ticks: { color: isDark ? '#b0b0b0' : '#666' } },
+                x: { grid: { display: false }, ticks: { color: isDark ? '#b0b0b0' : '#666' } }
             }
         }
     });

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Hardened Rotating QR Attendance - BMS College ERP{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Hardened QR Kiosk</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Hardened Rotating QR Campus Kiosk</h1>
+        <div class="page-subtitle">Anti-spoofing 30-second HMAC token rotation & anti-replay protection</div>
+    </div>
+</div>
+
+<div class="card text-center" style="max-width: 650px; margin: 0 auto;">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-shield-halved" style="color: var(--primary); margin-right: 6px;"></i> Live Campus Kiosk: {{ today_str }}</h3>
+        <span class="badge badge-success" id="token-status-badge"><i class="fas fa-sync fa-spin"></i> 30s HMAC Rotation</span>
+    </div>
+    <div class="card-body">
+        <div style="background: var(--white); border: 3px solid var(--primary); padding: 20px; border-radius: var(--radius-xl); display: inline-block; box-shadow: var(--shadow-md); margin-bottom: 16px; position: relative;">
+            <img id="qr-image" src="data:image/png;base64,{{ qr_b64 }}" alt="Rotating Attendance QR Code" style="width: 280px; height: 280px; display: block;">
+        </div>
+
+        <div class="mb-3">
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: var(--gray-100); padding: 8px 16px; border-radius: var(--radius-full); border: 1px solid var(--border);">
+                <i class="fas fa-clock" style="color: var(--warning);"></i>
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">QR Auto-Rotates in:</span>
+                <span id="countdown-display" style="font-size: 1.1rem; font-weight: 900; color: var(--danger); font-family: var(--font-family-mono);">30s</span>
+            </div>
+        </div>
+
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 16px;">
+            🔒 <strong>Anti-Spoofing Protection Active:</strong> Screenshots shared off-site automatically expire within 30 seconds.
+        </p>
+
+        <div style="background: var(--gray-100); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; font-size: 0.8rem; word-break: break-all; margin-bottom: 20px;">
+            <strong class="text-muted" style="display: block; margin-bottom: 4px;">Encoded Live Check-in URL:</strong>
+            <a id="checkin-link" href="{{ checkin_url }}" target="_blank" style="color: var(--primary); font-weight: 600;">{{ checkin_url }}</a>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <a id="test-btn" href="{{ checkin_url }}" class="btn btn-success"><i class="fas fa-check-circle"></i> Test Current QR Check-in</a>
+            <button onclick="window.print()" class="btn btn-secondary"><i class="fas fa-print"></i> Kiosk Display</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let secondsLeft = 30;
+
+function refreshQRToken() {
+    fetch('/api/attendance/qr_token')
+        .then(res => res.json())
+        .then(data => {
+            if (data.qr_b64) {
+                document.getElementById('qr-image').src = 'data:image/png;base64,' + data.qr_b64;
+                document.getElementById('checkin-link').href = data.checkin_url;
+                document.getElementById('checkin-link').innerText = data.checkin_url;
+                document.getElementById('test-btn').href = data.checkin_url;
+                secondsLeft = data.expires_in || 30;
+            }
+        })
+        .catch(err => console.error("Error refreshing QR token:", err));
+}
+
+setInterval(function() {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+        secondsLeft = 30;
+        refreshQRToken();
+    }
+    document.getElementById('countdown-display').innerText = secondsLeft + 's';
+}, 1000);
+</script>
+{% endblock %}

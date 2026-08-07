@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Master Faculty & Management Records - BMS College ERP{% endblock %}
+
+{% block content %}
+<div style="max-width: 1440px; margin: 0 auto;">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="breadcrumb-separator">›</span>
+        <span>Master Staff Directory</span>
+    </div>
+
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="badge badge-primary" style="margin-bottom: 8px; font-weight: 800; text-transform: uppercase;">
+                👑 Admin Department Master Section
+            </div>
+            <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0;">Master Faculty & Management Records</h1>
+            <div style="font-size: 0.85rem; color: var(--success); font-weight: 600; margin-top: 4px;">
+                <i class="fas fa-user-shield"></i> Exclusive Admin Access: Displays each and every detail of Principal, HODs, and Faculty members with live edit control.
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <input type="text" id="masterSearch" class="form-control" style="width: 300px;" placeholder="🔍 Search Name, Role, Department...">
+            <button class="btn btn-primary" onclick="document.getElementById('addForm').style.display='block'"><i class="fas fa-user-plus"></i> + Add Personnel</button>
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px;">
+        <div class="stat-card" style="border-top: 3px solid var(--primary);">
+            <div class="stat-label">Total Registered Workforce</div>
+            <div class="stat-value">{{ all_staff|length }} <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">Personnel Records</span></div>
+        </div>
+
+        <div class="stat-card" style="border-top: 3px solid var(--success);">
+            <div class="stat-label">Monthly Gross Payroll Outflow</div>
+            {% set total_salary = [] %}
+            {% for emp in all_staff %}{% if total_salary.append(emp.salary) %}{% endif %}{% endfor %}
+            <div class="stat-value" style="color: var(--success);">₹{{ "{:,}".format(total_salary|sum) }}</div>
+        </div>
+
+        <div class="stat-card" style="border-top: 3px solid var(--warning);">
+            <div class="stat-label">Administrative Control</div>
+            <div class="stat-value" style="font-size: 1.3rem; color: var(--warning);">Full Master Privileges</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-edit"></i> Edit, Salary, Credentials & Demographics</div>
+        </div>
+    </div>
+
+    <!-- Add Staff Form Modal Panel -->
+    <div id="addForm" class="card" style="display: none; border: 2px solid var(--primary); margin-bottom: 28px;">
+        <div class="card-header" style="background: var(--primary-bg);">
+            <h3 class="card-title" style="color: var(--primary);"><i class="fas fa-user-plus"></i> ➕ Register New Faculty or Executive</h3>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('addForm').style.display='none'">✕ Close</button>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('add_employee') }}" method="POST" enctype="multipart/form-data" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+                <div class="form-group mb-0"><label class="form-label">Full Name</label><input type="text" name="full_name" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Email Address</label><input type="email" name="email" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Phone Number</label><input type="text" name="phone" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
+                <div class="form-group mb-0">
+                    <label class="form-label">Designation / Role</label>
+                    <select name="role" class="form-control" required>
+                        <option value="Faculty">Faculty Member</option>
+                        <option value="HOD">Head of Department (HOD)</option>
+                        <option value="Principal">Principal</option>
+                        <option value="Accountant">Accountant</option>
+                        <option value="HR">HR / Admin</option>
+                    </select>
+                </div>
+                <div class="form-group mb-0"><label class="form-label">Department</label><input type="text" name="department" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Department ID</label><input type="text" name="dept_id" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Religion</label><input type="text" name="religion" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Caste</label><input type="text" name="caste" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Date of Birth</label><input type="date" name="dob" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Joining Date</label><input type="date" name="join_date" class="form-control" required></div>
+                <div class="form-group mb-0" style="grid-column: span 2;"><label class="form-label">Residential Address</label><input type="text" name="address" class="form-control" required></div>
+                <div class="form-group mb-0"><label class="form-label">Profile Photo</label><input type="file" name="profile_pic" class="form-control" accept="image/*"></div>
+
+                <div class="form-group mb-0" style="grid-column: span 3;">
+                    <label class="form-label">Basic Monthly Salary (₹)</label>
+                    <input type="number" id="new_staff_salary" name="salary" class="form-control" oninput="calculateAddFormNet()" required>
+                    
+                    <div id="add_calc_box" style="display: none; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 10px; padding: 12px; background: var(--gray-100); border-radius: var(--radius-md); font-size: 0.8rem;">
+                        <div>HRA (40%): <strong id="add_hra" style="color: var(--success);">0</strong></div>
+                        <div>DA (10%): <strong id="add_da" style="color: var(--success);">0</strong></div>
+                        <div>TA: <strong style="color: var(--success);">₹2,000</strong></div>
+                        <div>EPF (-12%): <strong id="add_epf" style="color: var(--danger);">0</strong></div>
+                        <div>TDS: <strong id="add_tds" style="color: var(--danger);">0</strong></div>
+                        <div>PT: <strong style="color: var(--danger);">-₹200</strong></div>
+                    </div>
+                </div>
+
+                <div style="grid-column: span 3; background: var(--gray-100); padding: 14px 20px; border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-weight: 700; font-size: 0.9rem;">Estimated Net Take-Home Salary:</label>
+                    <div id="new_net_display" style="font-size: 1.3rem; font-weight: 800; color: var(--success);">₹0</div>
+                </div>
+
+                <div style="grid-column: span 3; margin-top: 12px;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700;"><i class="fas fa-save"></i> Save Personnel to PostgreSQL Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Master Table with EVERY DETAIL -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-database" style="margin-right: 8px; color: var(--primary);"></i> Master Faculty & Executive Database</h3>
+        </div>
+        <div class="table-container">
+            <table class="table" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Personnel Identity</th>
+                        <th>Contact & Location</th>
+                        <th>Demographics & Service</th>
+                        <th>Complete Payroll Breakdown</th>
+                        <th style="text-align: right;">Master Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="masterTableBody">
+                    {% for emp in all_staff %}
+                    <tr>
+                        <td style="vertical-align: top;">
+                            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                <form action="{{ url_for('upload_photo', uid=emp.id) }}" method="POST" enctype="multipart/form-data" id="photoForm_{{ emp.id }}">
+                                    <label style="cursor: pointer;" title="Click to change photo">
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_pic) if emp.profile_pic else 'https://ui-avatars.com/api/?background=2563eb&color=ffffff&name=' + emp.full_name }}" 
+                                             class="user-avatar" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                                        <input type="file" name="profile_pic" style="display:none;" onchange="document.getElementById('photoForm_{{ emp.id }}').submit()">
+                                    </label>
+                                </form>
+                                <div>
+                                    <strong style="font-size: 1rem; font-weight: 800; display: block; color: var(--text-primary);">{{ emp.full_name }}</strong>
+                                    <span class="badge {% if emp.role == 'Principal' %}badge-danger{% elif 'HOD' in emp.role %}badge-warning{% else %}badge-primary{% endif %}" style="margin-top: 2px;">
+                                        {{ emp.role }}
+                                    </span>
+                                    <div style="margin-top: 4px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">
+                                        🏢 {{ emp.department or 'N/A' }} <span style="opacity: 0.7;">(ID: {{ emp.dept_id or 'N/A' }})</span>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Username: <code>{{ emp.username }}</code></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td style="vertical-align: top;">
+                            <div style="line-height: 1.6;">
+                                <div><i class="fas fa-envelope" style="color: var(--primary); width: 16px;"></i> <strong>Email:</strong> {{ emp.email }}</div>
+                                <div><i class="fas fa-phone" style="color: var(--primary); width: 16px;"></i> <strong>Phone:</strong> {{ emp.phone or 'N/A' }}</div>
+                                <div><i class="fas fa-map-marker-alt" style="color: var(--primary); width: 16px;"></i> <strong>Address:</strong> {{ emp.address or 'N/A' }}</div>
+                            </div>
+                        </td>
+
+                        <td style="vertical-align: top;">
+                            <div style="line-height: 1.6;">
+                                <div><i class="fas fa-birthday-cake" style="color: var(--warning); width: 16px;"></i> <strong>DOB:</strong> {{ emp.dob or 'N/A' }}</div>
+                                <div><i class="fas fa-calendar-check" style="color: var(--success); width: 16px;"></i> <strong>Joined:</strong> {{ emp.join_date or 'N/A' }}</div>
+                                <div><i class="fas fa-user-tag" style="color: var(--info); width: 16px;"></i> <strong>Caste / Religion:</strong> {{ emp.caste or 'General' }} / {{ emp.religion or 'Not Specified' }}</div>
+                            </div>
+                        </td>
+
+                        <td style="vertical-align: top;">
+                            <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
+                            <div style="background: var(--gray-100); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                                <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px;">
+                                    <span>Basic Salary:</span>
+                                    <span style="color: var(--primary);">₹{{ "{:,}".format(emp.salary) }}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; border-top: 1px solid var(--border); padding-top: 4px; margin-top: 4px;">
+                                    <span>Monthly Net Take-Home:</span>
+                                    <span id="netDisplay_{{ emp.id }}" style="color: var(--success);">₹0</span>
+                                </div>
+                                <div id="breakdown_{{ emp.id }}" style="display: flex; gap: 8px; font-size: 0.72rem; margin-top: 4px; flex-wrap: wrap;"></div>
+                            </div>
+                        </td>
+
+                        <td style="text-align: right; vertical-align: top;">
+                            <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-warning btn-sm" onclick="openMasterEditModal({{ emp.id }}, '{{ emp.full_name|e }}', '{{ emp.email|e }}', '{{ emp.phone|e }}', '{{ emp.role|e }}', '{{ emp.department|e }}', '{{ emp.dept_id|e }}', {{ emp.salary }}, '{{ emp.address|e }}', '{{ emp.dob|e }}', '{{ emp.join_date|e }}', '{{ emp.caste|e }}', '{{ emp.religion|e }}')">
+                                    <i class="fas fa-edit"></i> Edit Profile
+                                </button>
+                                <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn btn-secondary btn-sm"><i class="fas fa-id-card"></i> ID Card</a>
+                                <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-invoice"></i> Payslip</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No personnel records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Master Edit Staff Modal for Admin Department -->
+<div id="masterEditModal" class="card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92%; max-width: 900px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.3); border: 2px solid var(--primary); max-height: 90vh; overflow-y: auto;">
+    <div class="card-header" style="background: var(--primary-bg); display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title" style="color: var(--primary); margin: 0;"><i class="fas fa-user-edit"></i> Edit Master Profile: <span id="m_edit_title_name"></span></h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeMasterEditModal()">✕ Close</button>
+    </div>
+    <div class="card-body">
+        <form id="masterEditForm" method="POST" enctype="multipart/form-data" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+            <div class="form-group mb-0"><label class="form-label">Full Name</label><input type="text" id="me_full_name" name="full_name" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Email Address</label><input type="email" id="me_email" name="email" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Phone Number</label><input type="text" id="me_phone" name="phone" class="form-control" required></div>
+            <div class="form-group mb-0">
+                <label class="form-label">Designation / Role</label>
+                <select id="me_role" name="role" class="form-control" required>
+                    <option value="Faculty">Faculty Member</option>
+                    <option value="HOD">Head of Department (HOD)</option>
+                    <option value="Principal">Principal</option>
+                    <option value="Accountant">Accountant</option>
+                    <option value="HR">HR / Admin</option>
+                </select>
+            </div>
+            <div class="form-group mb-0"><label class="form-label">Department</label><input type="text" id="me_department" name="department" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Department ID</label><input type="text" id="me_dept_id" name="dept_id" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Date of Birth</label><input type="date" id="me_dob" name="dob" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Joining Date</label><input type="date" id="me_join_date" name="join_date" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Basic Salary (₹)</label><input type="number" id="me_salary" name="salary" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Religion</label><input type="text" id="me_religion" name="religion" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Caste</label><input type="text" id="me_caste" name="caste" class="form-control" required></div>
+            <div class="form-group mb-0"><label class="form-label">Update Photo</label><input type="file" name="profile_pic" class="form-control" accept="image/*"></div>
+            <div class="form-group mb-0" style="grid-column: span 3;"><label class="form-label">Residential Address</label><input type="text" id="me_address" name="address" class="form-control" required></div>
+
+            <div style="grid-column: span 3; margin-top: 14px; display: flex; gap: 12px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; font-weight: 700;"><i class="fas fa-save"></i> Save Changes to PostgreSQL Database</button>
+                <button type="button" class="btn btn-secondary" onclick="closeMasterEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="masterModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999;" onclick="closeMasterEditModal()"></div>
+
+<script>
+function performFullCalc(basic) {
+    const hra = Math.floor(basic * 0.40);
+    const da = Math.floor(basic * 0.10);
+    const ta = 2000;
+    const pt = 200;
+    const gross = basic + hra + da + ta;
+    const tdsRate = (gross > 100000) ? 0.15 : (gross > 50000 ? 0.10 : 0.05);
+    const tds = Math.floor(gross * tdsRate);
+    const epf = Math.floor((basic + da) * 0.12);
+    const net = gross - (epf + tds + pt);
+    return { hra, da, ta, pt, tds, epf, net };
+}
+
+function calculateAddFormNet() {
+    let basic = parseFloat(document.getElementById('new_staff_salary').value) || 0;
+    const box = document.getElementById('add_calc_box');
+    if(basic > 0) {
+        box.style.display = 'grid';
+        let c = performFullCalc(basic);
+        document.getElementById('add_hra').innerText = '₹' + c.hra.toLocaleString('en-IN');
+        document.getElementById('add_da').innerText = '₹' + c.da.toLocaleString('en-IN');
+        document.getElementById('add_epf').innerText = '-₹' + c.epf.toLocaleString('en-IN');
+        document.getElementById('add_tds').innerText = '-₹' + c.tds.toLocaleString('en-IN');
+        document.getElementById('new_net_display').innerText = '₹' + c.net.toLocaleString('en-IN');
+    } else {
+        box.style.display = 'none';
+        document.getElementById('new_net_display').innerText = '₹0';
+    }
+}
+
+function calculateLiveNet(empId) {
+    const input = document.getElementById('salaryInput_' + empId);
+    if (!input) return;
+    let c = performFullCalc(parseFloat(input.value) || 0);
+    document.getElementById('netDisplay_' + empId).innerText = '₹' + c.net.toLocaleString('en-IN');
+    document.getElementById('breakdown_' + empId).innerHTML = `
+        <span style="color:var(--success)">HRA: ₹${c.hra.toLocaleString('en-IN')}</span>
+        <span style="color:var(--success)">DA: ₹${c.da.toLocaleString('en-IN')}</span>
+        <span style="color:var(--danger)">TDS: -₹${c.tds.toLocaleString('en-IN')}</span>
+        <span style="color:var(--danger)">EPF: -₹${c.epf.toLocaleString('en-IN')}</span>`;
+}
+
+function openMasterEditModal(id, name, email, phone, role, dept, deptId, salary, address, dob, joinDate, caste, religion) {
+    document.getElementById('masterEditForm').action = '/admin/edit_staff/' + id;
+    document.getElementById('m_edit_title_name').innerText = name;
+    document.getElementById('me_full_name').value = name;
+    document.getElementById('me_email').value = email;
+    document.getElementById('me_phone').value = phone;
+    document.getElementById('me_role').value = role;
+    document.getElementById('me_department').value = dept;
+    document.getElementById('me_dept_id').value = deptId;
+    document.getElementById('me_salary').value = salary;
+    document.getElementById('me_address').value = address;
+    document.getElementById('me_dob').value = dob;
+    document.getElementById('me_join_date').value = joinDate;
+    document.getElementById('me_caste').value = caste;
+    document.getElementById('me_religion').value = religion;
+
+    document.getElementById('masterEditModal').style.display = 'block';
+    document.getElementById('masterModalOverlay').style.display = 'block';
+}
+
+function closeMasterEditModal() {
+    document.getElementById('masterEditModal').style.display = 'none';
+    document.getElementById('masterModalOverlay').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    {% for emp in all_staff %} calculateLiveNet({{ emp.id }}); {% endfor %}
+});
+
+document.getElementById('masterSearch').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    document.querySelectorAll('#masterTableBody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

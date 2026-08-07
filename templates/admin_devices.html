@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Registered Devices Registry - BMS College ERP{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Device Registry</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Device Registry & Anti-Spoofing Audits</h1>
+        <div class="page-subtitle">Track registered staff check-in devices and flag unauthorized hardware</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-laptop-code" style="margin-right: 6px;"></i> Tracked Staff Devices</h3>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Staff Member</th>
+                    <th>Device Hash ID</th>
+                    <th>Browser / Device Label</th>
+                    <th>First Seen</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dev in devices %}
+                <tr>
+                    <td><strong>{{ dev.rel_user.full_name if dev.rel_user else 'Unknown' }}</strong></td>
+                    <td style="font-family: var(--font-family-mono); font-size: 0.85rem; color: var(--primary);">{{ dev.device_hash }}</td>
+                    <td style="font-size: 0.8rem;" class="text-muted">{{ dev.label }}</td>
+                    <td style="font-size: 0.85rem;">{{ dev.first_seen.strftime('%d %b %Y • %H:%M') }}</td>
+                    <td>
+                        {% if dev.status == 'Verified' %}
+                            <span class="badge badge-success"><i class="fas fa-check-circle"></i> Verified</span>
+                        {% else %}
+                            <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Flagged Device</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted p-3">No device registrations recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

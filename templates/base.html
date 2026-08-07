@@ -2,216 +2,295 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BMSCCM | Imperial Enterprise Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-        /* --- HYPER-REALISM V5.0 DESIGN SYSTEM --- */
-        :root {
-            --imp-crimson: #800000; 
-            --imp-crimson-dark: #5a0000;
-            --imp-gold: #D4AF37; 
-            --bg-base: #F3F4F6;
-            --text-main: #111827; 
-            --glass-bg: rgba(255, 255, 255, 0.75);
-            --glass-sidebar: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.9);
-        }
-
-        body.dark-mode { 
-            --bg-base: #05070a;
-            --text-main: #ffffff;
-            --glass-bg: rgba(15, 20, 25, 0.8);
-            --glass-sidebar: rgba(10, 15, 24, 0.95);
-            --glass-border: rgba(212, 175, 55, 0.2);
-        }
-
-        /* --- CRITICAL SCROLLING & PERSPECTIVE FIXES --- */
-        html, body { 
-            margin: 0; padding: 0; width: 100%; 
-            overflow-x: auto !important; 
-            position: relative; 
-        }
-
-        body { 
-            font-family: 'Manrope', sans-serif; display: flex; 
-            min-height: 100vh; color: var(--text-main); background: var(--bg-base); 
-        }
-
-        .sidebar {
-            width: 280px; position: fixed; height: 100vh;
-            background: var(--glass-sidebar); backdrop-filter: blur(25px) saturate(180%);
-            border-right: 1px solid var(--glass-border); z-index: 1000;
-            display: flex; flex-direction: column; justify-content: space-between;
-        }
-
-        .main { 
-            margin-left: 280px; padding: 40px 50px; width: calc(100% - 280px); 
-            min-height: 100vh; min-width: 950px; 
-        }
-
-        .sidebar-link { 
-            color: var(--text-main) !important; font-weight: 700; font-size: 0.85rem;
-            text-transform: uppercase; letter-spacing: 1px; padding: 14px 20px;
-            margin-bottom: 5px; border-radius: 12px; display: flex; align-items: center;
-            text-decoration: none; position: relative; transition: 0.3s ease;
-        }
-        
-        .sidebar-link:hover { background: rgba(212, 175, 55, 0.1); color: var(--imp-crimson) !important; }
-
-        .pulse-badge {
-            position: absolute; right: 15px;
-            background: linear-gradient(135deg, var(--imp-crimson), #ff4d4d);
-            color: #fff !important; font-size: 0.7rem; padding: 2px 8px;
-            border-radius: 20px; font-weight: 900; box-shadow: 0 4px 8px rgba(128,0,0,0.2);
-        }
-
-        .header-title { font-weight: 950; font-size: 1.6rem; text-transform: uppercase; background: linear-gradient(90deg, var(--text-main), var(--imp-crimson)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        #fab-container { position: fixed; bottom: 30px; right: 30px; z-index: 2000; }
-        #fab-main {
-            width: 60px; height: 60px; border-radius: 50%; 
-            background: var(--imp-crimson); color: white; border: 2px solid var(--imp-gold);
-            font-size: 24px; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
-        .fab-item { 
-            background: var(--glass-bg); backdrop-filter: blur(10px); padding: 10px 20px; 
-            border-radius: 15px; text-decoration: none; color: var(--text-main) !important;
-            font-weight: 800; font-size: 0.8rem; margin-bottom: 10px; display: block;
-            border: 1px solid var(--glass-border);
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d47a1">
+    <meta name="description" content="BMS College ERP - Professional Office Portal">
+    
+    <title>{% block title %}BMS College ERP Portal{% endblock %}</title>
+    
+    <!-- Professional Office Portal CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if active_broadcast %}
-    <div style="background: #140000; border-bottom: 2px solid var(--imp-crimson); height: 40px; display: flex; align-items: center; width: 100%; position: relative; z-index: 1001; overflow: hidden;">
-        <div style="background: var(--imp-crimson); color: white; padding: 0 20px; font-weight: 900; z-index: 2; height: 100%; display: flex; align-items: center;">ALERT</div>
-        <marquee style="color: white; font-weight: 700;">{{ active_broadcast.message }} | ORIGIN: {{ active_broadcast.author }}</marquee>
-    </div>
-    {% endif %}
-
-    <div class="sidebar">
-        <div class="sidebar-content" style="overflow-y: auto; flex-grow: 1; padding: 10px;">
-            <div class="sidebar-brand" style="text-align: center; padding: 20px 0;">
-    <img src="https://www.bmsccm.ac.in/img/ll.png" alt="Logo" style="max-width: 140px;">
     
-    <a href="{{ url_for('about') }}" style="text-decoration: none; color: inherit;">
-        <h2 style="font-size: 0.75rem; margin-top: 10px; cursor: pointer;">
-            BMS COLLEGE <span style="color: var(--imp-crimson);">OF COMMERCE AND MANAGEMENT</span>
-        </h2>
-    </a>
-</div>
+    <!-- APP HEADER -->
+    <header class="app-header">
+        <nav class="navbar">
+            <!-- Logo & Brand -->
+            <a href="/" class="navbar-brand">
+                <div class="navbar-brand-icon">🏛️</div>
+                <span>BMS ERP</span>
+            </a>
+            
+            <!-- Global Search Bar -->
+            <div class="navbar-search">
+                <i class="fas fa-search" style="color: var(--text-muted);"></i>
+                <input type="text" id="search-input" placeholder="Search Portal...">
+            </div>
+            
+            <!-- Header Actions -->
+            <div class="navbar-actions">
+                <!-- Notifications Button -->
+                <button class="navbar-icon-button has-notification" id="notifications-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                </button>
+                
+                <!-- Theme Toggle Button -->
+                <button class="navbar-icon-button" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                
+                <!-- User Menu Dropdown -->
+                {% if session.get('name') %}
+                <div class="dropdown">
+                    <button class="navbar-user" id="user-menu-btn" onclick="toggleUserDropdown(event)">
+                        <div class="navbar-user-avatar">{{ session.get('name')[0] | upper }}</div>
+                        <div class="navbar-user-info">
+                            <div class="navbar-user-name">{{ session.get('name') }}</div>
+                            <div class="navbar-user-role">{{ session.get('role') }}</div>
+                        </div>
+                        <i class="fas fa-chevron-down" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 4px;"></i>
+                    </button>
+                    <div class="dropdown-menu" id="user-menu">
+                        <a href="{{ url_for('my_profile') }}" class="dropdown-item">
+                            <i class="fas fa-user" style="margin-right: 8px;"></i> My Profile
+                        </a>
+                        <a href="{{ url_for('activity_room') }}" class="dropdown-item">
+                            <i class="fas fa-tasks" style="margin-right: 8px;"></i> Activity Log
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item" style="color: var(--danger);">
+                            <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Mobile Hamburger -->
+            <button class="navbar-hamburger" id="navbar-hamburger" onclick="toggleMobileSidebar()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </nav>
+    </header>
 
-            <nav>
-                <a href="{{ url_for('dashboard') }}" class="sidebar-link">
-                    <span>📊 Dashboard</span>
-                    {% if counts.tasks > 0 %}<span class="pulse-badge">{{ counts.tasks }}</span>{% endif %}
-                </a>
+    <!-- APP CONTAINER -->
+    <div class="app-container" id="app-container">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
                 
-                <a href="{{ url_for('view_timetable') }}" class="sidebar-link">
-                    <span>🗓️ Timetable</span>
-                    {% if counts.timetable > 0 %}<span class="pulse-badge">{{ counts.timetable }}</span>{% endif %}
-                </a>
-                
-                <a href="{{ url_for('chat') }}" class="sidebar-link">
-                    <span>💬 Group Chat</span>
-                    {% if counts.chats > 0 %}<span class="pulse-badge">{{ counts.chats }}</span>{% endif %}
-                </a> 
-                
-                <a href="{{ url_for('attendance') }}" class="sidebar-link"><span>⏰ Attendance</span></a>
-                <a href="{{ url_for('performance') }}" class="sidebar-link"><span>📈 Performance</span></a> 
-                
-                <a href="{{ url_for('leave') }}" class="sidebar-link">
-                    <span>📅 Leave Mgmt</span>
-                    {% if counts.my_leaves > 0 %}<span class="pulse-badge">{{ counts.my_leaves }}</span>{% endif %}
-                </a>
-
-                {% if session['role'] in ['Principal', 'HR', 'HOD - BCA Dept'] %}
-                    <a href="{{ url_for('leave_calendar') }}" class="sidebar-link" style="border-left: 3px solid var(--imp-crimson);">
-                        <span>🗓️ Leave Calendar</span>
-                        {% if counts.to_approve > 0 %}<span class="pulse-badge">{{ counts.to_approve }}</span>{% endif %}
+                <!-- Main Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Main Portal</div>
+                    <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-chart-line sidebar-icon"></i>
+                        <span class="sidebar-label">Dashboard</span>
+                        {% if counts and counts.tasks > 0 %}<span class="badge badge-primary" style="margin-left: auto;">{{ counts.tasks }}</span>{% endif %}
                     </a>
-                    <a href="{{ url_for('digital_vault') }}" class="sidebar-link"><span>📁 Digital Vault</span></a>
+                </div>
+                
+                <!-- Operations Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Operations</div>
+                    <a href="{{ url_for('attendance') }}" class="sidebar-link {% if request.endpoint == 'attendance' %}active{% endif %}">
+                        <i class="fas fa-user-check sidebar-icon"></i>
+                        <span class="sidebar-label">Attendance</span>
+                    </a>
+                    <a href="{{ url_for('leave') }}" class="sidebar-link {% if request.endpoint == 'leave' %}active{% endif %}">
+                        <i class="fas fa-calendar-minus sidebar-icon"></i>
+                        <span class="sidebar-label">Leave Management</span>
+                        {% if counts and counts.my_leaves > 0 %}<span class="badge badge-primary" style="margin-left: auto;">{{ counts.my_leaves }}</span>{% endif %}
+                    </a>
+                    <a href="{{ url_for('view_timetable') }}" class="sidebar-link {% if request.endpoint == 'view_timetable' %}active{% endif %}">
+                        <i class="fas fa-clock sidebar-icon"></i>
+                        <span class="sidebar-label">Weekly Schedule</span>
+                    </a>
+                    <a href="{{ url_for('performance') }}" class="sidebar-link {% if request.endpoint == 'performance' %}active{% endif %}">
+                        <i class="fas fa-chart-pie sidebar-icon"></i>
+                        <span class="sidebar-label">Performance</span>
+                    </a>
+                    <a href="{{ url_for('assistant_ui') }}" class="sidebar-link {% if request.endpoint == 'assistant_ui' %}active{% endif %}">
+                        <i class="fas fa-robot sidebar-icon" style="color: #6366f1;"></i>
+                        <span class="sidebar-label">AI Operations Assistant</span>
+                        <span class="badge badge-success" style="margin-left: auto; font-size: 0.65rem;">AI</span>
+                    </a>
+                </div>
+                
+                <!-- Collaboration & Finance Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Collaboration & Finance</div>
+                    <a href="{{ url_for('chat') }}" class="sidebar-link {% if request.endpoint == 'chat' %}active{% endif %}">
+                        <i class="fas fa-comments sidebar-icon"></i>
+                        <span class="sidebar-label">BMS Connect Chat</span>
+                        {% if counts and counts.chats > 0 %}<span class="badge badge-warning" style="margin-left: auto;">{{ counts.chats }}</span>{% endif %}
+                    </a>
+                    <a href="{{ url_for('expenses') }}" class="sidebar-link {% if request.endpoint == 'expenses' %}active{% endif %}">
+                        <i class="fas fa-receipt sidebar-icon"></i>
+                        <span class="sidebar-label">Expenses</span>
+                    </a>
+                    <a href="{{ url_for('staff_directory') }}" class="sidebar-link {% if request.endpoint == 'staff_directory' %}active{% endif %}">
+                        <i class="fas fa-users sidebar-icon"></i>
+                        <span class="sidebar-label">Staff Directory</span>
+                    </a>
+                </div>
+                
+                <!-- Admin & Management Section -->
+                {% if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept', 'admin', 'Accountant'] %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Administrative</div>
+                    {% if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept'] %}
+                    <a href="{{ url_for('leave_calendar') }}" class="sidebar-link {% if request.endpoint == 'leave_calendar' %}active{% endif %}">
+                        <i class="fas fa-calendar-alt sidebar-icon"></i>
+                        <span class="sidebar-label">Leave Approvals</span>
+                        {% if counts and counts.to_approve > 0 %}<span class="badge badge-warning" style="margin-left: auto;">{{ counts.to_approve }}</span>{% endif %}
+                    </a>
+                    {% endif %}
+                    {% if session.get('role') in ['HR', 'Accountant', 'admin'] %}
+                    <a href="{{ url_for('digital_vault') }}" class="sidebar-link {% if request.endpoint == 'digital_vault' %}active{% endif %}">
+                        <i class="fas fa-folder-open sidebar-icon"></i>
+                        <span class="sidebar-label">Digital Vault</span>
+                    </a>
+                    <a href="{{ url_for('admin_staff_master') }}" class="sidebar-link {% if request.endpoint == 'admin_staff_master' %}active{% endif %}">
+                        <i class="fas fa-users-cog sidebar-icon"></i>
+                        <span class="sidebar-label">Master Workforce Directory</span>
+                    </a>
+                    {% endif %}
+                </div>
                 {% endif %}
 
-                <a href="{{ url_for('expenses') }}" class="sidebar-link">
-                    <span>💰 Expenses</span>
-                    {% if counts.expenses > 0 %}<span class="pulse-badge">{{ counts.expenses }}</span>{% endif %}
-                </a>
-                
-                <a href="{{ url_for('staff_directory') }}" class="sidebar-link"><span>👥 Directory</span></a>
-                
-                <a href="{{ url_for('activity_room') }}" class="sidebar-link">
-                    <span>📝 Activity Room</span>
-                    {% if counts.activity > 0 %}<span class="pulse-badge">{{ counts.activity }}</span>{% endif %}
-                </a>
-                
-                <a href="{{ url_for('my_profile') }}" class="sidebar-link">
-                    <span>👤 My Profile</span>
-                    {% if counts.salary_pending > 0 %}<span class="pulse-badge">!</span>{% endif %}
-                </a>
-
-                {% if session['role'] == 'Principal' %}
-                    <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link" style="color: #dc2626 !important;"><span>🛡️ Audit Logs</span></a>
+                {% if session.get('role') == 'Principal' %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Security & Audit</div>
+                    <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link {% if request.endpoint == 'view_audit_logs' %}active{% endif %}">
+                        <i class="fas fa-shield-alt sidebar-icon"></i>
+                        <span class="sidebar-label">Audit Logs</span>
+                    </a>
+                </div>
                 {% endif %}
+                
+                <!-- Advanced Intelligence & Tools Section -->
+                {% if session.get('user_id') %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Intelligence & Tools</div>
+                    <a href="{{ url_for('analytics') }}" class="sidebar-link {% if request.endpoint == 'analytics' %}active{% endif %}">
+                        <i class="fas fa-chart-bar sidebar-icon"></i>
+                        <span class="sidebar-label">Analytics Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('assistant') }}" class="sidebar-link {% if request.endpoint == 'assistant' %}active{% endif %}">
+                        <i class="fas fa-robot sidebar-icon"></i>
+                        <span class="sidebar-label">Gemini AI Assistant</span>
+                    </a>
+                    <a href="{{ url_for('attendance_qr') }}" class="sidebar-link {% if request.endpoint == 'attendance_qr' %}active{% endif %}">
+                        <i class="fas fa-qrcode sidebar-icon"></i>
+                        <span class="sidebar-label">QR Attendance</span>
+                    </a>
+                </div>
+                {% endif %}
+                
+                <div class="sidebar-divider"></div>
             </nav>
             
-            <button onclick="toggleDarkMode()" style="background: #111827; color: white; border: 1px solid var(--imp-gold); padding: 12px; border-radius: 12px; width: 90%; margin: 20px auto; display: block; cursor: pointer;">🌙 Toggle Theme</button>
-        </div>
-        <div style="padding: 15px;">
-            <a href="{{ url_for('logout') }}" class="sidebar-link" style="background: var(--imp-crimson) !important; color: white !important; justify-content: center;">LOGOUT</a>
-        </div>
-    </div>
+            <!-- Sidebar Collapse Button -->
+            <button class="sidebar-collapse-button" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                <i class="fas fa-chevron-left" id="sidebar-toggle-icon"></i>
+            </button>
+        </aside>
 
-    <div class="main">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div style="padding: 10px; background: white; border-radius: 15px; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
-                    <img src="https://www.bmsccm.ac.in/img/ll.png" alt="Logo" style="height: 60px;">
-                </div>
-                <h1 class="header-title">BMSCCM <span style="color: var(--imp-crimson);">Imperial Portal</span></h1>
+        <!-- MAIN CONTENT CANVAS -->
+        <main class="main-content">
+            <div class="content-wrapper">
+                
+                <!-- Flash Alerts -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else (category if category in ['success', 'warning', 'danger'] else 'primary') }}">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button class="alert-close" onclick="this.parentElement.style.display='none';">×</button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Main Block Content -->
+                {% block content %}{% endblock %}
+                
             </div>
-            {% if session['name'] %}
-            <div style="background: var(--glass-bg); padding: 10px 20px; border-radius: 30px; border: 1px solid var(--glass-border); font-weight: 800; backdrop-filter: blur(10px);">
-                👤 {{ session['name'] }} <span style="color: var(--imp-gold); margin-left: 10px; font-size: 0.8rem;">{{ session['role'] }}</span>
-            </div>
-            {% endif %}
-        </div>
-        
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div style="background: white; border-left: 5px solid var(--imp-gold); padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
+        </main>
     </div>
 
-    <div id="fab-container">
-        <div id="fab-options" style="display: none; flex-direction: column; align-items: flex-end;">
-            <a href="{{ url_for('chat') }}" class="fab-item">💬 Chat</a>
-            <a href="{{ url_for('leave') }}" class="fab-item">📅 Leave</a>
-        </div>
-        <button onclick="toggleFab()" id="fab-main">⚡</button>
-    </div>
+    <!-- Notification Toast Container -->
+    <div id="toast-container" style="position: fixed; top: calc(var(--header-height) + 16px); right: var(--spacing-lg); z-index: var(--z-notification);"></div>
 
+    <!-- Scripts -->
     <script>
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        // Theme Switcher System
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'dark');
+                if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.documentElement.setAttribute('data-theme', 'light');
+                if (themeToggleBtn) themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+            localStorage.setItem('theme', theme);
         }
-        if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+        
+        themeToggleBtn?.addEventListener('click', () => {
+            const isDark = document.body.classList.contains('dark-mode');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+        
+        // Restore saved theme on page load
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
 
-        function toggleFab() {
-            const options = document.getElementById('fab-options');
-            options.style.display = options.style.display === 'none' ? 'flex' : 'none';
+        // Sidebar Desktop Toggle
+        function toggleSidebar() {
+            const appContainer = document.getElementById('app-container');
+            const icon = document.getElementById('sidebar-toggle-icon');
+            appContainer.classList.toggle('sidebar-collapsed');
+            if (appContainer.classList.contains('sidebar-collapsed')) {
+                if (icon) icon.className = 'fas fa-chevron-right';
+            } else {
+                if (icon) icon.className = 'fas fa-chevron-left';
+            }
         }
+
+        // Mobile Sidebar Toggle
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('mobile-open');
+        }
+
+        // User Dropdown Toggle
+        function toggleUserDropdown(e) {
+            e.stopPropagation();
+            const userMenu = document.getElementById('user-menu');
+            userMenu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('user-menu')?.classList.remove('show');
+        });
     </script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
-
-

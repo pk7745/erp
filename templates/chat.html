@@ -1,123 +1,101 @@
 {% extends "base.html" %}
+{% block title %}BMS Connect Chat - BMS College ERP{% endblock %}
+
 {% block content %}
-<style>
-    /* IMPERIAL CHAT OVERRIDES */
-    .imperial-sidebar {
-        background: #ffffff;
-        border: 2px solid #000 !important;
-        border-radius: 15px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    
-    .staff-link {
-        transition: all 0.3s ease;
-        border: 1px solid transparent;
-        margin-bottom: 4px;
-    }
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>BMS Connect Chat</span>
+</div>
 
-    .staff-link:hover {
-        background: #f1f5f9;
-        border-color: #000;
-    }
+<!-- Page Header -->
+<div class="page-header mb-2">
+    <div class="page-title">
+        <h1>BMS Connect Faculty Chat</h1>
+        <div class="page-subtitle">Real-time encrypted communication channel & staff lounge</div>
+    </div>
+</div>
 
-    /* DARKER TEXT ELEMENTS */
-    .staff-name { color: #000 !important; font-weight: 900 !important; }
-    .message-content { font-weight: 700 !important; line-height: 1.5; }
-    
-    .glass-input-chat {
-        width: 100%; padding: 12px 20px; border-radius: 25px; 
-        border: 2px solid #000; outline: none; font-weight: 800;
-        color: #000;
-    }
-
-    #chat-box::-webkit-scrollbar { width: 6px; }
-    #chat-box::-webkit-scrollbar-thumb { background: #000; border-radius: 10px; }
-</style>
-
-<div style="display: flex; gap: 20px; height: 85vh; font-family: 'Inter', sans-serif;" class="animate-enter">
-    
-    <div class="imperial-sidebar" style="flex: 1;">
-        <div style="padding: 20px; background: #000;">
-            <h4 style="margin: 0 0 12px 0; color: #fff !important; font-weight: 900; letter-spacing: 1px;">👥 STAFF DIRECTORY</h4>
-            <input type="text" id="staffSearch" placeholder="Search Command..." class="glass-input-chat" style="padding: 8px 15px; font-size: 13px; border-color: #fff;">
+<div class="grid grid-cols-4" style="height: calc(100vh - 220px); min-height: 550px;">
+    <!-- Staff Directory Sidebar (1 Col) -->
+    <div class="card" style="display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-header" style="flex-direction: column; align-items: stretch; gap: 10px;">
+            <h3 class="card-title"><i class="fas fa-users" style="margin-right: 6px;"></i> Staff Directory</h3>
+            <input type="text" id="staffSearch" placeholder="Search staff..." class="form-control" style="font-size: 0.8rem; padding: 6px 10px;">
         </div>
         
-        <div style="flex: 1; overflow-y: auto; padding: 15px;" id="staffList">
-            <a href="/chat" style="display: block; padding: 14px; border-radius: 12px; background: #800000; color: white !important; text-decoration: none; font-weight: 900; text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(128,0,0,0.2);">
+        <div class="card-body" style="flex: 1; overflow-y: auto; padding: 12px;" id="staffList">
+            <a href="/chat" class="btn btn-primary btn-block mb-2" style="font-size: 0.8rem; padding: 8px;">
                 📢 Staff Lounge
             </a>
             
-            {% for staff in all_staff %}
-            <div class="staff-item">
-                <a href="/chat/{{ staff.id }}" class="staff-link" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: 10px; text-decoration: none; {% if receiver and receiver.id == staff.id %}background: #f1f5f9; border: 2px solid #000;{% endif %}">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 10px; height: 10px; background: #065f46; border-radius: 50%;"></div>
-                        <div>
-                            <div class="staff-name" style="font-size: 14px;">{{ staff.full_name }}</div>
-                            <small style="color: #444; font-size: 11px; font-weight: 800; text-transform: uppercase;">{{ staff.role }}</small>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                {% for staff in all_staff %}
+                <div class="staff-item">
+                    <a href="/chat/{{ staff.id }}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: var(--radius-md); text-decoration: none; border: 1px solid var(--border); transition: background-color var(--transition-fast); {% if receiver and receiver.id == staff.id %}background: var(--primary-light); border-color: var(--primary);{% endif %}">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                            <span class="badge badge-success" style="width: 8px; height: 8px; padding: 0; flex-shrink: 0;"></span>
+                            <div style="min-width: 0; line-height: 1.2;">
+                                <div class="staff-name" style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ staff.full_name }}</div>
+                                <span style="color: var(--text-muted); font-size: 0.7rem;">{{ staff.role }}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div style="display: flex; align-items: center; gap: 8px;">
                         {% if staff.unread_count > 0 %}
-                        <span style="background: #ff0000; color: white !important; font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 20px;">
-                            {{ staff.unread_count }}
-                        </span>
+                        <span class="badge badge-danger" style="margin-left: 4px;">{{ staff.unread_count }}</span>
                         {% endif %}
-                        <span style="font-size: 14px; opacity: 0.8;">✉️</span>
-                    </div>
-                </a>
+                    </a>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
 
-    <div style="flex: 3; display: flex; flex-direction: column; background: white; border: 2px solid #000; border-radius: 15px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1);">
-        <div style="padding: 20px; border-bottom: 2px solid #000; background: #fff; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; color: #000 !important; font-weight: 950; letter-spacing: -1px; font-size: 1.5rem;">
-                {% if receiver %} 👤 {{ receiver.full_name }} <span style="color: #800000; font-size: 0.9rem; margin-left: 10px;">[PRIVATE CHANNEL]</span> {% else %} 📢 GLOBAL STAFF LOUNGE {% endif %}
+    <!-- Active Chat Screen (3 Cols) -->
+    <div class="card" style="grid-column: span 3; display: flex; flex-direction: column; margin-bottom: 0;">
+        <div class="card-header">
+            <h3 class="card-title">
+                {% if receiver %}
+                    <i class="fas fa-user" style="color: var(--primary); margin-right: 6px;"></i> {{ receiver.full_name }} <span class="badge badge-info" style="margin-left: 8px;">Private Channel</span>
+                {% else %}
+                    <i class="fas fa-bullhorn" style="color: var(--primary); margin-right: 6px;"></i> Global Staff Lounge Channel
+                {% endif %}
             </h3>
-            <div style="width: 12px; height: 12px; background: #00ff00; border-radius: 50%; box-shadow: 0 0 10px #00ff00;"></div>
+            <span class="badge badge-success"><i class="fas fa-circle" style="font-size: 8px; margin-right: 4px;"></i> Connected</span>
         </div>
         
-        <div id="chat-box" style="flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; background: #f8fafc;">
+        <div id="chat-box" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background-color: var(--gray-50);">
             {% if receiver %}
                 {% for m in messages %}
                 <div style="align-self: {% if m.sender_id == session['user_id'] %}flex-end{% else %}flex-start{% endif %}; max-width: 70%;">
-                    <div style="background: {% if m.sender_id == session['user_id'] %}#000{% else %}#fff{% endif %}; 
-                                color: {% if m.sender_id == session['user_id'] %}#fff{% else %}#000{% endif %}; 
-                                padding: 14px 20px; border-radius: 18px; border: 2px solid #000; box-shadow: 4px 4px 0px rgba(0,0,0,0.1);">
+                    <div style="background-color: {% if m.sender_id == session['user_id'] %}var(--primary){% else %}var(--white){% endif %}; 
+                                color: {% if m.sender_id == session['user_id'] %}#ffffff{% else %}var(--text-primary){% endif %}; 
+                                padding: 10px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
                         
-                        <div class="message-content">{{ m.content }}</div>
+                        <div style="font-size: var(--font-size-sm); line-height: 1.4;">{{ m.content }}</div>
 
-                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; opacity: 0.8;">
-                            <small style="font-size: 10px; font-weight: 800;">{{ m.timestamp.strftime('%I:%M %p') }}</small>
-                            
+                        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 4px; opacity: 0.8; font-size: 0.7rem;">
+                            <span>{{ m.timestamp.strftime('%I:%M %p') }}</span>
                             {% if m.sender_id == session['user_id'] %}
-                                {% if m.is_read %}
-                                    <span style="color: #00ff00; font-size: 12px; font-weight: 900;" title="Read">✓✓</span>
-                                {% else %}
-                                    <span style="color: #666; font-size: 12px;" title="Sent">✓</span>
-                                {% endif %}
+                                <span>{{ '✓✓' if m.is_read else '✓' }}</span>
                             {% endif %}
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div style="text-align: center; padding: 40px; background: #fff; border: 2px dashed #000; border-radius: 20px; margin: 20px;">
-                    <p style="font-weight: 900; color: #000; margin: 0;">Welcome to the Imperial Staff Lounge.</p>
-                    <small style="color: #800000; font-weight: 800;">Encryption Active • Global Visibility</small>
+                <div class="text-center p-3" style="background: var(--white); border: 1px dashed var(--border); border-radius: var(--radius-lg); margin: 20px auto; max-width: 450px;">
+                    <i class="fas fa-comments" style="font-size: 2rem; color: var(--primary); margin-bottom: 8px;"></i>
+                    <p style="font-weight: 600; margin-bottom: 4px;">Welcome to BMS Staff Lounge</p>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Real-time broadcast communication active across campus</span>
                 </div>
             {% endif %}
         </div>
 
-        <form id="chat-form" method="POST" style="padding: 20px; display: flex; gap: 12px; background: #fff; border-top: 2px solid #000;">
-            <input type="text" name="content" id="msg-input" placeholder="Enter encrypted message..." required autocomplete="off"
-                   class="glass-input-chat" style="flex: 1;">
-            <button type="submit" class="btn-royal" style="background: #000; color: white !important; padding: 0 35px; border-radius: 25px; border: none; font-weight: 950; cursor: pointer;">SEND</button>
+        <form id="chat-form" method="POST" style="padding: 16px; display: flex; gap: 10px; background-color: var(--white); border-top: 1px solid var(--border);">
+            <input type="text" name="content" id="msg-input" placeholder="Type encrypted message..." required autocomplete="off" class="form-control" style="flex: 1;">
+            <button type="submit" class="btn btn-primary" style="padding: 0 24px;"><i class="fas fa-paper-plane"></i> Send</button>
         </form>
     </div>
 </div>
@@ -129,7 +107,6 @@
     const searchInput = document.getElementById('staffSearch');
     const isPrivate = {{ 'true' if receiver else 'false' }};
 
-    // SEARCH LOGIC - RETAINED
     searchInput.addEventListener('input', function(e) {
         const term = e.target.value.toLowerCase();
         document.querySelectorAll('.staff-item').forEach(item => {
@@ -138,15 +115,14 @@
         });
     });
 
-    // LOUNGE LOGIC (SOCKET) - RETAINED
     socket.on('new_message', function(m) {
         if (!isPrivate) {
             const isMe = m.user === "{{ session['name'] }}";
-            const html = `<div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 75%;">
-                <small style="display:block; font-weight:900; color: #800000; margin-bottom: 4px;">${m.user}</small>
-                <div style="background: ${isMe ? '#000' : '#fff'}; color: ${isMe ? '#fff' : '#000'}; padding: 14px 20px; border-radius: 18px; border: 2px solid #000; box-shadow: 4px 4px 0px rgba(0,0,0,0.1);">
-                    <div style="font-weight:700;">${m.text}</div>
-                    <small style="display:block; font-size:10px; opacity:0.7; margin-top: 5px; font-weight:800;">${m.time}</small>
+            const html = `<div style="align-self: ${isMe ? 'flex-end' : 'flex-start'}; max-width: 70%;">
+                <small style="display:block; font-weight:600; color: var(--primary); margin-bottom: 2px; font-size: 0.75rem;">${m.user}</small>
+                <div style="background-color: ${isMe ? 'var(--primary)' : 'var(--white)'}; color: ${isMe ? '#ffffff' : 'var(--text-primary)'}; padding: 10px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+                    <div style="font-size: var(--font-size-sm);">${m.text}</div>
+                    <small style="display:block; font-size: 0.7rem; opacity: 0.8; margin-top: 4px;">${m.time}</small>
                 </div>
             </div>`;
             chatBox.insertAdjacentHTML('beforeend', html);
@@ -154,7 +130,6 @@
         }
     });
 
-    // FORM LOGIC - RETAINED
     document.getElementById('chat-form').onsubmit = function(e) {
         if (!isPrivate) {
             e.preventDefault();
