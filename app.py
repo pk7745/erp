@@ -2448,9 +2448,9 @@ def seed_database():
         db.session.add(User(
             username='admin', 
             password=generate_password_hash('admin123'), 
-            role='HR', 
+            role='admin', 
             full_name='System Admin', 
-            email='hr@bmsccm.edu', 
+            email='admin@bms.edu.in', 
             dob='1985-10-25', 
             join_date='2018-05-10', 
             caste='General', 
