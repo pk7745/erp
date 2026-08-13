@@ -2447,7 +2447,7 @@ def seed_database():
     if not User.query.filter_by(username='admin').first():
         db.session.add(User(
             username='admin', 
-            password=generate_password_hash('admin123'), 
+            password=generate_password_hash('bms123'), 
             role='admin', 
             full_name='System Admin', 
             email='admin@bms.edu.in', 
@@ -2464,7 +2464,7 @@ def seed_database():
     if not User.query.filter_by(username='acc1').first():
         db.session.add(User(
             username='acc1', 
-            password=generate_password_hash('pay123'), 
+            password=generate_password_hash('bms123'), 
             role='Accountant', 
             full_name='Rajesh Finance', 
             email='accounts@bmsccm.edu', 
@@ -2950,7 +2950,7 @@ if __name__ == '__main__':
             print("\n" + "="*55)
             print("🎓 BMS COLLEGE ERP SERVER IS LIVE & RUNNING!")
             print(f"👉 Access Portal at: http://localhost:{port}")
-            print("👉 Default Login: Username: admin | Password: admin123")
+            print("👉 Default Login: Username: admin | Password: bms123")
             print("="*55 + "\n")
             socketio.run(app, host='127.0.0.1', port=port, allow_unsafe_werkzeug=True)
             break
