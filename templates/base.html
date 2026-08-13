@@ -22,9 +22,9 @@
     <header class="app-header">
         <nav class="navbar">
             <!-- Logo & Brand -->
-            <a href="/" class="navbar-brand">
-                <div class="navbar-brand-icon">🏛️</div>
-                <span>BMS ERP</span>
+            <a href="/" class="navbar-brand" style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 38px; height: 38px; object-fit: contain; border-radius: 50%;">
+                <span style="font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px;">BMS ERP</span>
             </a>
             
             <!-- Global Search Bar -->
@@ -86,6 +86,13 @@
         
         <!-- SIDEBAR NAVIGATION -->
         <aside class="sidebar" id="sidebar">
+            <div style="padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); margin-bottom: 8px;">
+                <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 44px; height: 44px; object-fit: contain; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div>
+                    <div style="font-weight: 800; font-size: 0.95rem; line-height: 1.2; color: var(--text-main);">BMS COLLEGE</div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Commerce &amp; Mgmt</div>
+                </div>
+            </div>
             <nav class="sidebar-nav">
                 
                 <!-- Main Section -->

@@ -35,16 +35,16 @@
         }
 
         .auth-logo-badge {
-            width: 56px;
-            height: 56px;
-            border-radius: var(--radius-xl);
-            background: var(--primary);
-            color: #ffffff;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.75rem;
             margin: 0 auto 16px auto;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 4px;
         }
 
         .auth-header {
@@ -68,11 +68,13 @@
 <body>
 
 <div class="auth-container">
-    <div class="auth-logo-badge">🏛️</div>
+    <div class="auth-logo-badge">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
+    </div>
     
     <div class="auth-header">
         <h2>BMS College ERP</h2>
-        <p>Enterprise Management Portal</p>
+        <p>BMS College of Commerce & Management (Basavanagudi)</p>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}

@@ -84,9 +84,9 @@
     <!-- Header -->
     <header class="app-header">
         <nav class="navbar" style="max-width: 1200px; margin: 0 auto; width: 100%;">
-            <a href="/" class="navbar-brand">
-                <div class="navbar-brand-icon">🏛️</div>
-                <span>BMS College ERP</span>
+            <a href="/" class="navbar-brand" style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 38px; height: 38px; object-fit: contain; border-radius: 50%;">
+                <span style="font-weight: 800; font-size: 1.15rem;">BMS College ERP</span>
             </a>
 
             <div class="navbar-actions">
@@ -100,8 +100,11 @@
     <!-- Hero Section -->
     <section class="landing-hero" style="margin-top: var(--header-height);">
         <div style="max-width: 900px; margin: 0 auto;">
+            <div style="margin-bottom: 20px;">
+                <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 90px; height: 90px; object-fit: contain; border-radius: 50%; background: #ffffff; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);">
+            </div>
             <div class="badge badge-info" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; margin-bottom: 16px;">
-                ✨ Institutional Command & Faculty Hub
+                ✨ Institutional Command &amp; Faculty Hub
             </div>
             <h1>BMS College of Commerce & Management</h1>
             <p>Empowering Academic Excellence with Real-Time Geofence Attendance, Automated Payroll, Digital Document Vaulting, and Unified Faculty Collaboration.</p>
