@@ -1147,10 +1147,12 @@ def dashboard():
         'salary_pending': SalaryUpdate.query.filter_by(user_id=user.id, status='Pending Admin Approval').count()
     }
 
-    # MANAGEMENT SPECIFIC: Number of leaves waiting for Principal/HOD/HR to click 'Approve'
+    # MANAGEMENT SPECIFIC: Number of leaves waiting for Principal/HOD to click 'Approve' (Admin is Read-Only)
     counts['to_approve'] = 0
-    if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept']:
-        counts['to_approve'] = Leave.query.filter_by(status='Pending').count()
+    if session.get('role') == 'Principal':
+        counts['to_approve'] = Leave.query.filter_by(status='Pending Principal').count()
+    elif session.get('role') == 'HOD - BCA Dept':
+        counts['to_approve'] = Leave.query.filter_by(status='Pending HOD').count()
 
     pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
 
@@ -1702,7 +1704,6 @@ def leave():
 
 @app.route('/approve_leave/<int:id>/<action>')
 def approve_leave(id, action):
-    # Retrieve the request using the 'id'
     leave_req = Leave.query.get(id)
     if not leave_req:
         flash("Leave request not found.", "error")
@@ -1710,15 +1711,27 @@ def approve_leave(id, action):
         
     role = session.get('role')
     
+    # Strictly restrict approval/rejection to HOD and Principal (Admin is Read-Only)
+    if role not in ['HOD - BCA Dept', 'Principal']:
+        flash("Access Restricted! Leave approvals/rejections are strictly authorized for HOD and Principal. Admin has View-Only access.", "error")
+        return redirect(url_for('leave'))
+    
     if action == 'approve':
         if role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD':
             leave_req.status = 'Pending Principal'
         elif role == 'Principal' and leave_req.status == 'Pending Principal':
             leave_req.status = 'Approved'
+        else:
+            flash(f"Unauthorized approval action for current stage ({leave_req.status}).", "error")
+            return redirect(url_for('leave'))
             
     elif action == 'reject':
-        leave_req.status = 'Rejected'
-        leave_req.rejection_reason = request.args.get('reason', 'No reason provided')
+        if (role == 'HOD - BCA Dept' and leave_req.status == 'Pending HOD') or (role == 'Principal' and leave_req.status in ['Pending HOD', 'Pending Principal']):
+            leave_req.status = 'Rejected'
+            leave_req.rejection_reason = request.args.get('reason', 'No reason provided')
+        else:
+            flash("Unauthorized rejection action.", "error")
+            return redirect(url_for('leave'))
     
     db.session.commit()
     log_action(f"{action.capitalize()}d Leave Request", target=leave_req.user.full_name)

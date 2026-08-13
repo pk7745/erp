@@ -3,12 +3,22 @@
 
 <div style="max-width: 1400px; margin: 0 auto;">
     <!-- Page Header -->
-    <div style="margin-bottom: 32px;">
+    <div style="margin-bottom: 24px;">
         <div class="badge badge-info" style="margin-bottom: 8px; font-weight: 800; text-transform: uppercase;">
             📅 Leave Management Portal
         </div>
         <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0;">Apply for Leave & Quota Tracking</h1>
     </div>
+
+    {% if session.get('role') in ['admin', 'HR'] %}
+    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--primary); padding: 14px 18px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 0.88rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <i class="fas fa-eye" style="color: var(--primary); margin-right: 8px;"></i>
+            <strong>Admin Monitoring Mode (Read-Only):</strong> Full institutional visibility into all staff leave applications. Leave approvals and rejections are strictly authorized by <strong>HOD</strong> (Department Review) and <strong>Principal</strong> (Final Authorization).
+        </div>
+        <span class="badge badge-primary" style="font-weight: 700;"><i class="fas fa-shield-alt"></i> View-Only Audit</span>
+    </div>
+    {% endif %}
 
     <div style="display: grid; grid-template-columns: 360px 1fr; gap: 28px; align-items: start;">
         <!-- Leave Application Form -->
@@ -116,6 +126,8 @@
                                         <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" class="btn btn-success btn-sm">Approve</a>
                                         <a href="#" onclick="rejectLeave({{ l.id }})" class="btn btn-danger btn-sm">Reject</a>
                                      </div>
+                                {% elif session.get('role') in ['admin', 'HR'] %}
+                                     <span class="badge badge-secondary" style="font-size: 0.72rem;"><i class="fas fa-eye"></i> View Only</span>
                                 {% else %}
                                      <span style="font-size: 0.8rem; color: var(--text-muted);">Closed</span>
                                 {% endif %}
