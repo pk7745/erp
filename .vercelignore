@@ -11,7 +11,9 @@ dist
 build
 *.egg-info
 data/
+instance/
 backups/
 venv/
-migration_log.txt
-generate_analysis.py
+tests/
+test_*.py
+scan_secrets.py

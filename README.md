@@ -194,8 +194,8 @@ The **BMS College ERP** is designed to replace fragmented legacy college softwar
    SECRET_KEY=bms_erp_secret_key_2026
    PORT=9000
 
-   # Supabase Cloud PostgreSQL URL
-   DATABASE_URL=postgresql://postgres:BmsErp2026!@db.kjgxfdccvsecsyzcmost.supabase.co:5432/postgres
+   # Supabase Cloud PostgreSQL URL (or local SQLite: sqlite:///data/bms_college_v30.db)
+   DATABASE_URL=postgresql://postgres:<your_db_password>@db.<your_supabase_project>.supabase.co:5432/postgres
 
    # Gmail SMTP Email Dispatch Credentials
    MAIL_USERNAME=your_gmail@gmail.com

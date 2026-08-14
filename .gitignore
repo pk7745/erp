@@ -13,6 +13,7 @@ __pycache__/
 *.db
 *.sqlite3
 data/*.db
+instance/
 backups/
 
 # Logs & Temporary Files
@@ -20,6 +21,7 @@ backups/
 static/temp_payslips/*
 !static/temp_payslips/.gitkeep
 .vercel/
+scan_secrets.py
 
 # OS Specific
 .DS_Store

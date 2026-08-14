@@ -17,7 +17,7 @@ class FeatureVerificationTests(unittest.TestCase):
         with app.app_context():
             db.create_all()
 
-    def login(self, username='admin', password='admin123'):
+    def login(self, username='admin', password='bms123'):
         return self.client.post('/login', data=dict(
             username=username,
             password=password

@@ -47,7 +47,7 @@ Admin and HR users can access the **Notification Diagnostic Hub** at:
 **[http://127.0.0.1:9000/notifications/selftest](http://127.0.0.1:9000/notifications/selftest)**
 
 ### Self-Test Steps:
-1. Log in as Admin (`admin` / `admin123`).
+1. Log in as Admin (`admin` / `bms123`).
 2. Navigate to **Notification Hub** in the left sidebar under *Administrative*.
 3. Enter your developer Gmail address under **Developer Test Recipient Credentials** and click **Save Recipient Credentials**.
 4. Click **`⚡ Run Live Self-Test`**.
