@@ -77,15 +77,21 @@ if database_url:
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     
+    if "sslmode=" not in database_url and ("supabase" in database_url or "render" in database_url):
+        if "?" in database_url:
+            database_url += "&sslmode=require"
+        else:
+            database_url += "?sslmode=require"
+
     try:
         import psycopg2
-        test_conn = psycopg2.connect(database_url, connect_timeout=3)
+        test_conn = psycopg2.connect(database_url, connect_timeout=5)
         test_conn.close()
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 5,
-            'max_overflow': 10,
-            'pool_recycle': 180,
+            'pool_size': 3,
+            'max_overflow': 5,
+            'pool_recycle': 120,
             'pool_pre_ping': True,
         }
     except Exception as e:
@@ -2977,6 +2983,20 @@ def admin_devices():
 
     devices = RegisteredDevice.query.order_by(RegisteredDevice.first_seen.desc()).all()
     return render_template('admin_devices.html', devices=devices)
+
+@app.errorhandler(500)
+def handle_500_error(e):
+    import traceback
+    print("🔥 500 ERROR TRACEBACK ON PRODUCTION:")
+    traceback.print_exc()
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal Server Error', 'details': str(e)}), 500
+    flash("An unexpected server error occurred. Session recovered safely.", "danger")
+    return redirect(url_for('dashboard')) if session.get('user_id') else redirect(url_for('login'))
 
 
 with app.app_context():
