@@ -2429,22 +2429,25 @@ def handle_chat(data):
 
 @app.context_processor
 def inject_broadcast():
-    # This makes the active alert available to all templates (base.html)
-    active = Broadcast.query.filter_by(active=True).order_by(Broadcast.id.desc()).first()
-    return dict(active_broadcast=active)
+    try:
+        active = Broadcast.query.filter_by(active=True).order_by(Broadcast.id.desc()).first()
+        return dict(active_broadcast=active)
+    except Exception:
+        db.session.rollback()
+        return dict(active_broadcast=None)
 
 @app.context_processor
 def inject_notifications():
-    if 'user_id' in session:
-        u_id = session['user_id']
-        # Count general unread notifications (for Dashboard/Bell icon)
-        # Count pending tasks specifically for Activity Room
-        task_count = Task.query.filter_by(assigned_to=u_id, is_done=False).count()
-        
-        return dict(
-            global_notif_count=0,  # Set to 0 for now so Dashboard doesn't crash
-            pending_tasks_count=task_count
-        )
+    try:
+        if 'user_id' in session:
+            u_id = session['user_id']
+            task_count = Task.query.filter_by(assigned_to=u_id, is_done=False).count()
+            return dict(
+                global_notif_count=0,
+                pending_tasks_count=task_count
+            )
+    except Exception:
+        db.session.rollback()
     return dict(global_notif_count=0, pending_tasks_count=0)
 
 @login_manager.user_loader
@@ -2455,77 +2458,103 @@ def load_user(user_id):
 # ==========================================
 
 def seed_database():
-    db.create_all()
-    # System Admin with Address & Dept
-    if not User.query.filter_by(username='admin').first():
-        db.session.add(User(
-            username='admin', 
-            password=generate_password_hash('bms123'), 
-            role='admin', 
-            full_name='System Admin', 
-            email='admin@bms.edu.in', 
-            dob='1985-10-25', 
-            join_date='2018-05-10', 
-            caste='General', 
-            religion='Hindu',
-            department='Administration',
-            dept_id='BMS-ADM-001',
-            address='BMSCCM Campus, Basavanagudi, Bengaluru'
-        ))
+    try:
+        db.create_all()
+        # Self-healing column migration for existing PostgreSQL tables
+        columns_to_add = [
+            ('dept_id', 'VARCHAR(50) DEFAULT \'BMS-GEN-000\''),
+            ('department', 'VARCHAR(100) DEFAULT \'General\''),
+            ('address', 'VARCHAR(200) DEFAULT \'Basavanagudi, Bengaluru\''),
+            ('caste', 'VARCHAR(50) DEFAULT \'General\''),
+            ('religion', 'VARCHAR(50) DEFAULT \'General\''),
+            ('dob', 'VARCHAR(20) DEFAULT \'1995-01-01\''),
+            ('join_date', 'VARCHAR(20) DEFAULT \'2023-01-01\''),
+            ('profile_pic', 'VARCHAR(200)'),
+            ('status', 'VARCHAR(50) DEFAULT \'Active\'')
+        ]
+        with db.engine.connect() as conn:
+            for col_name, col_type in columns_to_add:
+                try:
+                    conn.execute(db.text(f'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS {col_name} {col_type};'))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.execute(db.text(f'ALTER TABLE user ADD COLUMN {col_name} {col_type};'))
+                        conn.commit()
+                    except Exception:
+                        pass
 
-    # Accountant with Address & Dept
-    if not User.query.filter_by(username='acc1').first():
-        db.session.add(User(
-            username='acc1', 
-            password=generate_password_hash('bms123'), 
-            role='Accountant', 
-            full_name='Rajesh Finance', 
-            email='accounts@bmsccm.edu', 
-            dob='1990-03-12', 
-            join_date='2020-11-20', 
-            caste='General', 
-            religion='Hindu',
-            department='Accounts',
-            dept_id='BMS-ACC-001',
-            address='No. 45, Gandhi Bazaar, Bengaluru'
-        ))
-    
-    # Faculty list with added Dept, DeptID, and Address (Address is at the end)
-    # Format: (username, name, role, email, caste, religion, dob, join, dept, dept_id, address)
-    faculties = [
-        ('balram', 'Mr.Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01', 'Commerce', 'BMS-COM-101', 'Jayanagar 4th Block, Bengaluru'),
-        ('kiran', 'Dr.Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15', 'Computer Applications', 'BMS-BCA-001', 'Banashankari 3rd Stage, Bengaluru'),
-        ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10', 'Management', 'BMS-MGT-201', 'V.V. Puram, Bengaluru'),
-        ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14', 'Commerce', 'BMS-COM-102', 'Basavanagudi, Bengaluru'),
-        ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20', 'Commerce', 'BMS-COM-103', 'JP Nagar, Bengaluru'),
-        ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01', 'Management', 'BMS-MGT-202', 'Uttarahalli, Bengaluru'),
-        ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01', 'Commerce', 'BMS-COM-999', 'Bengaluru South'),
-        ('pankaj', 'Dr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15', 'Executive', 'BMS-EXE-001', 'Principal Quarters, BMSCCM')
-    ]
-
-    for u, f, r, e, c, rel, d, j, dept, did, addr in faculties:
-        if not User.query.filter_by(username=u).first():
+        # System Admin with Address & Dept
+        if not User.query.filter_by(username='admin').first():
             db.session.add(User(
-                username=u, 
+                username='admin', 
                 password=generate_password_hash('bms123'), 
-                role=r, 
-                full_name=f, 
-                salary=50000, 
-                email=e, 
-                dob=d, 
-                join_date=j, 
-                caste=c, 
-                religion=rel,
-                department=dept,
-                dept_id=did,
-                address=addr
+                role='admin', 
+                full_name='System Admin', 
+                email='admin@bms.edu.in', 
+                dob='1985-10-25', 
+                join_date='2018-05-10', 
+                caste='General', 
+                religion='Hindu',
+                department='Administration',
+                dept_id='BMS-ADM-001',
+                address='BMSCCM Campus, Basavanagudi, Bengaluru'
             ))
-            
-    db.session.commit()
-    if not Timetable.query.first():
-        print("Injecting heavy timetable data...")
-        inject_heavy_timetable()
-        print("Timetable populated successfully!")
+
+        # Accountant with Address & Dept
+        if not User.query.filter_by(username='acc1').first():
+            db.session.add(User(
+                username='acc1', 
+                password=generate_password_hash('bms123'), 
+                role='Accountant', 
+                full_name='Rajesh Finance', 
+                email='accounts@bmsccm.edu', 
+                dob='1990-03-12', 
+                join_date='2020-11-20', 
+                caste='General', 
+                religion='Hindu',
+                department='Accounts',
+                dept_id='BMS-ACC-001',
+                address='No. 45, Gandhi Bazaar, Bengaluru'
+            ))
+        
+        faculties = [
+            ('balram', 'Mr.Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01', 'Commerce', 'BMS-COM-101', 'Jayanagar 4th Block, Bengaluru'),
+            ('kiran', 'Dr.Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15', 'Computer Applications', 'BMS-BCA-001', 'Banashankari 3rd Stage, Bengaluru'),
+            ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10', 'Management', 'BMS-MGT-201', 'V.V. Puram, Bengaluru'),
+            ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14', 'Commerce', 'BMS-COM-102', 'Basavanagudi, Bengaluru'),
+            ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20', 'Commerce', 'BMS-COM-103', 'JP Nagar, Bengaluru'),
+            ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01', 'Management', 'BMS-MGT-202', 'Uttarahalli, Bengaluru'),
+            ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01', 'Commerce', 'BMS-COM-999', 'Bengaluru South'),
+            ('pankaj', 'Dr. Pankaj Choudhry', 'Principal', 'principal@bmsccm.edu', 'General', 'Hindu', '1975-09-10', '2005-08-15', 'Executive', 'BMS-EXE-001', 'Principal Quarters, BMSCCM')
+        ]
+
+        for u, f, r, e, c, rel, d, j, dept, did, addr in faculties:
+            if not User.query.filter_by(username=u).first():
+                db.session.add(User(
+                    username=u, 
+                    password=generate_password_hash('bms123'), 
+                    role=r, 
+                    full_name=f, 
+                    salary=50000, 
+                    email=e, 
+                    dob=d, 
+                    join_date=j, 
+                    caste=c, 
+                    religion=rel,
+                    department=dept,
+                    dept_id=did,
+                    address=addr
+                ))
+                
+        db.session.commit()
+        if not Timetable.query.first():
+            print("Injecting heavy timetable data...")
+            inject_heavy_timetable()
+            print("Timetable populated successfully!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Seed Database Warning: {e}")
         
 
 # ==============================================================================
