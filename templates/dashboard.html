@@ -74,6 +74,56 @@
 <div class="grid grid-cols-3">
     <!-- Left 2 Columns -->
     <div style="grid-column: span 2;">
+        <!-- Today's Academic Schedule Widget -->
+        {% if user.role in ['Faculty', 'HOD - BCA Dept', 'Principal'] %}
+        <div class="card mb-3" style="border-top: 4px solid var(--primary);">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <h3 class="card-title">
+                    <i class="fas fa-calendar-check" style="color: var(--primary); margin-right: 8px;"></i> Today's Classes ({{ today_day_name }})
+                </h3>
+                <div style="display: flex; gap: 8px;">
+                    <a href="{{ url_for('view_timetable') }}" class="btn btn-secondary btn-sm">Full Schedule</a>
+                    <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary btn-sm">Attendance History</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if today_classes %}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for item in today_classes %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-body); flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="badge badge-info">{{ item.entry.time_slot }}</span>
+                                <span class="badge badge-primary">{{ item.entry.course }} {{ item.entry.semester }} Sec {{ item.entry.section }}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="fas fa-door-open"></i> {{ item.entry.room_no }}</span>
+                            </div>
+                            <div style="font-weight: 700; font-size: 1.05rem; margin-top: 4px;">{{ item.entry.subject }}</div>
+                        </div>
+                        <div>
+                            {% if item.session %}
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="badge badge-success"><i class="fas fa-check"></i> Taken ({{ item.present_count }} P / {{ item.absent_count }} A)</span>
+                                    <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm">View</a>
+                                </div>
+                            {% else %}
+                                <a href="{{ url_for('take_academic_attendance', timetable_id=item.entry.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-clipboard-check"></i> Take Attendance
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 12px;">
+                    No classes scheduled for today ({{ today_day_name }}). 
+                    <a href="{{ url_for('view_timetable') }}" style="color: var(--primary); font-weight: 600;">View Weekly Schedule &rarr;</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Video Conference Hub -->
         <div class="card">
             <div class="card-header">

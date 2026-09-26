@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Class Session Attendance Record - BMS College ERP{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('view_timetable') }}"><i class="fas fa-clock"></i> Weekly Schedule</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('academic_attendance_history') }}">Attendance History</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Session #{{ session_obj.id }}</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Class Session Attendance Record</h1>
+        <div class="page-subtitle">{{ session_obj.actual_subject }} — {{ session_obj.course }} {{ session_obj.semester }} Section {{ session_obj.section }}</div>
+    </div>
+    <div class="page-actions" style="display: flex; gap: 8px;">
+        <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary">
+            <i class="fas fa-history"></i> Attendance History
+        </a>
+        <a href="{{ url_for('view_timetable') }}" class="btn btn-primary">
+            <i class="fas fa-calendar-alt"></i> Weekly Schedule
+        </a>
+    </div>
+</div>
+
+<!-- Stat Cards (Key Metrics) -->
+<div class="grid grid-cols-3 mb-3">
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Total Enrolled</div>
+        <div class="stat-card-value">{{ total_count }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Students</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-users"></i> Class Roster Size</div>
+    </div>
+
+    <div class="stat-card" style="border-top: 3px solid var(--success);">
+        <div class="stat-card-label">Present</div>
+        <div class="stat-card-value" style="color: var(--success);">
+            {{ present_count }} 
+            {% if total_count > 0 %}
+            <span style="font-size: 0.95rem; font-weight: 600; color: var(--success);">({{ ((present_count / total_count) * 100)|round(1) }}%)</span>
+            {% endif %}
+        </div>
+        <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-user-check"></i> Attended Lecture</div>
+    </div>
+
+    <div class="stat-card" style="border-top: 3px solid var(--danger);">
+        <div class="stat-card-label">Absent</div>
+        <div class="stat-card-value" style="color: var(--danger);">
+            {{ absent_count }}
+            {% if total_count > 0 %}
+            <span style="font-size: 0.95rem; font-weight: 600; color: var(--danger);">({{ ((absent_count / total_count) * 100)|round(1) }}%)</span>
+            {% endif %}
+        </div>
+        <div style="font-size: var(--font-size-xs); color: var(--danger);"><i class="fas fa-user-times"></i> Absence Notices Dispatched</div>
+    </div>
+</div>
+
+<!-- Historical Session Metadata Card -->
+<div class="card mb-3">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title"><i class="fas fa-archive" style="margin-right: 8px;"></i> Immutable Session Record</h3>
+        <span class="badge badge-success"><i class="fas fa-check-circle"></i> {{ session_obj.status }}</span>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 0.9rem;">
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Subject Conducted</span>
+                <strong style="font-size: 1.05rem; color: var(--text-main);">{{ session_obj.actual_subject }}</strong>
+                {% if session_obj.actual_subject != session_obj.scheduled_subject %}
+                <div style="font-size: 0.78rem; color: var(--warning); margin-top: 2px;">
+                    <i class="fas fa-exchange-alt"></i> Scheduled: {{ session_obj.scheduled_subject }}
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Conducted Date &amp; Time</span>
+                <strong style="color: var(--text-main);">{{ session_obj.date.strftime("%d %B %Y") }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ session_obj.time_slot }}</div>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Class &amp; Location</span>
+                <strong style="color: var(--text-main);">{{ session_obj.course }} {{ session_obj.semester }} — Sec {{ session_obj.section }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ session_obj.room_no }}</div>
+            </div>
+            <div>
+                <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; font-weight: 700;">Faculty Assigned / Conducted</span>
+                <strong style="color: var(--text-main);">{{ session_obj.actual_faculty.full_name }}</strong>
+                {% if session_obj.actual_faculty_id != session_obj.scheduled_faculty_id and session_obj.scheduled_faculty %}
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    Scheduled: {{ session_obj.scheduled_faculty.full_name }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% if session_obj.remarks %}
+        <div style="margin-top: 16px; padding: 10px 14px; background: var(--bg-body); border-radius: var(--radius-md); border-left: 3px solid var(--primary); font-size: 0.85rem;">
+            <strong>Session Remarks:</strong> {{ session_obj.remarks }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Attendance Roster Snapshot -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-list-check" style="margin-right: 8px;"></i> Student Attendance Snapshot</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">#</th>
+                        <th style="width: 170px;">UUCMS ID</th>
+                        <th>Student Name</th>
+                        <th>Email Address</th>
+                        <th style="width: 140px; text-align: center;">Status</th>
+                        <th style="width: 180px;">Marked Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attendances %}
+                    <tr>
+                        <td style="text-align: center; color: var(--text-muted);">{{ loop.index }}</td>
+                        <td><span class="badge badge-info" style="font-family: monospace;">{{ att.student.uucms_id }}</span></td>
+                        <td><strong>{{ att.student.name }}</strong></td>
+                        <td style="color: var(--text-muted); font-size: 0.88rem;">{{ att.student.email }}</td>
+                        <td style="text-align: center;">
+                            {% if att.status == 'Present' %}
+                                <span class="badge badge-success"><i class="fas fa-check"></i> PRESENT</span>
+                            {% else %}
+                                <span class="badge badge-danger"><i class="fas fa-times"></i> ABSENT</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size: 0.82rem; color: var(--text-muted);">
+                            {{ att.marked_at.strftime("%Y-%m-%d %I:%M %p") if att.marked_at else 'Recorded' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No attendance records found for this session.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

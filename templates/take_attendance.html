@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block title %}Take Academic Attendance - BMS College ERP{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('view_timetable') }}"><i class="fas fa-clock"></i> Weekly Schedule</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Take Academic Attendance</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Take Academic Attendance</h1>
+        <div class="page-subtitle">{{ timetable_entry.course }} — {{ timetable_entry.semester }} — Section {{ timetable_entry.section }}</div>
+    </div>
+    <div class="page-actions" style="display: flex; gap: 8px;">
+        <a href="{{ url_for('view_timetable') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Schedule
+        </a>
+    </div>
+</div>
+
+<!-- Session Details Card -->
+<div class="card mb-3" style="border-top: 4px solid var(--primary);">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle" style="color: var(--primary); margin-right: 8px;"></i> Scheduled Session Details</h3>
+        <span class="badge badge-primary">{{ timetable_entry.course }} | {{ timetable_entry.semester }} | Sec {{ timetable_entry.section }}</span>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Academic Date</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="far fa-calendar-alt" style="color: var(--primary); margin-right: 6px;"></i>{{ today_date.strftime("%d %B %Y") }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Time Slot</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="far fa-clock" style="color: var(--info); margin-right: 6px;"></i>{{ timetable_entry.time_slot }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Classroom / Lab</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-door-open" style="color: var(--warning); margin-right: 6px;"></i>{{ timetable_entry.room_no }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Scheduled Subject</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-book" style="color: var(--primary); margin-right: 6px;"></i>{{ timetable_entry.subject }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Assigned Faculty</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-chalkboard-teacher" style="color: var(--success); margin-right: 6px;"></i>{{ timetable_entry.faculty.full_name if timetable_entry.faculty else user.full_name }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Form -->
+<form id="attendanceForm" action="{{ url_for('take_academic_attendance', timetable_id=timetable_entry.id) }}" method="POST">
+    <!-- Actual Subject Override & Session Remarks Card -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-edit" style="margin-right: 8px;"></i> Session Intelligence & Actual Subject</h3>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-weight: 700;">
+                        Actual Subject Taught <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Override if different from scheduled subject):</span>
+                    </label>
+                    <input type="text" id="actual_subject" name="actual_subject" class="form-control" value="{{ timetable_entry.subject }}" required>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                        Scheduled: <strong>{{ timetable_entry.subject }}</strong>. Leave as-is or specify the actual topic/substitute subject taught.
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-weight: 700;">
+                        Session Remarks / Topics Covered <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Optional):</span>
+                    </label>
+                    <input type="text" id="remarks" name="remarks" class="form-control" placeholder="e.g. Unit 3: Dynamic Memory Allocation Lab Exercises">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Roster & Live Counter Card -->
+    <div class="card mb-3">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 class="card-title" style="margin-bottom: 0;"><i class="fas fa-user-graduate" style="margin-right: 8px;"></i> Official Student Roster ({{ students|length }})</h3>
+                <div style="display: flex; gap: 8px;">
+                    <span class="badge badge-info" id="badgeTotal">Total: {{ students|length }}</span>
+                    <span class="badge badge-success" id="badgePresent">Present: {{ students|length }}</span>
+                    <span class="badge badge-danger" id="badgeAbsent">Absent: 0</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-success btn-sm" onclick="markAll('Present')">
+                    <i class="fas fa-check-double"></i> Mark All Present
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="markAll('Absent')">
+                    <i class="fas fa-times"></i> Mark All Absent
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if students %}
+            <div class="table-wrapper">
+                <table class="table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">#</th>
+                            <th style="width: 170px;">UUCMS ID</th>
+                            <th>Student Name</th>
+                            <th>Email Address</th>
+                            <th style="width: 240px; text-align: center;">Attendance Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr id="row_{{ s.id }}" class="student-row">
+                            <td style="text-align: center; font-weight: 600; color: var(--text-muted);">{{ loop.index }}</td>
+                            <td>
+                                <span class="badge badge-info" style="font-family: monospace; font-size: 0.85rem;">{{ s.uucms_id }}</span>
+                                <input type="hidden" name="student_ids" value="{{ s.id }}">
+                            </td>
+                            <td>
+                                <strong class="student-name" style="font-size: 0.95rem;">{{ s.name }}</strong>
+                            </td>
+                            <td style="color: var(--text-muted); font-size: 0.88rem;">{{ s.email }}</td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border);">
+                                    <label id="lbl_p_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: var(--success); color: white; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                        <input type="radio" name="status_{{ s.id }}" value="Present" checked onchange="updateCounters()" style="display: none;">
+                                        <i class="fas fa-check"></i> Present
+                                    </label>
+                                    <label id="lbl_a_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: var(--bg-body); color: var(--text-muted); display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                        <input type="radio" name="status_{{ s.id }}" value="Absent" onchange="updateCounters()" style="display: none;">
+                                        <i class="fas fa-times"></i> Absent
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-users-slash" style="font-size: 3rem; margin-bottom: 12px; color: var(--border);"></i>
+                <h3>No active students found for this class</h3>
+                <p>Please verify the academic roster for {{ timetable_entry.course }} {{ timetable_entry.semester }} Section {{ timetable_entry.section }}.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% if students %}
+        <div class="card-footer" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+                <i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 4px;"></i>
+                Transactional persistence enabled. Absent students will be automatically notified via institutional email.
+            </div>
+            <button type="button" class="btn btn-primary" onclick="openReviewModal()" style="font-size: 1rem; padding: 10px 24px;">
+                <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Review &amp; Submit Attendance
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Modal: Review & Confirmation Summary -->
+<div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 600px; margin: 0; box-shadow: var(--shadow-lg); border-top: 4px solid var(--primary);">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title"><i class="fas fa-clipboard-list" style="margin-right: 8px;"></i> Confirm Attendance Submission</h3>
+            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary btn-sm">✕</button>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem;">
+                    <div><strong>Class:</strong> {{ timetable_entry.course }} {{ timetable_entry.semester }} Sec {{ timetable_entry.section }}</div>
+                    <div><strong>Date:</strong> {{ today_date.strftime("%d %B %Y") }}</div>
+                    <div><strong>Scheduled:</strong> {{ timetable_entry.subject }}</div>
+                    <div><strong>Actual:</strong> <span id="modalActualSubject"></span></div>
+                    <div><strong>Time Slot:</strong> {{ timetable_entry.time_slot }}</div>
+                    <div><strong>Room:</strong> {{ timetable_entry.room_no }}</div>
+                </div>
+            </div>
+
+            <!-- Attendance Metrics Bar -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="text-align: center; padding: 12px; border-radius: var(--radius-md); background: var(--bg-body); border: 1px solid var(--border);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Total Students</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);" id="modalTotal">{{ students|length }}</div>
+                </div>
+                <div style="text-align: center; padding: 12px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--success); font-weight: 700;">Present</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--success);" id="modalPresent">0</div>
+                </div>
+                <div style="text-align: center; padding: 12px; border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--danger); font-weight: 700;">Absent</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--danger);" id="modalAbsent">0</div>
+                </div>
+            </div>
+
+            <!-- List of Absent Students -->
+            <div style="margin-bottom: 20px;">
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">
+                    <i class="fas fa-user-times" style="color: var(--danger); margin-right: 6px;"></i>
+                    Absent Students (<span id="modalAbsentCountLabel">0</span>):
+                </div>
+                <div id="modalAbsentList" style="max-height: 140px; overflow-y: auto; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-body); font-size: 0.85rem;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.82rem; color: var(--text-main);">
+                <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 6px;"></i>
+                <strong>Notice:</strong> Please verify the roster above. Once submitted, absence notifications will be automatically queued for delivery.
+            </div>
+        </div>
+        <div class="card-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px;">
+            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary">
+                <i class="fas fa-edit"></i> Modify / Cancel
+            </button>
+            <button type="button" onclick="submitAttendanceFinal()" class="btn btn-primary" id="btnSubmitFinal">
+                <i class="fas fa-check-circle"></i> Confirm &amp; Submit Attendance
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateCounters() {
+        const total = {{ students|length }};
+        let present = 0;
+        let absent = 0;
+
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const pInput = row.querySelector(`input[name="status_${sid}"][value="Present"]`);
+            const aInput = row.querySelector(`input[name="status_${sid}"][value="Absent"]`);
+            const pLbl = document.getElementById(`lbl_p_${sid}`);
+            const aLbl = document.getElementById(`lbl_a_${sid}`);
+
+            if (pInput && pInput.checked) {
+                present++;
+                pLbl.style.background = 'var(--success)';
+                pLbl.style.color = 'white';
+                aLbl.style.background = 'var(--bg-body)';
+                aLbl.style.color = 'var(--text-muted)';
+                row.style.background = '';
+            } else if (aInput && aInput.checked) {
+                absent++;
+                pLbl.style.background = 'var(--bg-body)';
+                pLbl.style.color = 'var(--text-muted)';
+                aLbl.style.background = 'var(--danger)';
+                aLbl.style.color = 'white';
+                row.style.background = 'rgba(239, 68, 68, 0.05)';
+            }
+        });
+
+        document.getElementById('badgeTotal').textContent = `Total: ${total}`;
+        document.getElementById('badgePresent').textContent = `Present: ${present}`;
+        document.getElementById('badgeAbsent').textContent = `Absent: ${absent}`;
+    }
+
+    function markAll(status) {
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const radio = row.querySelector(`input[name="status_${sid}"][value="${status}"]`);
+            if (radio) radio.checked = true;
+        });
+        updateCounters();
+    }
+
+    function openReviewModal() {
+        const total = {{ students|length }};
+        let present = 0;
+        let absent = 0;
+        const absentStudents = [];
+
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const aInput = row.querySelector(`input[name="status_${sid}"][value="Absent"]`);
+            const name = row.querySelector('.student-name').textContent.trim();
+            const uucms = row.querySelector('.badge-info').textContent.trim();
+
+            if (aInput && aInput.checked) {
+                absent++;
+                absentStudents.push(`${name} (${uucms})`);
+            } else {
+                present++;
+            }
+        });
+
+        document.getElementById('modalTotal').textContent = total;
+        document.getElementById('modalPresent').textContent = present;
+        document.getElementById('modalAbsent').textContent = absent;
+        document.getElementById('modalAbsentCountLabel').textContent = absent;
+        document.getElementById('modalActualSubject').textContent = document.getElementById('actual_subject').value || '{{ timetable_entry.subject }}';
+
+        const listDiv = document.getElementById('modalAbsentList');
+        if (absentStudents.length > 0) {
+            listDiv.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' +
+                absentStudents.map(s => `<li style="margin-bottom: 4px; color: var(--danger); font-weight: 600;">${s}</li>`).join('') +
+                '</ul>';
+        } else {
+            listDiv.innerHTML = '<span style="color: var(--success); font-weight: 600;">🎉 All students are marked present!</span>';
+        }
+
+        document.getElementById('reviewModal').style.display = 'flex';
+    }
+
+    function closeReviewModal() {
+        document.getElementById('reviewModal').style.display = 'none';
+    }
+
+    function submitAttendanceFinal() {
+        const btn = document.getElementById('btnSubmitFinal');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        document.getElementById('attendanceForm').submit();
+    }
+
+    // Initialize state on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCounters();
+    });
+</script>
+{% endblock %}

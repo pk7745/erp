@@ -778,6 +778,11 @@ NOTIFICATION_ROUTING_MAP = {
         'channels': ['email'],
         'subject': 'BMS College ERP — Email Notification Engine Self-Test',
         'email_body': lambda u, c: f"<h3>ERP Email Notification Engine Self-Test</h3><p>Dear {u.full_name},</p><p>This is a live diagnostic verification email from the BMS College ERP Email Notification Engine.</p><p>✅ <strong>Email Channel Status: OPERATIONAL (Gmail SMTP)</strong></p><p>Timestamp: {get_ist_time().strftime('%Y-%m-%d %I:%M:%S %p IST')}</p>",
+    },
+    'student_absence_notification': {
+        'channels': ['email'],
+        'subject': lambda u, c: f"Attendance Notification - BMS College ({c.get('subject', 'Academic Session')})",
+        'email_body': lambda u, c: f"<h3>Attendance Notification — BMS College</h3><p>Dear {getattr(u, 'name', getattr(u, 'full_name', 'Student'))},</p><p>This is to inform you that you were marked <strong>ABSENT</strong> for the following academic session:</p><ul><li><strong>Course:</strong> {c.get('course', 'BCA')}</li><li><strong>Semester:</strong> {c.get('semester', 'Sem V')}</li><li><strong>Section:</strong> {c.get('section', 'A')}</li><li><strong>Subject:</strong> {c.get('subject', 'N/A')}</li><li><strong>Date:</strong> {c.get('date', 'Today')}</li><li><strong>Time Slot:</strong> {c.get('time_slot', 'N/A')}</li><li><strong>Room:</strong> {c.get('room_no', 'N/A')}</li><li><strong>Faculty:</strong> {c.get('faculty', 'Faculty')}</li></ul><p>If you believe this attendance record is incorrect, please contact the concerned faculty member promptly.</p><p>Regards,<br><strong>BMS College ERP Academic Cell</strong></p>",
     }
 }
 
@@ -1116,12 +1121,38 @@ def view_timetable():
     busy_slots = [t.time_slot for t in timetable_entries]
     free_slots = [slot for slot in all_slots if slot not in busy_slots]
 
+    # 4. TODAY'S CLASSES & ACADEMIC ATTENDANCE
+    today_date = get_ist_time().date()
+    today_day_name = get_ist_time().strftime('%A')
+    
+    today_entries = Timetable.query.filter_by(user_id=view_id, day=today_day_name).order_by(Timetable.time_slot).all()
+    today_classes = []
+    for entry in today_entries:
+        existing_session = ClassSession.query.filter_by(timetable_id=entry.id, date=today_date).first()
+        present_cnt = 0
+        absent_cnt = 0
+        if existing_session:
+            present_cnt = StudentAttendance.query.filter_by(class_session_id=existing_session.id, status='Present').count()
+            absent_cnt = StudentAttendance.query.filter_by(class_session_id=existing_session.id, status='Absent').count()
+        today_classes.append({
+            'entry': entry,
+            'session': existing_session,
+            'present_count': present_cnt,
+            'absent_count': absent_cnt
+        })
+
+    for entry in timetable_entries:
+        entry.today_session = ClassSession.query.filter_by(timetable_id=entry.id, date=today_date).first()
+
     return render_template('timetable.html', 
                            user=user,
                            target_user=target_user,
                            timetable=timetable_entries, 
                            staff_list=staff_list,
                            free_slots=free_slots,
+                           today_classes=today_classes,
+                           today_date=today_date,
+                           today_day_name=today_day_name,
                            chart_data=[held_count, missed_count, pending_count])
 
 @app.route('/timetable/manage', methods=['POST'])
@@ -1164,7 +1195,296 @@ def manage_timetable():
     db.session.commit()
     # Redirect back to the faculty being viewed
     return redirect(url_for('view_timetable', faculty_id=faculty_id))
-    
+
+# ==========================================
+# 3B. STUDENT ACADEMIC ATTENDANCE WORKFLOW
+# ==========================================
+
+def _dispatch_absence_emails_async(absent_students, session_info, faculty_info):
+    """Dispatches personalized absence notification emails asynchronously in a background daemon thread."""
+    def _worker():
+        with app.app_context():
+            mail_user = app.config.get('MAIL_USERNAME')
+            mail_pwd = app.config.get('MAIL_PASSWORD')
+            has_creds = bool(mail_user and mail_pwd and 'your_' not in str(mail_pwd).lower() and 'placeholder' not in str(mail_pwd).lower() and not app.config.get('TESTING'))
+
+            for s_info in absent_students:
+                s_email = s_info.get('email')
+                s_name = s_info.get('name')
+                s_uucms = s_info.get('uucms_id')
+
+                if not s_email or '@' not in s_email:
+                    continue
+
+                subject = f"Attendance Notification - BMS College ({session_info.get('actual_subject')})"
+                body_html = (
+                    f"<h3>Attendance Notification — BMS College</h3>"
+                    f"<p>Dear <strong>{s_name}</strong> ({s_uucms}),</p>"
+                    f"<p>This is to inform you that you were marked <strong>ABSENT</strong> for the following scheduled academic session:</p>"
+                    f"<ul>"
+                    f"<li><strong>Course:</strong> {session_info.get('course')}</li>"
+                    f"<li><strong>Semester:</strong> {session_info.get('semester')}</li>"
+                    f"<li><strong>Section:</strong> {session_info.get('section')}</li>"
+                    f"<li><strong>Subject:</strong> {session_info.get('actual_subject')}</li>"
+                    f"<li><strong>Date:</strong> {session_info.get('date_str')}</li>"
+                    f"<li><strong>Time Slot:</strong> {session_info.get('time_slot')}</li>"
+                    f"<li><strong>Room:</strong> {session_info.get('room_no')}</li>"
+                    f"<li><strong>Faculty:</strong> {faculty_info.get('full_name')}</li>"
+                    f"</ul>"
+                    f"<p>If you believe this attendance record is incorrect, please contact the concerned faculty member promptly.</p>"
+                    f"<p>Regards,<br><strong>BMS College ERP Academic Cell</strong></p>"
+                )
+
+                sent_success = False
+                detail_msg = ""
+                if has_creds:
+                    import socket
+                    orig_timeout = socket.getdefaulttimeout()
+                    try:
+                        socket.setdefaulttimeout(4.0)
+                        msg = MailMessage(subject=subject, recipients=[s_email], html=body_html, sender=mail_user)
+                        mail.send(msg)
+                        sent_success = True
+                        detail_msg = f"Absence email delivered successfully to {s_email}"
+                    except Exception as err:
+                        sent_success = False
+                        detail_msg = f"Email Dispatch Error: {str(err)}"
+                    finally:
+                        socket.setdefaulttimeout(orig_timeout)
+                else:
+                    sent_success = False
+                    detail_msg = "Email skipped: MAIL_USERNAME or MAIL_PASSWORD not configured (or test mode)"
+
+                status_str = "SENT" if sent_success else ("SKIPPED" if "skipped" in detail_msg else "FAILED")
+                try:
+                    db.session.add(NotificationLog(
+                        user_id=faculty_info.get('id'),
+                        event='student_absence_notification',
+                        channel='email',
+                        status=status_str,
+                        detail=f"Student: {s_name} ({s_uucms}, {s_email}) | {detail_msg}"
+                    ))
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
+    import threading
+    threading.Thread(target=_worker, daemon=True).start()
+
+@app.route('/academic-attendance/take/<int:timetable_id>', methods=['GET', 'POST'])
+@login_required
+def take_academic_attendance(timetable_id):
+    user = User.query.get(session['user_id'])
+    timetable_entry = Timetable.query.get_or_404(timetable_id)
+
+    # Server-Side RBAC Authorization Check
+    is_authorized = (
+        timetable_entry.user_id == user.id or
+        user.role in ['Principal', 'HOD - BCA Dept', 'admin']
+    )
+    if not is_authorized:
+        flash('You are not authorized to take attendance for this class.', 'danger')
+        return redirect(url_for('view_timetable'))
+
+    today_date = get_ist_time().date()
+
+    # Duplicate check: Check if attendance already recorded today for this timetable entry
+    existing_session = ClassSession.query.filter_by(timetable_id=timetable_entry.id, date=today_date).first()
+
+    if request.method == 'POST':
+        if existing_session:
+            flash('Attendance has already been submitted for this class today.', 'warning')
+            return redirect(url_for('view_class_session', session_id=existing_session.id))
+
+        actual_subject = (request.form.get('actual_subject') or timetable_entry.subject).strip()
+        remarks = (request.form.get('remarks') or '').strip()
+
+        # Database Transaction
+        try:
+            session_record = ClassSession(
+                timetable_id=timetable_entry.id,
+                date=today_date,
+                time_slot=timetable_entry.time_slot,
+                course=timetable_entry.course,
+                academic_year='3rd Year',
+                semester=timetable_entry.semester,
+                section=timetable_entry.section,
+                scheduled_subject=timetable_entry.subject,
+                actual_subject=actual_subject,
+                scheduled_faculty_id=timetable_entry.user_id,
+                actual_faculty_id=user.id,
+                room_no=timetable_entry.room_no,
+                status='COMPLETED',
+                remarks=remarks
+            )
+            db.session.add(session_record)
+            db.session.flush()
+
+            # Server-side validation of student roster
+            class_students = {
+                s.id: s for s in Student.query.filter_by(
+                    course=timetable_entry.course,
+                    semester=timetable_entry.semester,
+                    section=timetable_entry.section,
+                    is_active=True
+                ).all()
+            }
+
+            present_count = 0
+            absent_students = []
+
+            submitted_ids = request.form.getlist('student_ids')
+            for sid_str in submitted_ids:
+                try:
+                    sid = int(sid_str)
+                except (ValueError, TypeError):
+                    continue
+
+                if sid not in class_students:
+                    continue
+
+                student = class_students[sid]
+                status = request.form.get(f'status_{sid}', 'Present')
+                if status not in ['Present', 'Absent']:
+                    status = 'Present'
+
+                att = StudentAttendance(
+                    class_session_id=session_record.id,
+                    student_id=student.id,
+                    status=status,
+                    marked_at=get_ist_time().replace(tzinfo=None),
+                    marked_by=user.id
+                )
+                db.session.add(att)
+
+                if status == 'Present':
+                    present_count += 1
+                else:
+                    absent_students.append(student)
+
+            # Update timetable entry status
+            timetable_entry.status = 'held'
+
+            # COMMIT TRANSACTION
+            db.session.commit()
+            log_action(f"Academic attendance submission: teacher={user.id} session={session_record.id} class={session_record.course} {session_record.semester} {session_record.section} present={present_count} absent={len(absent_students)}", target=user.full_name)
+        except Exception as db_err:
+            db.session.rollback()
+            flash(f"Database persistence error: {str(db_err)}", "danger")
+            return redirect(url_for('take_academic_attendance', timetable_id=timetable_id))
+
+        # AFTER COMMIT: Dispatch personalized absence emails non-blocking
+        if absent_students:
+            _dispatch_absence_emails_async(
+                absent_students=[{'id': s.id, 'name': s.name, 'email': s.email, 'uucms_id': s.uucms_id} for s in absent_students],
+                session_info={
+                    'course': session_record.course,
+                    'semester': session_record.semester,
+                    'section': session_record.section,
+                    'actual_subject': session_record.actual_subject,
+                    'scheduled_subject': session_record.scheduled_subject,
+                    'date_str': session_record.date.strftime("%d %B %Y"),
+                    'time_slot': session_record.time_slot,
+                    'room_no': session_record.room_no
+                },
+                faculty_info={'id': user.id, 'full_name': user.full_name}
+            )
+
+        flash(f"Attendance submitted successfully. {present_count + len(absent_students)} students processed. {present_count} Present, {len(absent_students)} Absent. Absence notification processing started.", "success")
+        return redirect(url_for('view_class_session', session_id=session_record.id))
+
+    # GET Request: If already taken today, redirect to session view
+    if existing_session:
+        flash('Attendance has already been submitted for this class today.', 'info')
+        return redirect(url_for('view_class_session', session_id=existing_session.id))
+
+    # Load active student roster matching class
+    students = Student.query.filter_by(
+        course=timetable_entry.course,
+        semester=timetable_entry.semester,
+        section=timetable_entry.section,
+        is_active=True
+    ).order_by(Student.uucms_id).all()
+
+    return render_template(
+        'take_attendance.html',
+        user=user,
+        timetable_entry=timetable_entry,
+        students=students,
+        today_date=today_date
+    )
+
+@app.route('/academic-attendance/session/<int:session_id>', methods=['GET'])
+@login_required
+def view_class_session(session_id):
+    user = User.query.get(session['user_id'])
+    session_obj = ClassSession.query.get_or_404(session_id)
+
+    # Authorization Check
+    if user.role not in ['Principal', 'HOD - BCA Dept', 'admin']:
+        if session_obj.actual_faculty_id != user.id and session_obj.scheduled_faculty_id != user.id:
+            flash('Unauthorized access to session details.', 'danger')
+            return redirect(url_for('view_timetable'))
+
+    attendances = StudentAttendance.query.filter_by(class_session_id=session_obj.id).join(Student).order_by(Student.uucms_id).all()
+    total_count = len(attendances)
+    present_count = sum(1 for a in attendances if a.status == 'Present')
+    absent_count = sum(1 for a in attendances if a.status == 'Absent')
+
+    return render_template(
+        'class_session_view.html',
+        user=user,
+        session_obj=session_obj,
+        attendances=attendances,
+        total_count=total_count,
+        present_count=present_count,
+        absent_count=absent_count
+    )
+
+@app.route('/academic-attendance/history', methods=['GET'])
+@login_required
+def academic_attendance_history():
+    user = User.query.get(session['user_id'])
+
+    if user.role in ['Principal', 'HOD - BCA Dept', 'admin']:
+        sessions_list = ClassSession.query.order_by(ClassSession.date.desc(), ClassSession.created_at.desc()).all()
+    else:
+        sessions_list = ClassSession.query.filter(
+            (ClassSession.actual_faculty_id == user.id) | (ClassSession.scheduled_faculty_id == user.id)
+        ).order_by(ClassSession.date.desc(), ClassSession.created_at.desc()).all()
+
+    session_records = []
+    total_attendances = 0
+    total_presents = 0
+
+    for s in sessions_list:
+        p_cnt = StudentAttendance.query.filter_by(class_session_id=s.id, status='Present').count()
+        a_cnt = StudentAttendance.query.filter_by(class_session_id=s.id, status='Absent').count()
+        total_attendances += (p_cnt + a_cnt)
+        total_presents += p_cnt
+        session_records.append({
+            'session': s,
+            'present_count': p_cnt,
+            'absent_count': a_cnt
+        })
+
+    total_sessions = len(sessions_list)
+    avg_rate = round((total_presents / total_attendances * 100), 1) if total_attendances > 0 else 0.0
+
+    return render_template(
+        'academic_attendance_history.html',
+        user=user,
+        session_records=session_records,
+        total_sessions=total_sessions,
+        total_attendances=total_attendances,
+        avg_attendance_rate=avg_rate
+    )
+
+@app.route('/academic-attendance/today', methods=['GET'])
+@login_required
+def academic_attendance_today():
+    return redirect(url_for('view_timetable') + '#todays-classes')
+
 @app.route('/activity_room')
 def activity_room():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -1435,10 +1755,31 @@ def dashboard():
 
     pending_count = Task.query.filter_by(assigned_to=session['user_id'], is_done=False).count()
 
+    # Academic Schedule for Today
+    today_date = today_ist.date()
+    today_day_name = today_ist.strftime("%A")
+    today_classes = []
+    if user.role in ['Faculty', 'HOD - BCA Dept', 'Principal']:
+        t_entries = Timetable.query.filter_by(user_id=user.id, day=today_day_name).order_by(Timetable.time_slot).all()
+        for te in t_entries:
+            cs = ClassSession.query.filter_by(timetable_id=te.id, date=today_date).first()
+            p_cnt = 0
+            a_cnt = 0
+            if cs:
+                p_cnt = StudentAttendance.query.filter_by(class_session_id=cs.id, status='Present').count()
+                a_cnt = StudentAttendance.query.filter_by(class_session_id=cs.id, status='Absent').count()
+            today_classes.append({
+                'entry': te,
+                'session': cs,
+                'present_count': p_cnt,
+                'absent_count': a_cnt
+            })
+
     return render_template('dashboard.html', 
                            user=user, notifications=notifs, office_days=office_days, 
                            wfh_days=wfh_days, tasks=tasks, unread_chats=unread_chats, 
                            is_birthday=is_birthday, is_anniversary=is_anniversary,
+                           today_classes=today_classes, today_date=today_date, today_day_name=today_day_name,
                            meetings=active_meetings, counts=counts, pending_count=pending_count)
 
 @app.route('/profile', methods=['GET', 'POST'])

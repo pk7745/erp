@@ -19,6 +19,77 @@
         </button>
     </div>
 
+    <!-- Today's Classes & Academic Attendance Banner -->
+    <div id="todays-classes" class="card" style="margin-bottom: 28px; border-top: 4px solid var(--primary); background: var(--bg-surface);">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 class="card-title" style="margin-bottom: 4px;">
+                    <i class="fas fa-calendar-day" style="color: var(--primary); margin-right: 8px;"></i> Today's Classes — {{ today_day_name }}
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    Date: <strong>{{ today_date.strftime("%d %B %Y") }}</strong> | Faculty: <strong>{{ target_user.full_name }}</strong>
+                </div>
+            </div>
+            <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-history"></i> Attendance History
+            </a>
+        </div>
+        <div class="card-body">
+            {% if today_classes %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                {% for item in today_classes %}
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; background: var(--bg-body); display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <span class="badge badge-info" style="font-weight: 700;">
+                                <i class="far fa-clock"></i> {{ item.entry.time_slot }}
+                            </span>
+                            <span class="badge badge-primary">
+                                {{ item.entry.course }} | {{ item.entry.semester }} | Sec {{ item.entry.section }}
+                            </span>
+                        </div>
+                        <h4 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                            {{ item.entry.subject }}
+                        </h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 10px;">
+                            <span><i class="fas fa-door-open"></i> {{ item.entry.room_no }}</span>
+                            <span>•</span>
+                            <span><i class="fas fa-user-tie"></i> {{ item.entry.faculty.full_name if item.entry.faculty else target_user.full_name }}</span>
+                        </div>
+                    </div>
+
+                    <div style="padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        {% if item.session %}
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span class="badge badge-success"><i class="fas fa-check-circle"></i> Attendance Taken</span>
+                                <span style="font-size: 0.82rem; font-weight: 700; color: var(--success);">{{ item.present_count }} P</span>
+                                {% if item.absent_count > 0 %}
+                                <span style="font-size: 0.82rem; font-weight: 700; color: var(--danger);">{{ item.absent_count }} A</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-eye"></i> View Attendance
+                            </a>
+                        {% else %}
+                            <span class="badge badge-warning"><i class="far fa-clock"></i> Attendance Pending</span>
+                            <a href="{{ url_for('take_academic_attendance', timetable_id=item.entry.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-clipboard-check"></i> Take Attendance
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding: 24px; text-align: center; color: var(--text-muted); background: var(--bg-body); border-radius: var(--radius-md); border: 1px dashed var(--border);">
+                <i class="far fa-calendar-times" style="font-size: 2rem; margin-bottom: 8px; color: var(--text-muted); display: block;"></i>
+                <strong>No classes scheduled for today ({{ today_day_name }}).</strong>
+                <div style="font-size: 0.85rem; margin-top: 4px;">You can view and take attendance for any assigned class in your Weekly Schedule table below.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Grid Layout -->
     <div style="display: grid; grid-template-columns: 340px 1fr; gap: 28px; align-items: start;">
         <!-- Left Analytics & Perspective Switcher -->
@@ -86,7 +157,10 @@
                             </td>
                             <td>
                                 <div style="font-weight: 800; font-size: 1.05rem;">{{ item.subject }}</div>
-                                <span class="badge badge-info" style="margin-top: 4px;">{{ item.semester }}</span>
+                                <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                                    <span class="badge badge-info">{{ item.course }} {{ item.semester }} Sec {{ item.section }}</span>
+                                    <span class="badge badge-secondary"><i class="fas fa-door-open"></i> {{ item.room_no }}</span>
+                                </div>
                             </td>
                             <td>
                                 {% if item.status == 'held' %}
@@ -98,13 +172,23 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <div style="display: flex; gap: 6px; justify-content: center;">
+                                <div style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                                    {% if item.today_session %}
+                                        <a href="{{ url_for('view_class_session', session_id=item.today_session.id) }}" class="btn btn-success btn-sm" title="View Today's Recorded Attendance">
+                                            <i class="fas fa-check-circle"></i> Attended
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('take_academic_attendance', timetable_id=item.id) }}" class="btn btn-primary btn-sm" title="Take Academic Attendance">
+                                            <i class="fas fa-clipboard-check"></i> Take Attendance
+                                        </a>
+                                    {% endif %}
+
                                     <form action="/timetable/manage" method="POST" style="display: inline;">
                                         <input type="hidden" name="action" value="update_status">
                                         <input type="hidden" name="class_id" value="{{ item.id }}">
                                         <input type="hidden" name="status" value="held">
                                         <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                        <button type="submit" class="btn btn-success btn-sm">✓ Held</button>
+                                        <button type="submit" class="btn btn-secondary btn-sm" title="Mark Status Held">✓</button>
                                     </form>
 
                                     <form action="/timetable/manage" method="POST" style="display: inline;">
@@ -112,7 +196,7 @@
                                         <input type="hidden" name="class_id" value="{{ item.id }}">
                                         <input type="hidden" name="status" value="missed">
                                         <input type="hidden" name="faculty_id" value="{{ target_user.id }}">
-                                        <button type="submit" class="btn btn-danger btn-sm">✗ Missed</button>
+                                        <button type="submit" class="btn btn-secondary btn-sm" title="Mark Status Missed">✗</button>
                                     </form>
 
                                     <form action="/timetable/manage" method="POST" style="display: inline;">
