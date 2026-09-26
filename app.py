@@ -156,6 +156,11 @@ class Timetable(db.Model):
     subject = db.Column(db.String(100), nullable=False)   # e.g., 'Java Programming Lab'
     semester = db.Column(db.String(20), nullable=False)   # Sem I, II, III, IV
     
+    # Extended Academic Details
+    course = db.Column(db.String(50), default='BCA', nullable=True)
+    section = db.Column(db.String(20), default='A', nullable=True)
+    room_no = db.Column(db.String(50), default='Room 204', nullable=True)
+    
     # Analytics & Status (For the Charts)
     # status can be: 'pending', 'held' (Right Mark), 'missed' (Cross Mark)
     status = db.Column(db.String(20), default='pending')
@@ -169,6 +174,79 @@ class Timetable(db.Model):
     
     def __repr__(self):
         return f'<Timetable {self.subject} - {self.day}>'
+
+# ==========================================
+# 2.1 STUDENT ACADEMIC ATTENDANCE MODELS
+# ==========================================
+
+class Student(db.Model):
+    __tablename__ = 'student'
+    id = db.Column(db.Integer, primary_key=True)
+    uucms_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    attendances = db.relationship('StudentAttendance', backref='student', lazy=True)
+
+    def __repr__(self):
+        return f'<Student {self.uucms_id} - {self.name} ({self.course} {self.semester} Sec {self.section})>'
+
+
+class ClassSession(db.Model):
+    __tablename__ = 'class_session'
+    id = db.Column(db.Integer, primary_key=True)
+    timetable_id = db.Column(db.Integer, db.ForeignKey('timetable.id'), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    time_slot = db.Column(db.String(50), nullable=False)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    scheduled_subject = db.Column(db.String(100), nullable=False)
+    actual_subject = db.Column(db.String(100), nullable=False)
+    scheduled_faculty_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    actual_faculty_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    room_no = db.Column(db.String(50), default='Room 204', nullable=True)
+    status = db.Column(db.String(20), default='COMPLETED', nullable=False)
+    remarks = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    timetable = db.relationship('Timetable', backref=db.backref('class_sessions', lazy=True))
+    scheduled_faculty = db.relationship('User', foreign_keys=[scheduled_faculty_id], backref='scheduled_class_sessions')
+    actual_faculty = db.relationship('User', foreign_keys=[actual_faculty_id], backref='conducted_class_sessions')
+    student_attendances = db.relationship('StudentAttendance', backref='class_session', cascade='all, delete-orphan', lazy=True)
+
+    def __repr__(self):
+        return f'<ClassSession {self.actual_subject} ({self.course} {self.semester} Sec {self.section}) on {self.date}>'
+
+
+
+class StudentAttendance(db.Model):
+    __tablename__ = 'student_attendance'
+    id = db.Column(db.Integer, primary_key=True)
+    class_session_id = db.Column(db.Integer, db.ForeignKey('class_session.id', ondelete='CASCADE'), nullable=False, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False, default='Present') # 'Present', 'Absent'
+    marked_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    marked_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    remarks = db.Column(db.String(255), nullable=True)
+
+    marker = db.relationship('User', foreign_keys=[marked_by], backref='marked_student_attendances')
+
+    __table_args__ = (
+        db.UniqueConstraint('class_session_id', 'student_id', name='uq_student_class_session_att'),
+    )
+
+    def __repr__(self):
+        return f'<StudentAttendance session:{self.class_session_id} student:{self.student_id} status:{self.status}>'
 
 def inject_heavy_timetable():
     def get_id(uname):
@@ -238,6 +316,131 @@ def inject_heavy_timetable():
         uid = get_id(uname)
         if uid:
             db.session.add(Timetable(day=day, time_slot=time, subject=sub, semester=sem, user_id=uid))
+    db.session.commit()
+
+def inject_sem5_timetable():
+    def get_id(uname):
+        u = User.query.filter_by(username=uname).first()
+        return u.id if u else None
+
+    # Authoritative BCA 5th Semester Schedule (21 weekly slots)
+    # Rooms from the official 17-location list: 301, 302, 303, GF Lab, 101 Lab
+    # Zero faculty overlaps and zero room overlaps across all days and semesters
+    sem5_schedule = [
+        # --- MONDAY ---
+        ('balram', 'Monday', '09:00 AM-10:00 AM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
+        ('bhoomika', 'Monday', '10:30 AM-11:30 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '301'),
+        ('shivani', 'Monday', '11:30 AM-12:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
+        ('bhoomika', 'Monday', '02:00 PM-04:00 PM', 'Data Analytics Lab', 'Sem V', 'BCA', 'A', 'GF Lab'),
+
+        # --- TUESDAY ---
+        ('bhoomika', 'Tuesday', '09:00 AM-10:00 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '302'),
+        ('gururaj', 'Tuesday', '10:30 AM-11:30 AM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
+        ('balram', 'Tuesday', '11:30 AM-12:30 PM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
+        ('shivani', 'Tuesday', '12:30 PM-01:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
+
+        # --- WEDNESDAY ---
+        ('shivani', 'Wednesday', '09:00 AM-10:00 AM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
+        ('shrinkala', 'Wednesday', '10:30 AM-11:30 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '302'),
+        ('gururaj', 'Wednesday', '11:30 AM-12:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
+        ('shivani', 'Wednesday', '02:00 PM-04:00 PM', 'Web Programming Lab', 'Sem V', 'BCA', 'A', '101 Lab'),
+
+        # --- THURSDAY ---
+        ('shrinkala', 'Thursday', '09:00 AM-10:00 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '302'),
+        ('balram', 'Thursday', '10:30 AM-11:30 AM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
+        ('shivani', 'Thursday', '11:30 AM-12:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
+        ('gururaj', 'Thursday', '12:30 PM-01:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
+
+        # --- FRIDAY ---
+        ('bhoomika', 'Friday', '09:00 AM-10:00 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '302'),
+        ('shrinkala', 'Friday', '10:30 AM-11:30 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '303'),
+        ('shrinkala', 'Friday', '11:30 AM-12:30 PM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '303'),
+        ('gururaj', 'Friday', '12:30 PM-01:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '302'),
+        ('balram', 'Friday', '02:00 PM-03:00 PM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
+    ]
+
+    sem5_keys = set()
+    for uname, day, time_slot, subject, sem, course, sec, room in sem5_schedule:
+        uid = get_id(uname)
+        if uid:
+            sem5_keys.add((uid, day, time_slot, subject, sem, sec))
+            existing = Timetable.query.filter_by(
+                user_id=uid,
+                day=day,
+                time_slot=time_slot,
+                subject=subject,
+                semester=sem,
+                section=sec
+            ).first()
+            if not existing:
+                db.session.add(Timetable(
+                    user_id=uid,
+                    day=day,
+                    time_slot=time_slot,
+                    subject=subject,
+                    semester=sem,
+                    course=course,
+                    section=sec,
+                    room_no=room,
+                    status='pending'
+                ))
+            else:
+                existing.course = course
+                existing.room_no = room
+                existing.status = 'pending'
+
+    # Clean up stale Sem V slots that don't match the authoritative 21 schedule (while keeping Sem I-IV untouched)
+    stale_sem5 = Timetable.query.filter_by(semester='Sem V').all()
+    for item in stale_sem5:
+        if (item.user_id, item.day, item.time_slot, item.subject, item.semester, item.section) not in sem5_keys:
+            db.session.delete(item)
+
+    db.session.commit()
+
+
+def inject_official_students():
+    # Official Student Roster (BCA Sem V)
+    official_students = [
+        ("Aishwarya", "kmaishwarya30@gmail.com", "U18IN24S0004"),
+        ("Aadya", "aadya2846@gmail.com", "U18IN24S0001"),
+        ("Adithi", "Chaitras04112006@gmail.com", "U18IN24S0003"),
+        ("Abhay", "abhaynair.m@gmail.com", "U18IN24S0002"),
+        ("Avish", "avishgr2006@gmail.com", "U18IN24S0011"),
+        ("Bhargav", "bhargavkrish007aa@gmail.com", "U18IN24S0012"),
+        ("Dhanush", "dhanushdrklr@gmail.com", "U18IN24S0013"),
+        ("Vishruth", "guptavishruth540@gmail.com", "U18IN24S0015"),
+        ("Keerthana", "Keerthanajagadish29@gmail.com", "U18IN24S0024"),
+        ("Likith", "Likithh.2k6@gmail.com", "U18IN24S0027"),
+        ("Moulya", "moulya.hemavathi@gmail.com", "U18IN24S0033"),
+        ("Preethi", "preethims2007@gmail.com", "U18IN24S0036"),
+        ("Sneha", "snehahsshivakumar@gmail.com", "U18IN24S0049"),
+        ("Tharun", "tharun2626s@gmail.com", "U18IN24S0055"),
+        ("Sushith", "madhusuhas99@gmail.com", "U18IN24S0053"),
+        ("Sahana", "Sahanacshastry2006@gmail.com", "U18IN24S0040"),
+        ("Kavya", "jagadishkavya29@gmail.com", "U18IN24S0023"),
+    ]
+
+    for name, email, uucms_id in official_students:
+        s = Student.query.filter_by(uucms_id=uucms_id).first()
+        if not s:
+            db.session.add(Student(
+                uucms_id=uucms_id,
+                name=name,
+                email=email.strip().lower(),
+                course='BCA',
+                academic_year='3rd Year',
+                semester='Sem V',
+                section='A',
+                is_active=True
+            ))
+        else:
+            s.name = name
+            s.email = email.strip().lower()
+            s.course = 'BCA'
+            s.academic_year = '3rd Year'
+            s.semester = 'Sem V'
+            s.section = 'A'
+            s.is_active = True
     db.session.commit()
 
 class Broadcast(db.Model):
@@ -2490,6 +2693,52 @@ def seed_database():
                     except Exception:
                         pass
 
+        # Self-healing column migration for timetable table
+        timetable_cols_to_add = [
+            ('course', "VARCHAR(50) DEFAULT 'BCA'"),
+            ('room_no', "VARCHAR(50) DEFAULT 'Room 204'"),
+            ('section', "VARCHAR(20) DEFAULT 'A'")
+        ]
+        with db.engine.connect() as conn:
+            for col_name, col_type in timetable_cols_to_add:
+                try:
+                    conn.execute(db.text(f'ALTER TABLE timetable ADD COLUMN IF NOT EXISTS {col_name} {col_type};'))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.execute(db.text(f'ALTER TABLE timetable ADD COLUMN {col_name} {col_type};'))
+                        conn.commit()
+                    except Exception:
+                        pass
+
+        # Self-healing column migration for academic attendance tables
+        academic_cols_to_add = [
+            ('student', 'section', "VARCHAR(20) DEFAULT 'A'"),
+            ('class_session', 'section', "VARCHAR(20) DEFAULT 'A'")
+        ]
+        with db.engine.connect() as conn:
+            for tbl, col_name, col_type in academic_cols_to_add:
+                try:
+                    conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col_name} {col_type};'))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.execute(db.text(f'ALTER TABLE {tbl} ADD COLUMN {col_name} {col_type};'))
+                        conn.commit()
+                    except Exception:
+                        pass
+
+        # Enforce NOT NULL on class_session.timetable_id
+        with db.engine.connect() as conn:
+            try:
+                conn.execute(db.text('ALTER TABLE class_session ALTER COLUMN timetable_id SET NOT NULL;'))
+                conn.commit()
+            except Exception:
+                pass
+
+
+
+
         # System Admin with Address & Dept
         if not User.query.filter_by(username='admin').first():
             db.session.add(User(
@@ -2525,10 +2774,12 @@ def seed_database():
             ))
         
         faculties = [
-            ('balram', 'Mr.Balram M N', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01', 'Commerce', 'BMS-COM-101', 'Jayanagar 4th Block, Bengaluru'),
+            ('balram', 'Mr. Balaram M', 'Faculty', 'balram@bmsccm.edu', 'General', 'Hindu', '1982-04-15', '2015-06-01', 'Computer Applications', 'BMS-BCA-101', 'Jayanagar 4th Block, Bengaluru'),
             ('kiran', 'Dr.Kiran Kumar M N', 'HOD - BCA Dept', 'kiran.hod@bmsccm.edu', 'General', 'Hindu', '1978-11-20', '2010-01-15', 'Computer Applications', 'BMS-BCA-001', 'Banashankari 3rd Stage, Bengaluru'),
-            ('shrinkala', 'Miss. Shrinkala', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10', 'Management', 'BMS-MGT-201', 'V.V. Puram, Bengaluru'),
-            ('shivani', 'Mrs. Shivani', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14', 'Commerce', 'BMS-COM-102', 'Basavanagudi, Bengaluru'),
+            ('shrinkala', 'Ms. Shrinkala Kumari', 'Faculty', 'shrinkala@bmsccm.edu', 'General', 'Hindu', '1992-08-30', '2021-09-10', 'Computer Applications', 'BMS-BCA-102', 'V.V. Puram, Bengaluru'),
+            ('shivani', 'Ms. Shivani Shikha', 'Faculty', 'shivani@bmsccm.edu', 'General', 'Hindu', '1988-03-05', '2019-02-14', 'Computer Applications', 'BMS-BCA-103', 'Basavanagudi, Bengaluru'),
+            ('bhoomika', 'Ms. Bhoomika Hegde', 'Faculty', 'bhoomika@bmsccm.edu', 'General', 'Hindu', '1993-07-15', '2023-08-01', 'Computer Applications', 'BMS-BCA-104', 'Basavanagudi, Bengaluru'),
+            ('gururaj', 'Mr. Gururaj', 'Faculty', 'gururaj@bmsccm.edu', 'General', 'Hindu', '1987-11-20', '2022-01-10', 'Computer Applications', 'BMS-BCA-105', 'Jayanagar, Bengaluru'),
             ('ramkishore', 'Mr. Ramkishore', 'Faculty', 'ramkishore@bmsccm.edu', 'General', 'Hindu', '1985-12-12', '2017-07-20', 'Commerce', 'BMS-COM-103', 'JP Nagar, Bengaluru'),
             ('prathiba', 'Mrs. Prathiba Singh', 'Faculty', 'prathiba@bmsccm.edu', 'General', 'Hindu', '1990-05-25', '2022-11-01', 'Management', 'BMS-MGT-202', 'Uttarahalli, Bengaluru'),
             ('newfac', 'New Faculty', 'Faculty', 'new@bmsccm.edu', 'General', 'Not Specified', '1998-01-01', '2025-01-01', 'Commerce', 'BMS-COM-999', 'Bengaluru South'),
@@ -2536,7 +2787,8 @@ def seed_database():
         ]
 
         for u, f, r, e, c, rel, d, j, dept, did, addr in faculties:
-            if not User.query.filter_by(username=u).first():
+            user_obj = User.query.filter_by(username=u).first()
+            if not user_obj:
                 db.session.add(User(
                     username=u, 
                     password=generate_password_hash('bms123'), 
@@ -2552,15 +2804,26 @@ def seed_database():
                     dept_id=did,
                     address=addr
                 ))
+            else:
+                if user_obj.full_name != f:
+                    user_obj.full_name = f
                 
         db.session.commit()
         if not Timetable.query.first():
             print("Injecting heavy timetable data...")
             inject_heavy_timetable()
             print("Timetable populated successfully!")
+
+        # Always inject authoritative BCA Sem V timetable if missing
+        inject_sem5_timetable()
+
+        # Always inject authoritative BCA Sem V student roster
+        inject_official_students()
     except Exception as e:
         db.session.rollback()
         print(f"Seed Database Warning: {e}")
+
+
         
 
 # ==============================================================================
