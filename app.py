@@ -55,12 +55,25 @@ def allowed_file(filename):
 
 def send_notification_email(receiver_email, sender_name):
     if not receiver_email: return
-    try:
-        msg = MailMessage("New Private Message: BMS Connect", recipients=[receiver_email])
-        msg.body = f"Hello Principal,\n\nYou have received a new private message from {sender_name} on the BMS Connect Staff Portal."
-        mail.send(msg)
-    except Exception as e:
-        print(f"SMTP Error: {e}")
+    mail_user = app.config.get('MAIL_USERNAME')
+    mail_pwd = app.config.get('MAIL_PASSWORD')
+    if not mail_user or not mail_pwd:
+        return
+    import threading
+    def _send():
+        with app.app_context():
+            import socket
+            orig_timeout = socket.getdefaulttimeout()
+            try:
+                socket.setdefaulttimeout(4.0)
+                msg = MailMessage("New Private Message: BMS Connect", recipients=[receiver_email], sender=mail_user)
+                msg.body = f"Hello Principal,\n\nYou have received a new private message from {sender_name} on the BMS Connect Staff Portal."
+                mail.send(msg)
+            except Exception as e:
+                print(f"SMTP Error: {e}")
+            finally:
+                socket.setdefaulttimeout(orig_timeout)
+    threading.Thread(target=_send, daemon=True).start()
 
 # ==========================================
 # 1. DATABASE SETUP (POSTGRESQL & SQLITE FALLBACK)
@@ -771,8 +784,16 @@ NOTIFICATION_ROUTING_MAP = {
 def _send_email_notification(user, subject, body_html, attachment_path=None):
     if not user.email or '@' not in user.email:
         return False, "Recipient email missing or invalid"
+    mail_user = app.config.get('MAIL_USERNAME')
+    mail_pwd = app.config.get('MAIL_PASSWORD')
+    if not mail_user or not mail_pwd or 'your_' in str(mail_pwd).lower() or 'placeholder' in str(mail_pwd).lower() or app.config.get('TESTING'):
+        return False, "Email skipped: MAIL_USERNAME or MAIL_PASSWORD not configured"
+
+    import socket
+    orig_timeout = socket.getdefaulttimeout()
     try:
-        sender_email = app.config.get('MAIL_USERNAME') or 'noreply@bmserp.edu.in'
+        socket.setdefaulttimeout(4.0)
+        sender_email = mail_user or 'noreply@bmserp.edu.in'
         msg = MailMessage(subject=subject, recipients=[user.email], html=body_html, sender=sender_email)
         if attachment_path and os.path.exists(attachment_path):
             with open(attachment_path, 'rb') as f:
@@ -782,6 +803,8 @@ def _send_email_notification(user, subject, body_html, attachment_path=None):
         return True, f"Email sent successfully to {user.email}"
     except Exception as e:
         return False, f"Email Dispatch Error: {str(e)}"
+    finally:
+        socket.setdefaulttimeout(orig_timeout)
 
 def _send_whatsapp_notification(user, body_text):
     account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -837,6 +860,53 @@ def notify(event, user, context=None, channels=None):
 
     attachment_path = context.get('pdf_path')
 
+    # Execute synchronously only for diagnostic self-test or explicit sync requests
+    is_sync = (event == 'selftest') or context.get('sync', False)
+
+    if not is_sync:
+        import threading
+        user_id = user.id
+        user_name = user.full_name
+
+        def _async_notify_worker():
+            with app.app_context():
+                target_user = User.query.get(user_id)
+                if not target_user:
+                    return
+                for ch in target_channels:
+                    success = False
+                    detail = ""
+                    if ch == 'email':
+                        success, detail = _send_email_notification(target_user, subject, email_body, attachment_path)
+                    elif ch == 'whatsapp':
+                        success, detail = _send_whatsapp_notification(target_user, wa_body)
+                    elif ch == 'sms':
+                        success, detail = _send_sms_notification(target_user, wa_body)
+                    else:
+                        success, detail = False, f"Unknown notification channel: {ch}"
+
+                    status_str = "SENT" if success else ("FAILED" if "Error" in detail or "missing" in detail or "Sandbox" in detail else "SKIPPED")
+                    try:
+                        db.session.add(NotificationLog(
+                            user_id=target_user.id,
+                            event=event,
+                            channel=ch,
+                            status=status_str,
+                            detail=detail
+                        ))
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+
+                    try:
+                        log_action(f"Notification [{event}] via {ch}: {status_str} ({detail[:60]})", target=user_name)
+                    except Exception:
+                        pass
+
+        threading.Thread(target=_async_notify_worker, daemon=True).start()
+        return {ch: {"success": True, "status": "QUEUED", "detail": "Dispatched in background"} for ch in target_channels}
+
+    # Synchronous path (for selftest or explicit sync requests)
     results = {}
     for ch in target_channels:
         success = False
@@ -2447,13 +2517,21 @@ def email_staff_list():
 
     # Find the Principal's email
     principal = User.query.filter_by(role='Principal').first()
-    principal_email = principal.email if principal else app.config['MAIL_USERNAME']
+    mail_user = app.config.get('MAIL_USERNAME')
+    mail_pwd = app.config.get('MAIL_PASSWORD')
+    if not mail_user or not mail_pwd:
+        return "Email sending skipped: MAIL_USERNAME or MAIL_PASSWORD not configured."
 
+    principal_email = principal.email if principal else mail_user
+
+    import socket
+    orig_timeout = socket.getdefaulttimeout()
     try:
+        socket.setdefaulttimeout(4.0)
         # We use MailMessage (the alias) to avoid the TypeError
         msg = MailMessage(
             "Official Staff Directory - BMSCCM",
-            sender=app.config['MAIL_USERNAME'],
+            sender=mail_user,
             recipients=[principal_email]
         )
         msg.body = staff_report
@@ -2461,6 +2539,8 @@ def email_staff_list():
         return "Staff list has been emailed to the Principal successfully!"
     except Exception as e:
         return f"Error sending email: {str(e)}"
+    finally:
+        socket.setdefaulttimeout(orig_timeout)
 
 @app.route('/upload_photo/<int:uid>', methods=['POST'])
 def upload_photo(uid):
@@ -3219,15 +3299,24 @@ def attendance_daily_close():
         db.session.add(Notification(message=hr_msg))
 
         # Send email to HR if Mail is configured
+        mail_user = app.config.get('MAIL_USERNAME')
+        mail_pwd = app.config.get('MAIL_PASSWORD')
         hr_user = User.query.filter(User.role.in_(['HR', 'admin'])).first()
-        if hr_user and hr_user.email:
+        if hr_user and hr_user.email and mail_user and mail_pwd:
             try:
-                mail_msg = MailMessage(
-                    subject=f"BMS ERP: Daily Close Alert - Missing Check-outs ({today_str})",
-                    recipients=[hr_user.email],
-                    body=f"Hello HR,\n\nThe following {len(missing_names)} staff member(s) clocked in today ({today_str}) but did not register a check-out:\n\n" + "\n".join([f"- {name}" for name in missing_names]) + "\n\nPlease review in the ERP portal.\n\nBMS College ERP Automated System"
-                )
-                mail.send(mail_msg)
+                import socket
+                orig_timeout = socket.getdefaulttimeout()
+                try:
+                    socket.setdefaulttimeout(4.0)
+                    mail_msg = MailMessage(
+                        subject=f"BMS ERP: Daily Close Alert - Missing Check-outs ({today_str})",
+                        recipients=[hr_user.email],
+                        sender=mail_user,
+                        body=f"Hello HR,\n\nThe following {len(missing_names)} staff member(s) clocked in today ({today_str}) but did not register a check-out:\n\n" + "\n".join([f"- {name}" for name in missing_names]) + "\n\nPlease review in the ERP portal.\n\nBMS College ERP Automated System"
+                    )
+                    mail.send(mail_msg)
+                finally:
+                    socket.setdefaulttimeout(orig_timeout)
             except Exception as e:
                 print(f"Mail send error in daily close: {e}")
 
