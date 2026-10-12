@@ -3,7 +3,7 @@ import sys
 import os
 
 sys.stdout.reconfigure(encoding='utf-8')
-sys.path.insert(0, r"C:\Users\pky45\.gemini\antigravity\scratch\erp")
+from werkzeug.security import generate_password_hash
 from app import app, db, User
 
 class FeatureVerificationTests(unittest.TestCase):
@@ -18,6 +18,11 @@ class FeatureVerificationTests(unittest.TestCase):
             db.create_all()
 
     def login(self, username='admin', password='bms123'):
+        with app.app_context():
+            u = User.query.filter_by(username=username).first()
+            if u:
+                u.password = generate_password_hash(password)
+                db.session.commit()
         return self.client.post('/login', data=dict(
             username=username,
             password=password

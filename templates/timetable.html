@@ -67,9 +67,16 @@
                                 <span style="font-size: 0.82rem; font-weight: 700; color: var(--danger);">{{ item.absent_count }} A</span>
                                 {% endif %}
                             </div>
-                            <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-eye"></i> View Attendance
-                            </a>
+                            <div style="display: flex; gap: 6px;">
+                                <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm" title="View Recorded Attendance">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or item.session.actual_faculty_id == user.id or item.session.scheduled_faculty_id == user.id %}
+                                <a href="{{ url_for('edit_academic_attendance', session_id=item.session.id) }}" class="btn btn-warning btn-sm" title="Edit / Modify Attendance">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                {% endif %}
+                            </div>
                         {% else %}
                             <span class="badge badge-warning"><i class="far fa-clock"></i> Attendance Pending</span>
                             <a href="{{ url_for('take_academic_attendance', timetable_id=item.entry.id) }}" class="btn btn-primary btn-sm">
@@ -177,6 +184,11 @@
                                         <a href="{{ url_for('view_class_session', session_id=item.today_session.id) }}" class="btn btn-success btn-sm" title="View Today's Recorded Attendance">
                                             <i class="fas fa-check-circle"></i> Attended
                                         </a>
+                                        {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or item.today_session.actual_faculty_id == user.id or item.today_session.scheduled_faculty_id == user.id %}
+                                        <a href="{{ url_for('edit_academic_attendance', session_id=item.today_session.id) }}" class="btn btn-warning btn-sm" title="Edit Recorded Attendance">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        {% endif %}
                                     {% else %}
                                         <a href="{{ url_for('take_academic_attendance', timetable_id=item.id) }}" class="btn btn-primary btn-sm" title="Take Academic Attendance">
                                             <i class="fas fa-clipboard-check"></i> Take Attendance

@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block title %}Edit Previous Attendance - BMS College ERP{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('view_timetable') }}"><i class="fas fa-clock"></i> Weekly Schedule</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('academic_attendance_history') }}">Attendance History</a>
+    <span class="breadcrumb-separator">›</span>
+    <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}">Session #{{ session_obj.id }}</a>
+    <span class="breadcrumb-separator">›</span>
+    <span>Edit Previous Attendance</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <h1>Edit Previous Academic Attendance</h1>
+        <div class="page-subtitle">{{ session_obj.course }} — {{ session_obj.academic_year }} — {{ session_obj.semester }} — Section {{ session_obj.section }} &bull; Session #{{ session_obj.id }}</div>
+    </div>
+    <div class="page-actions" style="display: flex; gap: 8px;">
+        <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Cancel &amp; Back
+        </a>
+    </div>
+</div>
+
+<!-- Historical Session Information Card (Read-only metadata) -->
+<div class="card mb-3" style="border-top: 4px solid var(--warning);">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h3 class="card-title"><i class="fas fa-history" style="color: var(--warning); margin-right: 8px;"></i> Preserved Historical Session Metadata</h3>
+        <span class="badge badge-warning"><i class="fas fa-lock"></i> IDENTITY PRESERVED</span>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Conducted Date</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="far fa-calendar-alt" style="color: var(--primary); margin-right: 6px;"></i>{{ session_obj.date.strftime("%d %B %Y") }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Time Slot</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="far fa-clock" style="color: var(--info); margin-right: 6px;"></i>{{ session_obj.time_slot }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Classroom / Lab</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-door-open" style="color: var(--warning); margin-right: 6px;"></i>{{ session_obj.room_no }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Scheduled Subject</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-book" style="color: var(--primary); margin-right: 6px;"></i>{{ session_obj.scheduled_subject }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Conducted Faculty</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+                    <i class="fas fa-chalkboard-teacher" style="color: var(--success); margin-right: 6px;"></i>{{ session_obj.actual_faculty.full_name }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Attendance Form -->
+<form id="editAttendanceForm" action="{{ url_for('edit_academic_attendance', session_id=session_obj.id) }}" method="POST">
+    <!-- Optimistic Lock Version Token -->
+    <input type="hidden" name="version" value="{{ session_obj.version or 1 }}">
+
+    <!-- Subject Override & Correction Reason Card -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-edit" style="margin-right: 8px;"></i> Session Correction &amp; Audit Information</h3>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-weight: 700;">
+                        Actual Subject Taught <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Update if topic/substitute differed):</span>
+                    </label>
+                    <input type="text" id="actual_subject" name="actual_subject" class="form-control" value="{{ session_obj.actual_subject }}" required>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                        Scheduled: <strong>{{ session_obj.scheduled_subject }}</strong>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-weight: 700;">
+                        Session Remarks <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Optional topics or lab notes):</span>
+                    </label>
+                    <input type="text" id="remarks" name="remarks" class="form-control" value="{{ session_obj.remarks or '' }}" placeholder="e.g. Unit 4: Memory allocation hands-on demo">
+                </div>
+            </div>
+
+            <!-- Mandatory Correction Reason -->
+            <div class="form-group" style="margin-top: 16px; margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--text-main);">
+                    <i class="fas fa-clipboard-check" style="color: var(--primary); margin-right: 6px;"></i>
+                    Correction Reason <span style="color: var(--danger); font-weight: 700;">*</span>
+                    <span style="font-size: 0.82rem; font-weight: 400; color: var(--text-muted);">(Required by institutional audit policy whenever attendance statuses are changed):</span>
+                </label>
+                <input type="text" id="reason" name="reason" class="form-control" placeholder="e.g. Student submitted official on-duty approval; corrected proxy marking" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Metrics Comparison Bar -->
+    <div class="grid grid-cols-3 mb-3">
+        <div class="stat-card" style="border-top: 3px solid var(--info);">
+            <div class="stat-card-label">Original Saved State</div>
+            <div class="stat-card-value" style="font-size: 1.25rem;">
+                <span style="color: var(--success); font-weight: 700;">{{ present_count }} P</span> / 
+                <span style="color: var(--danger); font-weight: 700;">{{ absent_count }} A</span>
+            </div>
+            <div style="font-size: var(--font-size-xs); color: var(--text-muted);">Total Enrolled: {{ total_students }}</div>
+        </div>
+
+        <div class="stat-card" style="border-top: 3px solid var(--primary);">
+            <div class="stat-card-label">New Corrected State</div>
+            <div class="stat-card-value" style="font-size: 1.25rem;">
+                <span id="statNewPresent" style="color: var(--success); font-weight: 800;">{{ present_count }} P</span> / 
+                <span id="statNewAbsent" style="color: var(--danger); font-weight: 800;">{{ absent_count }} A</span>
+            </div>
+            <div style="font-size: var(--font-size-xs); color: var(--primary);">Interactive Live Preview</div>
+        </div>
+
+        <div class="stat-card" style="border-top: 3px solid var(--warning);">
+            <div class="stat-card-label">Pending Changes</div>
+            <div class="stat-card-value" id="statChangeCount" style="color: var(--warning); font-size: 1.25rem; font-weight: 800;">
+                0
+            </div>
+            <div style="font-size: var(--font-size-xs); color: var(--text-muted);" id="statChangeDesc">No records modified yet</div>
+        </div>
+    </div>
+
+    <!-- Student Roster & Interactive Status Controls -->
+    <div class="card mb-3">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 class="card-title" style="margin-bottom: 0;">
+                    <i class="fas fa-user-graduate" style="margin-right: 8px;"></i>
+                    Official Class Roster ({{ total_students }} Students)
+                </h3>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-success btn-sm" onclick="markAll('Present')">
+                    <i class="fas fa-check-double"></i> Mark All Present
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="markAll('Absent')">
+                    <i class="fas fa-times"></i> Mark All Absent
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if student_records %}
+            <div class="table-wrapper">
+                <table class="table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">#</th>
+                            <th style="width: 170px;">UUCMS ID</th>
+                            <th>Student Name</th>
+                            <th>Email Address</th>
+                            <th style="width: 140px; text-align: center;">Original Status</th>
+                            <th style="width: 260px; text-align: center;">Corrected Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in student_records %}
+                        {% set s = rec.student %}
+                        {% set cur_status = rec.status %}
+                        <tr id="row_{{ s.id }}" class="student-row" data-original-status="{{ cur_status }}">
+                            <td style="text-align: center; font-weight: 600; color: var(--text-muted);">{{ loop.index }}</td>
+                            <td>
+                                <span class="badge badge-info" style="font-family: monospace; font-size: 0.85rem;">{{ s.uucms_id }}</span>
+                                <input type="hidden" name="student_ids" value="{{ s.id }}">
+                            </td>
+                            <td>
+                                <strong class="student-name" style="font-size: 0.95rem;">{{ s.name }}</strong>
+                                <span id="changeBadge_{{ s.id }}" class="badge badge-warning" style="display: none; margin-left: 6px; font-size: 0.72rem;">CHANGED</span>
+                            </td>
+                            <td style="color: var(--text-muted); font-size: 0.88rem;">{{ s.email }}</td>
+                            <td style="text-align: center;">
+                                {% if cur_status == 'Present' %}
+                                <span class="badge badge-success"><i class="fas fa-check"></i> Present</span>
+                                {% else %}
+                                <span class="badge badge-danger"><i class="fas fa-times"></i> Absent</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border);">
+                                    <label id="lbl_p_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: {% if cur_status == 'Present' %}var(--success){% else %}var(--bg-body){% endif %}; color: {% if cur_status == 'Present' %}white{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                        <input type="radio" name="status_{{ s.id }}" value="Present" {% if cur_status == 'Present' %}checked{% endif %} onchange="updateCounters()" style="display: none;">
+                                        <i class="fas fa-check"></i> Present
+                                    </label>
+                                    <label id="lbl_a_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: {% if cur_status == 'Absent' %}var(--danger){% else %}var(--bg-body){% endif %}; color: {% if cur_status == 'Absent' %}white{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                                        <input type="radio" name="status_{{ s.id }}" value="Absent" {% if cur_status == 'Absent' %}checked{% endif %} onchange="updateCounters()" style="display: none;">
+                                        <i class="fas fa-times"></i> Absent
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-users-slash" style="font-size: 3rem; margin-bottom: 12px; color: var(--border);"></i>
+                <h3>No active students found for this class</h3>
+            </div>
+            {% endif %}
+        </div>
+        {% if student_records %}
+        <div class="card-footer" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+                <i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 4px;"></i>
+                Audit logging active. Every modified record is permanently tracked with actor, timestamp, and justification.
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn btn-secondary">
+                    Cancel
+                </a>
+                <button type="button" class="btn btn-warning" onclick="openReviewModal()" style="font-size: 1rem; padding: 10px 24px; font-weight: 700;">
+                    <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Review Changes Before Saving
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Modal: Review & Confirmation Summary -->
+<div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-width: 650px; margin: 0; box-shadow: var(--shadow-lg); border-top: 4px solid var(--warning);">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title"><i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Confirm Attendance Changes</h3>
+            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary btn-sm">✕</button>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem;">
+                    <div><strong>Session:</strong> {{ session_obj.scheduled_subject }}</div>
+                    <div><strong>Date:</strong> {{ session_obj.date.strftime("%d %B %Y") }}</div>
+                    <div><strong>Class:</strong> {{ session_obj.course }} {{ session_obj.semester }} Sec {{ session_obj.section }}</div>
+                    <div><strong>Actual Subject:</strong> <span id="modalActualSubject"></span></div>
+                </div>
+            </div>
+
+            <!-- Attendance Metrics Bar in Modal -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: var(--bg-body); border: 1px solid var(--border);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Previous State</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main);">{{ present_count }} P / {{ absent_count }} A</div>
+                </div>
+                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--success); font-weight: 700;">New State</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--success);" id="modalNewSummary">0 P / 0 A</div>
+                </div>
+                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning);">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--warning); font-weight: 700;">Total Changes</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--warning);" id="modalChangeCount">0</div>
+                </div>
+            </div>
+
+            <!-- List of Changed Students -->
+            <div style="margin-bottom: 16px;">
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">
+                    <i class="fas fa-exchange-alt" style="color: var(--primary); margin-right: 6px;"></i>
+                    Modified Students (<span id="modalChangesListCount">0</span>):
+                </div>
+                <div id="modalChangesList" style="max-height: 160px; overflow-y: auto; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-body); font-size: 0.85rem;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Mandatory Reason Display / Confirmation -->
+            <div style="margin-bottom: 16px; background: var(--bg-body); padding: 12px 14px; border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+                <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Correction Reason:</div>
+                <div id="modalReasonText" style="font-size: 0.92rem; font-weight: 600; color: var(--text-main); margin-top: 4px; font-style: italic;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.82rem; color: var(--text-main);">
+                <i class="fas fa-shield-alt" style="color: var(--warning); margin-right: 6px;"></i>
+                <strong>Audit Compliance:</strong> An immutable audit log will be recorded with your user ID and timestamp upon submission.
+            </div>
+        </div>
+        <div class="card-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px;">
+            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary">
+                <i class="fas fa-edit"></i> Modify / Cancel
+            </button>
+            <button type="button" onclick="submitAttendanceFinal()" class="btn btn-warning" id="btnSubmitFinal" style="font-weight: 700;">
+                <i class="fas fa-check-circle"></i> Confirm Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const originalPresent = {{ present_count }};
+    const originalAbsent = {{ absent_count }};
+    const totalStudents = {{ total_students }};
+
+    function updateCounters() {
+        let newPresent = 0;
+        let newAbsent = 0;
+        let changeCount = 0;
+
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const origStatus = row.dataset.originalStatus;
+            const pInput = row.querySelector(`input[name="status_${sid}"][value="Present"]`);
+            const aInput = row.querySelector(`input[name="status_${sid}"][value="Absent"]`);
+            const pLbl = document.getElementById(`lbl_p_${sid}`);
+            const aLbl = document.getElementById(`lbl_a_${sid}`);
+            const changeBadge = document.getElementById(`changeBadge_${sid}`);
+
+            let curStatus = (pInput && pInput.checked) ? 'Present' : 'Absent';
+
+            if (curStatus === 'Present') {
+                newPresent++;
+                pLbl.style.background = 'var(--success)';
+                pLbl.style.color = 'white';
+                aLbl.style.background = 'var(--bg-body)';
+                aLbl.style.color = 'var(--text-muted)';
+            } else {
+                newAbsent++;
+                pLbl.style.background = 'var(--bg-body)';
+                pLbl.style.color = 'var(--text-muted)';
+                aLbl.style.background = 'var(--danger)';
+                aLbl.style.color = 'white';
+            }
+
+            if (curStatus !== origStatus) {
+                changeCount++;
+                changeBadge.style.display = 'inline-block';
+                row.style.background = 'rgba(245, 158, 11, 0.08)';
+            } else {
+                changeBadge.style.display = 'none';
+                row.style.background = '';
+            }
+        });
+
+        document.getElementById('statNewPresent').textContent = `${newPresent} P`;
+        document.getElementById('statNewAbsent').textContent = `${newAbsent} A`;
+        document.getElementById('statChangeCount').textContent = changeCount;
+        document.getElementById('statChangeDesc').textContent = changeCount > 0 ? `${changeCount} student(s) modified` : 'No records modified yet';
+    }
+
+    function markAll(status) {
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const radio = row.querySelector(`input[name="status_${sid}"][value="${status}"]`);
+            if (radio) radio.checked = true;
+        });
+        updateCounters();
+    }
+
+    function openReviewModal() {
+        const reasonInput = document.getElementById('reason');
+        const reason = (reasonInput.value || '').trim();
+
+        let newPresent = 0;
+        let newAbsent = 0;
+        const changes = [];
+
+        document.querySelectorAll('.student-row').forEach(row => {
+            const sid = row.id.replace('row_', '');
+            const origStatus = row.dataset.originalStatus;
+            const pInput = row.querySelector(`input[name="status_${sid}"][value="Present"]`);
+            const name = row.querySelector('.student-name').textContent.trim();
+            const uucms = row.querySelector('.badge-info').textContent.trim();
+
+            const curStatus = (pInput && pInput.checked) ? 'Present' : 'Absent';
+            if (curStatus === 'Present') newPresent++; else newAbsent++;
+
+            if (curStatus !== origStatus) {
+                changes.push({
+                    name: name,
+                    uucms: uucms,
+                    oldStatus: origStatus,
+                    newStatus: curStatus
+                });
+            }
+        });
+
+        const origSubject = "{{ session_obj.actual_subject }}";
+        const newSubject = (document.getElementById('actual_subject').value || '').trim();
+        const subjectChanged = (newSubject !== origSubject);
+
+        // Require reason if any status or subject changed
+        if ((changes.length > 0 || subjectChanged) && !reason) {
+            alert('A meaningful correction reason is mandatory before submitting attendance corrections.');
+            reasonInput.focus();
+            return;
+        }
+
+        document.getElementById('modalActualSubject').textContent = newSubject || '{{ session_obj.scheduled_subject }}';
+        document.getElementById('modalNewSummary').textContent = `${newPresent} P / ${newAbsent} A`;
+        document.getElementById('modalChangeCount').textContent = `${changes.length} student(s)`;
+        document.getElementById('modalChangesListCount').textContent = changes.length;
+        document.getElementById('modalReasonText').textContent = reason || 'No modifications entered';
+
+        const listDiv = document.getElementById('modalChangesList');
+        if (changes.length > 0) {
+            let html = '<ul style="margin: 0; padding-left: 20px;">';
+            changes.forEach(ch => {
+                const oldColor = ch.oldStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
+                const newColor = ch.newStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
+                html += `<li style="margin-bottom: 6px;"><strong>${ch.name}</strong> (${ch.uucms}) — <span style="color: ${oldColor}; font-weight: 700;">${ch.oldStatus}</span> &rarr; <span style="color: ${newColor}; font-weight: 800;">${ch.newStatus}</span></li>`;
+            });
+            html += '</ul>';
+            listDiv.innerHTML = html;
+        } else {
+            listDiv.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">No student attendance statuses have been changed.</span>';
+        }
+
+        document.getElementById('reviewModal').style.display = 'flex';
+    }
+
+    function closeReviewModal() {
+        document.getElementById('reviewModal').style.display = 'none';
+    }
+
+    function submitAttendanceFinal() {
+        const btn = document.getElementById('btnSubmitFinal');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Persisting...';
+        document.getElementById('editAttendanceForm').submit();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCounters();
+    });
+</script>
+{% endblock %}

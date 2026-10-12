@@ -101,9 +101,12 @@
                         </div>
                         <div>
                             {% if item.session %}
-                                <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
                                     <span class="badge badge-success"><i class="fas fa-check"></i> Taken ({{ item.present_count }} P / {{ item.absent_count }} A)</span>
                                     <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm">View</a>
+                                    {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or item.session.actual_faculty_id == user.id or item.session.scheduled_faculty_id == user.id %}
+                                    <a href="{{ url_for('edit_academic_attendance', session_id=item.session.id) }}" class="btn btn-warning btn-sm" title="Edit Attendance"><i class="fas fa-edit"></i> Edit</a>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 <a href="{{ url_for('take_academic_attendance', timetable_id=item.entry.id) }}" class="btn btn-primary btn-sm">

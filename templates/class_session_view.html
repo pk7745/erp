@@ -20,6 +20,11 @@
         <div class="page-subtitle">{{ session_obj.actual_subject }} — {{ session_obj.course }} {{ session_obj.semester }} Section {{ session_obj.section }}</div>
     </div>
     <div class="page-actions" style="display: flex; gap: 8px;">
+        {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or session_obj.actual_faculty_id == user.id or session_obj.scheduled_faculty_id == user.id %}
+        <a href="{{ url_for('edit_academic_attendance', session_id=session_obj.id) }}" class="btn btn-warning" style="font-weight: 700;">
+            <i class="fas fa-edit"></i> Edit Attendance
+        </a>
+        {% endif %}
         <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary">
             <i class="fas fa-history"></i> Attendance History
         </a>
@@ -40,7 +45,7 @@
     <div class="stat-card" style="border-top: 3px solid var(--success);">
         <div class="stat-card-label">Present</div>
         <div class="stat-card-value" style="color: var(--success);">
-            {{ present_count }} 
+            {{ present_count }} Present
             {% if total_count > 0 %}
             <span style="font-size: 0.95rem; font-weight: 600; color: var(--success);">({{ ((present_count / total_count) * 100)|round(1) }}%)</span>
             {% endif %}
@@ -51,7 +56,7 @@
     <div class="stat-card" style="border-top: 3px solid var(--danger);">
         <div class="stat-card-label">Absent</div>
         <div class="stat-card-value" style="color: var(--danger);">
-            {{ absent_count }}
+            {{ absent_count }} Absent
             {% if total_count > 0 %}
             <span style="font-size: 0.95rem; font-weight: 600; color: var(--danger);">({{ ((absent_count / total_count) * 100)|round(1) }}%)</span>
             {% endif %}
@@ -62,9 +67,14 @@
 
 <!-- Historical Session Metadata Card -->
 <div class="card mb-3">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 class="card-title"><i class="fas fa-archive" style="margin-right: 8px;"></i> Immutable Session Record</h3>
-        <span class="badge badge-success"><i class="fas fa-check-circle"></i> {{ session_obj.status }}</span>
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h3 class="card-title"><i class="fas fa-clipboard-list" style="margin-right: 8px;"></i> Session Record Details</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            {% if session_obj.updated_at and session_obj.updated_at != session_obj.created_at %}
+            <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="fas fa-history"></i> Edited {{ session_obj.updated_at.strftime("%d %b %Y, %I:%M %p") }}</span>
+            {% endif %}
+            <span class="badge badge-success"><i class="fas fa-check-circle"></i> {{ session_obj.status }}</span>
+        </div>
     </div>
     <div class="card-body">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 0.9rem;">
@@ -107,8 +117,13 @@
 
 <!-- Attendance Roster Snapshot -->
 <div class="card mb-3">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
         <h3 class="card-title"><i class="fas fa-list-check" style="margin-right: 8px;"></i> Student Attendance Snapshot</h3>
+        {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or session_obj.actual_faculty_id == user.id or session_obj.scheduled_faculty_id == user.id %}
+        <a href="{{ url_for('edit_academic_attendance', session_id=session_obj.id) }}" class="btn btn-warning btn-sm" style="font-weight: 600;">
+            <i class="fas fa-edit"></i> Modify Attendance
+        </a>
+        {% endif %}
     </div>
     <div class="card-body p-0">
         <div class="table-wrapper">
@@ -144,6 +159,76 @@
                     {% else %}
                     <tr>
                         <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No attendance records found for this session.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Correction Audit Trail Card -->
+<div class="card mb-3" style="border-top: 3px solid var(--info);">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 class="card-title"><i class="fas fa-history" style="margin-right: 8px; color: var(--info);"></i> Institutional Correction Audit Trail</h3>
+        <span class="badge badge-info">{{ audit_logs|length }} Logged Modifications</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 170px;">Timestamp</th>
+                        <th style="width: 170px;">Modified By</th>
+                        <th style="width: 140px;">Attribute</th>
+                        <th style="width: 180px;">Target / Student</th>
+                        <th style="width: 160px; text-align: center;">Previous &rarr; New Value</th>
+                        <th>Correction Reason &amp; Justification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for audit in audit_logs %}
+                    <tr>
+                        <td style="font-size: 0.85rem; color: var(--text-muted);">
+                            <i class="far fa-clock" style="margin-right: 4px;"></i>{{ audit.created_at.strftime("%d-%m-%Y %I:%M %p") }}
+                        </td>
+                        <td>
+                            <strong>{{ audit.editor.full_name }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ audit.editor.role }}</div>
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary" style="font-family: monospace;">{{ audit.field_name }}</span>
+                        </td>
+                        <td>
+                            {% if audit.student %}
+                                <strong>{{ audit.student.name }}</strong>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ audit.student.uucms_id }}</div>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-style: italic;">Session Parameter</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if audit.field_name == 'status' %}
+                                <span class="badge {% if audit.previous_value == 'Present' %}badge-success{% else %}badge-danger{% endif %}">{{ audit.previous_value }}</span>
+                                <span style="margin: 0 4px;">&rarr;</span>
+                                <span class="badge {% if audit.new_value == 'Present' %}badge-success{% else %}badge-danger{% endif %}">{{ audit.new_value }}</span>
+                            {% else %}
+                                <span style="font-size: 0.82rem; color: var(--text-muted);">{{ audit.previous_value or 'None' }}</span>
+                                <span style="margin: 0 4px;">&rarr;</span>
+                                <strong style="font-size: 0.85rem; color: var(--primary);">{{ audit.new_value }}</strong>
+                            {% endif %}
+                        </td>
+                        <td style="font-size: 0.88rem;">
+                            <i class="fas fa-quote-left" style="color: var(--text-muted); font-size: 0.75rem; margin-right: 4px;"></i>
+                            {{ audit.reason }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                            <i class="fas fa-shield-alt" style="color: var(--success); margin-right: 6px;"></i>
+                            No corrections recorded. Original attendance submission remains pristine and unmodified.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

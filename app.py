@@ -14,8 +14,8 @@ import csv
 import pytz
 import shutil
 import math
-import qrcode  # Ensure you run 'pip install qrcode'
-from datetime import datetime, timedelta
+import calendar
+from datetime import datetime, timedelta, date
 from sqlalchemy import func
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -23,6 +23,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from fpdf import FPDF
+import qrcode
 from flask_socketio import SocketIO, emit
 from flask_mail import Mail, Message as MailMessage
 from datetime import datetime
@@ -155,7 +156,6 @@ class User(db.Model ,UserMixin):
     attendance = db.relationship('Attendance', backref='user', lazy=True)
     leaves = db.relationship('Leave', backref='user', lazy=True)
     claims = db.relationship('ExpenseClaim', backref='rel_user', lazy=True)
-    kpis = db.relationship('PerformanceKPI', backref='user', lazy=True)
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender_info', lazy=True)
     timetable_entries = db.relationship('Timetable', backref='faculty', lazy=True)
 
@@ -229,6 +229,7 @@ class ClassSession(db.Model):
     room_no = db.Column(db.String(50), default='Room 204', nullable=True)
     status = db.Column(db.String(20), default='COMPLETED', nullable=False)
     remarks = db.Column(db.String(255), nullable=True)
+    version = db.Column(db.Integer, default=1, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -236,6 +237,7 @@ class ClassSession(db.Model):
     scheduled_faculty = db.relationship('User', foreign_keys=[scheduled_faculty_id], backref='scheduled_class_sessions')
     actual_faculty = db.relationship('User', foreign_keys=[actual_faculty_id], backref='conducted_class_sessions')
     student_attendances = db.relationship('StudentAttendance', backref='class_session', cascade='all, delete-orphan', lazy=True)
+    audit_logs = db.relationship('StudentAttendanceAudit', backref='class_session', cascade='all, delete-orphan', lazy=True, order_by='StudentAttendanceAudit.created_at.desc()')
 
     def __repr__(self):
         return f'<ClassSession {self.actual_subject} ({self.course} {self.semester} Sec {self.section}) on {self.date}>'
@@ -260,6 +262,28 @@ class StudentAttendance(db.Model):
 
     def __repr__(self):
         return f'<StudentAttendance session:{self.class_session_id} student:{self.student_id} status:{self.status}>'
+
+
+class StudentAttendanceAudit(db.Model):
+    __tablename__ = 'student_attendance_audit'
+    id = db.Column(db.Integer, primary_key=True)
+    class_session_id = db.Column(db.Integer, db.ForeignKey('class_session.id', ondelete='CASCADE'), nullable=False, index=True)
+    student_attendance_id = db.Column(db.Integer, db.ForeignKey('student_attendance.id', ondelete='SET NULL'), nullable=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True, index=True)
+    changed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    field_name = db.Column(db.String(50), default='status', nullable=False) # 'status', 'actual_subject', 'remarks'
+    previous_value = db.Column(db.String(255), nullable=True)
+    new_value = db.Column(db.String(255), nullable=True)
+    reason = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', foreign_keys=[student_id], backref='attendance_audits')
+    editor = db.relationship('User', foreign_keys=[changed_by], backref='conducted_attendance_audits')
+    student_attendance = db.relationship('StudentAttendance', foreign_keys=[student_attendance_id])
+
+    def __repr__(self):
+        return f'<StudentAttendanceAudit session:{self.class_session_id} field:{self.field_name} {self.previous_value}->{self.new_value}>'
+
 
 def inject_heavy_timetable():
     def get_id(uname):
@@ -511,13 +535,6 @@ class ExpenseClaim(db.Model):
     payment_date = db.Column(db.String(50))
     processed_by = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-class PerformanceKPI(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    month = db.Column(db.String(20))
-    rating = db.Column(db.Integer)
-    feedback = db.Column(db.String(255))
 
 class NotificationLog(db.Model):
     __tablename__ = 'notification_log'
@@ -1395,7 +1412,7 @@ def take_academic_attendance(timetable_id):
 
     # GET Request: If already taken today, redirect to session view
     if existing_session:
-        flash('Attendance has already been submitted for this class today.', 'info')
+        flash('Attendance has already been submitted for this class today. You can view or modify the records below.', 'info')
         return redirect(url_for('view_class_session', session_id=existing_session.id))
 
     # Load active student roster matching class
@@ -1431,12 +1448,234 @@ def view_class_session(session_id):
     present_count = sum(1 for a in attendances if a.status == 'Present')
     absent_count = sum(1 for a in attendances if a.status == 'Absent')
 
+    audit_logs = StudentAttendanceAudit.query.filter_by(class_session_id=session_obj.id).order_by(StudentAttendanceAudit.created_at.desc()).all()
+
     return render_template(
         'class_session_view.html',
         user=user,
         session_obj=session_obj,
         attendances=attendances,
         total_count=total_count,
+        present_count=present_count,
+        absent_count=absent_count,
+        audit_logs=audit_logs
+    )
+
+@app.route('/academic-attendance/edit/<int:session_id>', methods=['GET', 'POST'])
+@login_required
+def edit_academic_attendance(session_id):
+    user = User.query.get(session['user_id'])
+    session_obj = ClassSession.query.get_or_404(session_id)
+
+    # Authorization Check: only the faculty who conducted the class, scheduled faculty, or Admin/HOD/Principal
+    is_authorized = (
+        user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or
+        session_obj.actual_faculty_id == user.id or
+        session_obj.scheduled_faculty_id == user.id
+    )
+    if not is_authorized:
+        flash('You are not authorized to modify attendance for this class session.', 'danger')
+        return redirect(url_for('view_class_session', session_id=session_id))
+
+    if request.method == 'POST':
+        # Optimistic concurrency check
+        submitted_version = request.form.get('version', type=int)
+        current_version = getattr(session_obj, 'version', 1) or 1
+        if submitted_version is not None and current_version != submitted_version:
+            flash('Concurrency Conflict: This attendance record was modified by another user while you were editing. Please review the updated records before making changes.', 'warning')
+            return redirect(url_for('edit_academic_attendance', session_id=session_id))
+
+        actual_subject = (request.form.get('actual_subject') or session_obj.scheduled_subject).strip()
+        remarks = (request.form.get('remarks') or '').strip()
+        reason = (request.form.get('reason') or '').strip()
+
+        # Fetch current attendance records for this session
+        existing_attendances = {
+            a.student_id: a for a in StudentAttendance.query.filter_by(class_session_id=session_obj.id).all()
+        }
+
+        # Verify class student roster
+        class_students = {
+            s.id: s for s in Student.query.filter_by(
+                course=session_obj.course,
+                semester=session_obj.semester,
+                section=session_obj.section,
+                is_active=True
+            ).all()
+        }
+
+        # Compare submitted statuses against saved records
+        status_changes = []
+        newly_absent_students = []
+        submitted_ids = request.form.getlist('student_ids')
+        for sid_str in submitted_ids:
+            try:
+                sid = int(sid_str)
+            except (ValueError, TypeError):
+                continue
+
+            if sid not in class_students:
+                continue
+
+            student = class_students[sid]
+            new_status = request.form.get(f'status_{sid}', 'Present')
+            if new_status not in ['Present', 'Absent']:
+                new_status = 'Present'
+
+            att = existing_attendances.get(sid)
+            old_status = att.status if att else 'Present'
+            if old_status != new_status:
+                status_changes.append({
+                    'student': student,
+                    'att': att,
+                    'old_status': old_status,
+                    'new_status': new_status
+                })
+                if old_status == 'Present' and new_status == 'Absent':
+                    newly_absent_students.append(student)
+
+        subject_changed = (actual_subject != session_obj.actual_subject)
+        remarks_changed = (remarks != (session_obj.remarks or ''))
+
+        # Validation: If any changes are made, a meaningful correction reason is mandatory!
+        if (status_changes or subject_changed or remarks_changed) and not reason:
+            flash('A meaningful correction reason is required whenever attendance statuses or session details are modified.', 'danger')
+            return redirect(url_for('edit_academic_attendance', session_id=session_id))
+
+        # If zero changes detected:
+        if not status_changes and not subject_changed and not remarks_changed:
+            flash('No changes detected. The attendance record remains unchanged.', 'info')
+            return redirect(url_for('view_class_session', session_id=session_id))
+
+        # Perform atomic database updates and write audit records
+        try:
+            if subject_changed:
+                audit_subj = StudentAttendanceAudit(
+                    class_session_id=session_obj.id,
+                    changed_by=user.id,
+                    field_name='actual_subject',
+                    previous_value=session_obj.actual_subject,
+                    new_value=actual_subject,
+                    reason=reason
+                )
+                db.session.add(audit_subj)
+                session_obj.actual_subject = actual_subject
+
+            if remarks_changed:
+                audit_rem = StudentAttendanceAudit(
+                    class_session_id=session_obj.id,
+                    changed_by=user.id,
+                    field_name='remarks',
+                    previous_value=session_obj.remarks or '',
+                    new_value=remarks,
+                    reason=reason
+                )
+                db.session.add(audit_rem)
+                session_obj.remarks = remarks
+
+            # Update student attendance records
+            for ch in status_changes:
+                att = ch['att']
+                student = ch['student']
+                old_status = ch['old_status']
+                new_status = ch['new_status']
+
+                if att:
+                    att.status = new_status
+                    att.marked_at = get_ist_time().replace(tzinfo=None)
+                    att.marked_by = user.id
+                    att_id = att.id
+                else:
+                    att = StudentAttendance(
+                        class_session_id=session_obj.id,
+                        student_id=student.id,
+                        status=new_status,
+                        marked_at=get_ist_time().replace(tzinfo=None),
+                        marked_by=user.id
+                    )
+                    db.session.add(att)
+                    db.session.flush()
+                    att_id = att.id
+
+                # Mandatory Audit Trail Entry
+                audit_entry = StudentAttendanceAudit(
+                    class_session_id=session_obj.id,
+                    student_attendance_id=att_id,
+                    student_id=student.id,
+                    changed_by=user.id,
+                    field_name='status',
+                    previous_value=old_status,
+                    new_value=new_status,
+                    reason=reason
+                )
+                db.session.add(audit_entry)
+
+            session_obj.version = current_version + 1
+            session_obj.updated_at = get_ist_time().replace(tzinfo=None)
+
+            db.session.commit()
+            log_action(f"Academic attendance edited: user={user.id} session={session_obj.id} changed={len(status_changes)} reason='{reason}'", target=user.full_name)
+        except Exception as db_err:
+            db.session.rollback()
+            flash(f"Database error during attendance correction: {str(db_err)}", "danger")
+            return redirect(url_for('edit_academic_attendance', session_id=session_id))
+
+        # Post-commit Notification Policy:
+        # Only notify students whose status changed from Present -> Absent.
+        # Do not resend emails for students unchanged or changed to Present.
+        if newly_absent_students:
+            _dispatch_absence_emails_async(
+                absent_students=[{'id': s.id, 'name': s.name, 'email': s.email, 'uucms_id': s.uucms_id} for s in newly_absent_students],
+                session_info={
+                    'course': session_obj.course,
+                    'semester': session_obj.semester,
+                    'section': session_obj.section,
+                    'actual_subject': session_obj.actual_subject,
+                    'scheduled_subject': session_obj.scheduled_subject,
+                    'date_str': session_obj.date.strftime("%d %B %Y"),
+                    'time_slot': session_obj.time_slot,
+                    'room_no': session_obj.room_no
+                },
+                faculty_info={'id': user.id, 'full_name': user.full_name}
+            )
+
+        flash(f"Attendance for Session #{session_obj.id} updated successfully! {len(status_changes)} student record(s) corrected. Audit log recorded.", "success")
+        return redirect(url_for('view_class_session', session_id=session_obj.id))
+
+    # GET Request: Prepare roster with current recorded attendance
+    existing_attendances = {
+        a.student_id: a for a in StudentAttendance.query.filter_by(class_session_id=session_obj.id).all()
+    }
+
+    students = Student.query.filter_by(
+        course=session_obj.course,
+        semester=session_obj.semester,
+        section=session_obj.section,
+        is_active=True
+    ).order_by(Student.uucms_id).all()
+
+    student_records = []
+    present_count = 0
+    absent_count = 0
+    for s in students:
+        att = existing_attendances.get(s.id)
+        cur_status = att.status if att else 'Present'
+        if cur_status == 'Present':
+            present_count += 1
+        else:
+            absent_count += 1
+        student_records.append({
+            'student': s,
+            'status': cur_status,
+            'marked_at': att.marked_at if att else None
+        })
+
+    return render_template(
+        'edit_attendance.html',
+        user=user,
+        session_obj=session_obj,
+        student_records=student_records,
+        total_students=len(student_records),
         present_count=present_count,
         absent_count=absent_count
     )
@@ -1445,39 +1684,138 @@ def view_class_session(session_id):
 @login_required
 def academic_attendance_history():
     user = User.query.get(session['user_id'])
+    is_management = user.role in ['Principal', 'HOD - BCA Dept', 'admin']
 
-    if user.role in ['Principal', 'HOD - BCA Dept', 'admin']:
-        sessions_list = ClassSession.query.order_by(ClassSession.date.desc(), ClassSession.created_at.desc()).all()
-    else:
-        sessions_list = ClassSession.query.filter(
+    query = ClassSession.query
+
+    # RBAC Authorization Filter
+    if not is_management:
+        query = query.filter(
             (ClassSession.actual_faculty_id == user.id) | (ClassSession.scheduled_faculty_id == user.id)
-        ).order_by(ClassSession.date.desc(), ClassSession.created_at.desc()).all()
+        )
+    elif request.args.get('faculty_id'):
+        try:
+            f_id = int(request.args.get('faculty_id'))
+            query = query.filter(
+                (ClassSession.actual_faculty_id == f_id) | (ClassSession.scheduled_faculty_id == f_id)
+            )
+        except (ValueError, TypeError):
+            pass
+
+    # 1. Specific Date Filter
+    filter_date_str = (request.args.get('date') or '').strip()
+    if filter_date_str:
+        try:
+            filter_date = datetime.strptime(filter_date_str, '%Y-%m-%d').date()
+            query = query.filter(ClassSession.date == filter_date)
+        except ValueError:
+            pass
+
+    # 2. Date Range Filter
+    start_date_str = (request.args.get('start_date') or '').strip()
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query = query.filter(ClassSession.date >= start_date)
+        except ValueError:
+            pass
+
+    end_date_str = (request.args.get('end_date') or '').strip()
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            query = query.filter(ClassSession.date <= end_date)
+        except ValueError:
+            pass
+
+    # 3. Month Filter (e.g., '2026-10' or '2026-02') - leap-year and calendar aware
+    filter_month_str = (request.args.get('month') or '').strip()
+    if filter_month_str:
+        try:
+            m_parts = filter_month_str.split('-')
+            m_year, m_month = int(m_parts[0]), int(m_parts[1])
+            _, last_day = calendar.monthrange(m_year, m_month)
+            month_start = date(m_year, m_month, 1)
+            month_end = date(m_year, m_month, last_day)
+            query = query.filter(ClassSession.date >= month_start, ClassSession.date <= month_end)
+        except Exception:
+            pass
+
+    # 4. Course, Semester, Section filters
+    course_filter = (request.args.get('course') or '').strip()
+    if course_filter:
+        query = query.filter(ClassSession.course == course_filter)
+
+    semester_filter = (request.args.get('semester') or '').strip()
+    if semester_filter:
+        query = query.filter(ClassSession.semester == semester_filter)
+
+    section_filter = (request.args.get('section') or '').strip()
+    if section_filter:
+        query = query.filter(ClassSession.section == section_filter)
+
+    # 5. Subject Search
+    search_query = (request.args.get('search') or '').strip()
+    if search_query:
+        query = query.filter(
+            db.or_(
+                ClassSession.actual_subject.ilike(f'%{search_query}%'),
+                ClassSession.scheduled_subject.ilike(f'%{search_query}%'),
+                ClassSession.remarks.ilike(f'%{search_query}%')
+            )
+        )
+
+    # Ordering
+    query = query.order_by(ClassSession.date.desc(), ClassSession.created_at.desc())
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+    if per_page not in [10, 15, 25, 50]:
+        per_page = 15
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    sessions_list = pagination.items
 
     session_records = []
     total_attendances = 0
     total_presents = 0
 
     for s in sessions_list:
-        p_cnt = StudentAttendance.query.filter_by(class_session_id=s.id, status='Present').count()
-        a_cnt = StudentAttendance.query.filter_by(class_session_id=s.id, status='Absent').count()
+        p_cnt = sum(1 for a in s.student_attendances if a.status == 'Present')
+        a_cnt = sum(1 for a in s.student_attendances if a.status == 'Absent')
         total_attendances += (p_cnt + a_cnt)
         total_presents += p_cnt
         session_records.append({
             'session': s,
             'present_count': p_cnt,
-            'absent_count': a_cnt
+            'absent_count': a_cnt,
+            'total_count': p_cnt + a_cnt
         })
 
-    total_sessions = len(sessions_list)
     avg_rate = round((total_presents / total_attendances * 100), 1) if total_attendances > 0 else 0.0
+
+    faculty_list = User.query.filter(User.role.in_(['Faculty', 'HOD - BCA Dept'])).order_by(User.full_name).all() if is_management else []
 
     return render_template(
         'academic_attendance_history.html',
         user=user,
         session_records=session_records,
-        total_sessions=total_sessions,
+        pagination=pagination,
+        total_sessions=pagination.total,
         total_attendances=total_attendances,
-        avg_attendance_rate=avg_rate
+        avg_attendance_rate=avg_rate,
+        is_management=is_management,
+        faculty_list=faculty_list,
+        filter_date=filter_date_str,
+        filter_start_date=start_date_str,
+        filter_end_date=end_date_str,
+        filter_month=filter_month_str,
+        filter_course=course_filter,
+        filter_semester=semester_filter,
+        filter_section=section_filter,
+        filter_search=search_query,
+        filter_faculty_id=request.args.get('faculty_id', '')
     )
 
 @app.route('/academic-attendance/today', methods=['GET'])
@@ -2491,56 +2829,6 @@ def send_lounge_msg():
     db.session.commit()
     return jsonify({"status": "sent"})
 
-@app.route('/performance', methods=['GET', 'POST'])
-def performance():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    
-    user_role = session.get('role', '')
-    user_id = session.get('user_id')
-
-    # --- POST: HANDLE RATING SUBMISSION ---
-    if request.method == 'POST':
-        target_id = request.form['u_id']
-        allowed = False
-        
-        if user_role == 'Principal':
-            allowed = True 
-        elif 'HOD' in user_role: # Updated to catch "HOD - BCA Dept"
-            target_user = User.query.get(target_id)
-            if target_user and target_user.role == 'Faculty':
-                allowed = True
-        
-        if allowed:
-            new_kpi = PerformanceKPI(
-                user_id=target_id,
-                month=request.form['month'],
-                rating=request.form['rating'],
-                feedback=request.form['feedback']
-            )
-            db.session.add(new_kpi)
-            db.session.commit()
-            flash('Performance review submitted successfully.', 'success')
-        else:
-            flash('Unauthorized: You can only rate Faculty members.', 'error')
-
-    # --- GET: PREPARE DATA FOR UI ---
-    
-    users_to_rate = []
-    if user_role == 'Principal':
-        users_to_rate = User.query.filter(User.id != user_id).all() 
-    elif 'HOD' in user_role: # Updated logic
-        users_to_rate = User.query.filter_by(role='Faculty').all()
-
-    # Table View Logic
-    if user_role == 'Principal':
-        ratings = PerformanceKPI.query.all()
-    elif 'HOD' in user_role: # Updated logic
-        ratings = db.session.query(PerformanceKPI).join(User).filter(User.role == 'Faculty').all()
-    else:
-        ratings = PerformanceKPI.query.filter_by(user_id=user_id).all()
-
-    return render_template('performance.html', ratings=ratings, users=users_to_rate)
-    
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -3135,7 +3423,8 @@ def seed_database():
         # Self-healing column migration for academic attendance tables
         academic_cols_to_add = [
             ('student', 'section', "VARCHAR(20) DEFAULT 'A'"),
-            ('class_session', 'section', "VARCHAR(20) DEFAULT 'A'")
+            ('class_session', 'section', "VARCHAR(20) DEFAULT 'A'"),
+            ('class_session', 'version', "INTEGER DEFAULT 1")
         ]
         with db.engine.connect() as conn:
             for tbl, col_name, col_type in academic_cols_to_add:
@@ -3150,15 +3439,17 @@ def seed_database():
                         pass
 
         # Enforce NOT NULL on class_session.timetable_id
+        # Decommission legacy performance table if present
         with db.engine.connect() as conn:
             try:
-                conn.execute(db.text('ALTER TABLE class_session ALTER COLUMN timetable_id SET NOT NULL;'))
+                conn.execute(db.text('DROP TABLE IF EXISTS performance_kpi CASCADE;'))
                 conn.commit()
             except Exception:
-                pass
-
-
-
+                try:
+                    conn.execute(db.text('DROP TABLE IF EXISTS performance_kpi;'))
+                    conn.commit()
+                except Exception:
+                    pass
 
         # System Admin with Address & Dept
         if not User.query.filter_by(username='admin').first():
@@ -3300,19 +3591,11 @@ def analytics_data():
     payroll_labels = [r[0] if r[0] else 'Unassigned' for r in dept_payroll] if dept_payroll else ['No Data']
     payroll_values = [float(r[1]) if r[1] else 0.0 for r in dept_payroll] if dept_payroll else [0.0]
 
-    # 5. Performance Ratings Average by Month
-    perf_records = db.session.query(
-        PerformanceKPI.month, func.avg(PerformanceKPI.rating)
-    ).group_by(PerformanceKPI.month).all()
-    perf_labels = [r[0] for r in perf_records] if perf_records else ['No Data']
-    perf_values = [round(float(r[1]), 2) for r in perf_records] if perf_records else [0.0]
-
     return jsonify({
         'attendance_trend': {'labels': att_trend_labels, 'values': att_trend_values},
         'leave_status': {'labels': leave_labels, 'values': leave_values},
         'expense_by_category': {'labels': exp_labels, 'values': exp_values},
-        'monthly_payroll': {'labels': payroll_labels, 'values': payroll_values},
-        'performance_ratings': {'labels': perf_labels, 'values': perf_values}
+        'monthly_payroll': {'labels': payroll_labels, 'values': payroll_values}
     })
 
 
@@ -3372,22 +3655,12 @@ def ai_today_attendance():
         "wfh": wfh_cnt
     }
 
-def ai_performance_summary():
-    avg_score = db.session.query(func.avg(PerformanceKPI.rating)).scalar() or 0
-    kpi_cnt = PerformanceKPI.query.count()
-    return {
-        "summary": f"Institutional average performance KPI rating across {kpi_cnt} evaluations is {float(avg_score):.1f}/10.",
-        "average_rating": round(float(avg_score), 2),
-        "total_kpis": kpi_cnt
-    }
-
 WHITELISTED_TOOLS = {
     'count_leaves': ai_count_leaves_this_week,
     'pending_expenses': ai_pending_expenses,
     'staff_by_department': ai_staff_count_by_department,
     'total_payroll': ai_total_payroll,
-    'today_attendance': ai_today_attendance,
-    'performance_summary': ai_performance_summary
+    'today_attendance': ai_today_attendance
 }
 
 @app.route('/assistant')
@@ -3432,8 +3705,6 @@ def assistant_ask():
         selected_tool = 'total_payroll'
     elif any(k in q_lower for k in ['attendance', 'checkin', 'present', 'today']):
         selected_tool = 'today_attendance'
-    elif any(k in q_lower for k in ['performance', 'rating', 'score', 'kpi']):
-        selected_tool = 'performance_summary'
 
     api_key = os.environ.get('GEMINI_API_KEY')
     tool_result = None
@@ -3470,7 +3741,7 @@ Provide a concise, professional answer for the college executive."""
         else:
             answer_text = tool_result['summary']
     else:
-        answer_text = "I can answer questions about staff leaves, pending expense claims, department headcounts, monthly payroll costs, today's attendance, and performance ratings."
+        answer_text = "I can answer questions about staff leaves, pending expense claims, department headcounts, monthly payroll costs, and today's attendance."
 
     return jsonify({'answer': answer_text, 'tool_used': selected_tool, 'data': tool_result})
 

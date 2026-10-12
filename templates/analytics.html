@@ -17,7 +17,7 @@
     </div>
 </div>
 
-<!-- 5 Charts Grid -->
+<!-- Analytics Charts Grid -->
 <div class="grid grid-cols-2 mb-3">
     <!-- Chart 1: Attendance Trend -->
     <div class="card" style="grid-column: span 2;">
@@ -53,24 +53,13 @@
     </div>
 
     <!-- Chart 4: Department Payroll Expenditure -->
-    <div class="card">
+    <div class="card" style="grid-column: span 2;">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-money-bill-wave" style="color: var(--success); margin-right: 8px;"></i> Department Payroll Expenditure</h3>
             <button onclick="downloadCSV('payroll')" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> CSV</button>
         </div>
         <div class="card-body" style="height: 240px; position: relative;">
             <canvas id="chartMonthlyPayroll"></canvas>
-        </div>
-    </div>
-
-    <!-- Chart 5: Performance KPI Ratings -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-star" style="color: var(--warning); margin-right: 8px;"></i> Monthly Average Performance Ratings</h3>
-            <button onclick="downloadCSV('performance')" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> CSV</button>
-        </div>
-        <div class="card-body" style="height: 240px; position: relative;">
-            <canvas id="chartPerformance"></canvas>
         </div>
     </div>
 </div>
@@ -171,29 +160,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     plugins: { legend: { display: false } },
                     scales: {
                         y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } },
-                        x: { grid: { display: false }, ticks: { color: textColor } }
-                    }
-                }
-            });
-
-            // 5. Performance Ratings (Bar Chart)
-            new Chart(document.getElementById('chartPerformance'), {
-                type: 'bar',
-                data: {
-                    labels: data.performance_ratings.labels,
-                    datasets: [{
-                        label: 'Avg Rating (1-10)',
-                        data: data.performance_ratings.values,
-                        backgroundColor: '#1976d2',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, max: 10, grid: { color: gridColor }, ticks: { color: textColor } },
                         x: { grid: { display: false }, ticks: { color: textColor } }
                     }
                 }
