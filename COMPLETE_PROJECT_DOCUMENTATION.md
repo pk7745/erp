@@ -210,18 +210,18 @@ Default login credentials seeded across departments:
 
 | Username | Password | Full Name | Primary Role | Department | Key Responsibilities |
 |---|---|---|---|---|---|
-| `admin` | `admin123` | Master Administrator | `HR` / Admin | Administration | System oversight, Workforce Master, OCR Vault, Notifications |
-| `principal` | `principal123` | Dr. S. R. Ramesh | `Principal` | Leadership | Institution-wide analytics, all faculty timetables, executive approvals |
-| `hod` | `hod123` | Dr. B. V. Venkatesh | `HOD - BCA Dept` | Computer Science | Departmental scheduling, attendance audits, leave approval |
-| `shivani` | `faculty123` | Ms. Shivani Shikha | `Faculty` | Computer Science | Web Programming Lab, Software Engineering |
-| `shrinkala`| `faculty123` | Ms. Shrinkhala Kumari | `Faculty` | Computer Science | Cryptography & Network Security |
-| `balram` | `faculty123` | Mr. Balaram M | `Faculty` | Computer Science | Web Programming |
-| `bhoomika` | `faculty123` | Ms. Bhoomika | `Faculty` | Computer Science | Data Analytics |
-| `gururaj` | `faculty123` | Mr. Gururaj | `Faculty` | Mathematics | Quantitative Techniques |
-| `kiran` | `faculty123` | Dr. Kiran Kumar M N | `Faculty` | Computer Science | Core CS Sem I–IV (0 Sem V allocations) |
-| `ramkishore`| `faculty123`| Mr. Ramkishore | `Faculty` | English | English Dept (Sem II & IV only) |
-| `newfac` | `faculty123` | Institutional Coordinator | `Faculty` | Administration | CRT Program (Add-on) Coordinator |
-| `accountant`| `accountant123`| Sri M. Narayana | `Accountant` | Finance | Payroll processing, expense claims, tax deductions |
+| `admin` | `bms123` | System Admin | `HR` / Admin | Administration | System oversight, Workforce Master, OCR Vault, Notifications |
+| `pankaj` | `bms123` | Dr. Pankaj Choudhry | `Principal` | Executive | Institution-wide analytics, all faculty timetables, executive approvals |
+| `kiran` | `bms123` | Dr.Kiran Kumar M N | `HOD - BCA Dept` | Computer Applications | HOD oversight, Core CS Sem I–IV classes (0 Sem V allocations) |
+| `balram` | `bms123` | Mr. Balaram M | `Faculty` | Commerce / Computer Apps | Web Programming, student attendance marking |
+| `shivani` | `bms123` | Ms. Shivani Shikha | `Faculty` | Commerce / Computer Apps | Web Programming Lab, Software Engineering |
+| `shrinkala`| `bms123` | Ms. Shrinkhala Kumari | `Faculty` | Management / Computer Apps| Cryptography & Network Security |
+| `bhoomika` | `bms123` | Ms. Bhoomika Hegde | `Faculty` | Computer Applications | Data Analytics (Theory & Labs) |
+| `gururaj` | `bms123` | Mr. Gururaj | `Faculty` | Computer Applications | Quantitative Techniques |
+| `ramkishore`| `bms123`| Mr. Ramkishore | `Faculty` | Commerce | General English & English (Sem II & IV only) |
+| `prathiba` | `bms123` | Mrs. Prathiba Singh | `Faculty` | Management | Management faculty |
+| `newfac` | `bms123` | New Faculty | `Faculty` | Commerce | CRT Program (Add-on) Coordinator |
+| `acc1` | `bms123` | Rajesh Finance | `Accountant` | Accounts | Payroll processing, expense claims, tax deductions |
 
 ---
 
