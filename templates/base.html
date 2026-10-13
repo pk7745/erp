@@ -131,6 +131,12 @@
                         <i class="fas fa-user-graduate sidebar-icon"></i>
                         <span class="sidebar-label">Student Attendance</span>
                     </a>
+                    {% if user and user.role in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin'] %}
+                    <a href="{{ url_for('internal_marks_dashboard') }}" class="sidebar-link {% if request.endpoint in ['internal_marks_dashboard', 'internal_marks_students', 'internal_marks_entry', 'internal_marks_history', 'internal_marks_audit'] %}active{% endif %}">
+                        <i class="fas fa-edit sidebar-icon"></i>
+                        <span class="sidebar-label">Internal Marks</span>
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('assistant_ui') }}" class="sidebar-link {% if request.endpoint == 'assistant_ui' %}active{% endif %}">
                         <i class="fas fa-robot sidebar-icon" style="color: #6366f1;"></i>
                         <span class="sidebar-label">AI Operations Assistant</span>

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 1400px; margin: 0 auto; padding-bottom: 40px;">
+    <!-- Navigation Breadcrumbs -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">
+                <a href="{{ url_for('internal_marks_dashboard') }}" style="color: var(--primary); text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Change Class / Subject
+                </a>
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; margin: 0; color: var(--text-main);">
+                {{ subject }}
+            </h1>
+            <div style="font-size: 1rem; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="badge badge-primary">{{ course }} {{ semester }} (Sec {{ section }})</span>
+                <span>•</span>
+                <span>Cycle: <strong>{{ assessment_cycle }}</strong></span>
+                <span>•</span>
+                <span>Faculty: <strong>{{ user.full_name }}</strong></span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="{{ url_for('internal_marks_history', course=course, semester=semester, section=section, subject=subject) }}" class="btn btn-secondary">
+                <i class="fas fa-history"></i> Subject Marks History
+            </a>
+            <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-th-large"></i> Marks Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Search Bar -->
+    <div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
+        <form action="{{ url_for('internal_marks_students') }}" method="GET" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <input type="hidden" name="course" value="{{ course }}">
+            <input type="hidden" name="semester" value="{{ semester }}">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="hidden" name="subject" value="{{ subject }}">
+            <input type="hidden" name="assessment_cycle" value="{{ assessment_cycle }}">
+
+            <div style="flex: 1; min-width: 280px; position: relative;">
+                <i class="fas fa-search" style="position: absolute; left: 14px; top: 13px; color: var(--text-muted);"></i>
+                <input type="text" name="search" value="{{ search }}" placeholder="Search by student name or UUCMS ID (e.g. U18IN24S0004 or Aishwarya)..."
+                       class="form-control" style="width: 100%; padding: 10px 14px 10px 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">
+                <i class="fas fa-filter"></i> Search
+            </button>
+            {% if search %}
+            <a href="{{ url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle) }}" class="btn btn-outline">
+                Clear Search
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Student Roster Table -->
+    <div class="card">
+        <div class="card-header" style="background: var(--bg-surface); padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                    <i class="fas fa-user-graduate" style="color: var(--primary); margin-right: 8px;"></i>
+                    Active Class Roster ({{ students|length }} Students)
+                </h3>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                    Select an individual student to enter, update, or review IA marks.
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; font-size: 0.8rem;">
+                <span class="badge badge-outline">Max: IA1={{ maxima['IA1'] }}</span>
+                <span class="badge badge-outline">IA2={{ maxima['IA2'] }}</span>
+                <span class="badge badge-outline">Final={{ maxima['Final IA'] }}</span>
+            </div>
+        </div>
+
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+            {% if students %}
+            <table class="table" style="width: 100%; margin: 0; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--bg-surface); border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 14px 20px;">#</th>
+                        <th style="padding: 14px 20px;">Student Name</th>
+                        <th style="padding: 14px 20px;">UUCMS ID</th>
+                        <th style="padding: 14px 20px; text-align: center;">IA1 ({{ maxima['IA1'] }})</th>
+                        <th style="padding: 14px 20px; text-align: center;">IA2 ({{ maxima['IA2'] }})</th>
+                        <th style="padding: 14px 20px; text-align: center;">Final IA ({{ maxima['Final IA'] }})</th>
+                        <th style="padding: 14px 20px; text-align: center;">Status</th>
+                        <th style="padding: 14px 20px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    {% set m = existing_marks.get(s.id) %}
+                    <tr style="border-bottom: 1px solid var(--border); background: {% if loop.index is odd %}var(--bg-body){% else %}var(--bg-surface){% endif %};">
+                        <td style="padding: 14px 20px; color: var(--text-muted); font-weight: 600;">
+                            {{ loop.index }}
+                        </td>
+                        <td style="padding: 14px 20px; font-weight: 700; color: var(--text-main);">
+                            {{ s.name }}
+                        </td>
+                        <td style="padding: 14px 20px; font-family: monospace; font-weight: 600; color: var(--text-muted);">
+                            {{ s.uucms_id }}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if m and m.ia1_marks is not none %}
+                            <strong style="color: var(--primary);">{{ m.ia1_marks }}</strong>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if m and m.ia2_marks is not none %}
+                            <strong style="color: var(--primary);">{{ m.ia2_marks }}</strong>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if m and m.final_ia_marks is not none %}
+                            <strong style="color: var(--primary);">{{ m.final_ia_marks }}</strong>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if m %}
+                                {% if m.completion_status == 'Complete' %}
+                                <span class="badge badge-success" style="font-size: 0.75rem;">Complete (3/3)</span>
+                                {% elif m.completion_status == 'Partial' %}
+                                <span class="badge badge-warning" style="font-size: 0.75rem;">Partial</span>
+                                {% else %}
+                                <span class="badge badge-secondary" style="font-size: 0.75rem;">Draft</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="badge badge-outline" style="font-size: 0.75rem; color: var(--text-muted);">Not Entered</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: right;">
+                            <a href="{{ url_for('internal_marks_entry', student_id=s.id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle) }}"
+                               class="btn {% if m %}btn-secondary{% else %}btn-primary{% endif %} btn-sm" style="font-size: 0.8rem; padding: 6px 14px;">
+                                {% if m %}
+                                <i class="fas fa-edit"></i> Edit Marks
+                                {% else %}
+                                <i class="fas fa-plus"></i> Enter Marks
+                                {% endif %}
+                            </a>
+                            {% if m %}
+                            <a href="{{ url_for('internal_marks_audit', mark_id=m.id) }}"
+                               class="btn btn-outline btn-sm" style="font-size: 0.8rem; padding: 6px 10px;" title="View Audit Trail">
+                                <i class="fas fa-history"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 48px 24px; color: var(--text-muted);">
+                <i class="fas fa-search" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 12px; display: block;"></i>
+                <h4 style="margin: 0 0 6px 0; color: var(--text-main);">No Students Found</h4>
+                <p style="margin: 0; font-size: 0.9rem;">
+                    {% if search %}
+                    No active students matching "<strong>{{ search }}</strong>" in {{ course }} {{ semester }} Section {{ section }}.
+                    {% else %}
+                    No active students found in {{ course }} {{ semester }} Section {{ section }}.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

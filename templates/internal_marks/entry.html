@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle) }}"
+           style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+            <i class="fas fa-arrow-left"></i> Back to Student Roster ({{ subject }})
+        </a>
+    </div>
+
+    <!-- Student Banner Card -->
+    <div class="card" style="margin-bottom: 24px; border-left: 4px solid var(--primary); padding: 20px 24px; background: var(--bg-surface);">
+        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-info" style="font-weight: 800; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 6px;">
+                    Student Evaluation Record
+                </span>
+                <h2 style="margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--text-main);">
+                    {{ student.name }}
+                </h2>
+                <div style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">
+                    UUCMS ID: <strong style="color: var(--text-main);">{{ student.uucms_id }}</strong>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <div class="badge badge-primary" style="font-size: 0.85rem; padding: 6px 12px;">
+                    {{ course }} • {{ semester }} (Section {{ section }})
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                    Academic Year: {{ student.academic_year }} • Cycle: {{ assessment_cycle }}
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 0.85rem; color: var(--text-muted);">
+            <div><i class="fas fa-book" style="color: var(--primary);"></i> Subject: <strong style="color: var(--text-main);">{{ subject }}</strong></div>
+            <div>•</div>
+            <div><i class="fas fa-user-tie" style="color: var(--primary);"></i> Evaluator: <strong style="color: var(--text-main);">{{ user.full_name }}</strong></div>
+        </div>
+    </div>
+
+    <!-- Main Entry Form Card -->
+    <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 10px;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">
+                <i class="fas fa-edit" style="color: var(--primary); margin-right: 8px;"></i>
+                {% if existing_mark %}Update Internal Assessment Marks{% else %}Enter Internal Assessment Marks{% endif %}
+            </h3>
+            {% if existing_mark %}
+            <span class="badge badge-warning" style="font-size: 0.75rem;">
+                <i class="fas fa-clock"></i> Version {{ existing_mark.version }}
+            </span>
+            {% else %}
+            <span class="badge badge-outline" style="font-size: 0.75rem;">
+                New Record
+            </span>
+            {% endif %}
+        </div>
+
+        <form id="marksForm" action="{{ url_for('internal_marks_save') }}" method="POST" style="padding: 24px;">
+            <!-- Hidden context fields -->
+            <input type="hidden" name="student_id" value="{{ student.id }}">
+            <input type="hidden" name="course" value="{{ course }}">
+            <input type="hidden" name="semester" value="{{ semester }}">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="hidden" name="subject" value="{{ subject }}">
+            <input type="hidden" name="assessment_cycle" value="{{ assessment_cycle }}">
+            {% if existing_mark %}
+            <input type="hidden" name="version" value="{{ existing_mark.version }}">
+            {% endif %}
+
+            <!-- Instructional Hint -->
+            <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; font-size: 0.85rem; color: var(--text-muted);">
+                <strong style="color: var(--text-main);"><i class="fas fa-lightbulb" style="color: var(--primary); margin-right: 6px;"></i> Academic Evaluation Policy:</strong>
+                <ul style="margin: 6px 0 0 18px; padding: 0;">
+                    <li><strong>Not Yet Entered:</strong> Leave the field blank if an assessment has not yet been conducted.</li>
+                    <li><strong>Zero Marks:</strong> Explicitly enter <code>0</code> or <code>0.0</code> if the student scored zero.</li>
+                    <li><strong>Decimal Precision:</strong> Up to 2 decimal places are accepted (e.g. <code>18.5</code> or <code>22.75</code>).</li>
+                    <li><strong>Drafts & Partial Entry:</strong> You can save IA1 now and update IA2 or Final IA later.</li>
+                </ul>
+            </div>
+
+            <!-- Marks Input Fields (Grid) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                <!-- IA1 -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 18px; background: var(--bg-body);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="ia1_marks" style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin: 0;">
+                            IA1 Marks
+                        </label>
+                        <span class="badge badge-outline" style="font-size: 0.75rem;">Max {{ maxima['IA1'] }}</span>
+                    </div>
+                    <input type="number" step="0.01" min="0" max="{{ maxima['IA1'] }}"
+                           name="ia1_marks" id="ia1_marks"
+                           value="{{ existing_mark.ia1_marks if existing_mark and existing_mark.ia1_marks is not none else '' }}"
+                           placeholder="e.g. 21.5 (or leave blank)"
+                           class="form-control"
+                           style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                        First Internal Assessment
+                    </div>
+                </div>
+
+                <!-- IA2 -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 18px; background: var(--bg-body);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="ia2_marks" style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin: 0;">
+                            IA2 Marks
+                        </label>
+                        <span class="badge badge-outline" style="font-size: 0.75rem;">Max {{ maxima['IA2'] }}</span>
+                    </div>
+                    <input type="number" step="0.01" min="0" max="{{ maxima['IA2'] }}"
+                           name="ia2_marks" id="ia2_marks"
+                           value="{{ existing_mark.ia2_marks if existing_mark and existing_mark.ia2_marks is not none else '' }}"
+                           placeholder="e.g. 22.0 (or leave blank)"
+                           class="form-control"
+                           style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                        Second Internal Assessment
+                    </div>
+                </div>
+
+                <!-- Final IA -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 18px; background: var(--bg-body);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label for="final_ia_marks" style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin: 0;">
+                            Final IA Marks
+                        </label>
+                        <span class="badge badge-outline" style="font-size: 0.75rem;">Max {{ maxima['Final IA'] }}</span>
+                    </div>
+                    <input type="number" step="0.01" min="0" max="{{ maxima['Final IA'] }}"
+                           name="final_ia_marks" id="final_ia_marks"
+                           value="{{ existing_mark.final_ia_marks if existing_mark and existing_mark.final_ia_marks is not none else '' }}"
+                           placeholder="e.g. 23.5 (or leave blank)"
+                           class="form-control"
+                           style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                        Final IA Institutional Score
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mandatory Reason for Correction (Visible on existing records or when modifying) -->
+            {% if existing_mark %}
+            <div style="margin-bottom: 24px; padding: 18px; border-radius: 8px; border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.05);">
+                <label for="reason" style="display: block; font-weight: 700; font-size: 0.9rem; color: #b45309; margin-bottom: 6px;">
+                    <i class="fas fa-shield-alt"></i> Reason for Correction (Mandatory for Auditing)
+                </label>
+                <input type="text" name="reason" id="reason"
+                       placeholder="e.g. Re-evaluation verified by HOD / Scrutiny correction / Retest score"
+                       class="form-control"
+                       style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                    All modifications to existing internal assessment marks are permanently audited with actor, timestamp, and justification.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center; border-top: 1px solid var(--border); padding-top: 20px;">
+                <a href="{{ url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle) }}"
+                   class="btn btn-outline" style="padding: 10px 20px;">
+                    Cancel
+                </a>
+                <button type="button" onclick="openReviewModal()" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700;">
+                    <i class="fas fa-check-circle"></i> Review & Save Marks
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit History Shortcut for existing records -->
+    {% if existing_mark and existing_mark.audits %}
+    <div class="card" style="margin-top: 28px;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-main);">
+                <i class="fas fa-history" style="color: var(--primary); margin-right: 6px;"></i> Modification Audit Trail ({{ existing_mark.audits|length }} Events)
+            </h4>
+            <a href="{{ url_for('internal_marks_audit', mark_id=existing_mark.id) }}" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-decoration: none;">
+                View Full Audit Details →
+            </a>
+        </div>
+        <div class="card-body" style="padding: 14px 20px;">
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-muted);">
+                {% for a in existing_mark.audits[:3] %}
+                <li style="margin-bottom: 6px;">
+                    <strong>{{ a.component }}</strong> changed from <code>{{ a.previous_value or 'Not Entered' }}</code> → <code>{{ a.new_value }}</code> by <strong>{{ a.editor.full_name if a.editor else 'User' }}</strong> on {{ a.created_at.strftime('%d %b %Y %H:%M') }} (Reason: <em>{{ a.reason }}</em>)
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Review & Confirmation Modal -->
+<div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="card" style="max-width: 550px; width: 100%; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; animation: fadeIn 0.15s ease-out;">
+        <div class="card-header" style="background: var(--primary); color: white; padding: 18px 24px;">
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800;">
+                <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Confirm Assessment Submission
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 24px;">
+            <p style="margin: 0 0 16px 0; font-size: 0.9rem; color: var(--text-muted);">
+                Please verify the marks entered before saving them to the institutional database:
+            </p>
+
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 0.9rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Student:</span>
+                    <strong>{{ student.name }} ({{ student.uucms_id }})</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Class:</span>
+                    <span>{{ course }} {{ semester }} Sec {{ section }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">Subject:</span>
+                    <strong>{{ subject }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Cycle:</span>
+                    <span>{{ assessment_cycle }}</span>
+                </div>
+            </div>
+
+            <!-- Summary Table of Values -->
+            <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <tr style="background: var(--bg-surface); border-bottom: 1px solid var(--border);">
+                        <th style="padding: 10px 14px; text-align: left;">Component</th>
+                        <th style="padding: 10px 14px; text-align: center;">Maximum</th>
+                        <th style="padding: 10px 14px; text-align: right;">Entered Value</th>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 10px 14px; font-weight: 600;">IA1 Marks</td>
+                        <td style="padding: 10px 14px; text-align: center; color: var(--text-muted);">{{ maxima['IA1'] }}</td>
+                        <td style="padding: 10px 14px; text-align: right;" id="modal_ia1"><strong>—</strong></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 10px 14px; font-weight: 600;">IA2 Marks</td>
+                        <td style="padding: 10px 14px; text-align: center; color: var(--text-muted);">{{ maxima['IA2'] }}</td>
+                        <td style="padding: 10px 14px; text-align: right;" id="modal_ia2"><strong>—</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 14px; font-weight: 600;">Final IA Marks</td>
+                        <td style="padding: 10px 14px; text-align: center; color: var(--text-muted);">{{ maxima['Final IA'] }}</td>
+                        <td style="padding: 10px 14px; text-align: right;" id="modal_final"><strong>—</strong></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div id="modal_reason_wrap" style="display: none; background: rgba(245, 158, 11, 0.08); padding: 10px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 20px;">
+                <span style="color: #b45309; font-weight: 700;">Reason for Correction:</span>
+                <span id="modal_reason" style="color: var(--text-main);"></span>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" onclick="closeReviewModal()" class="btn btn-outline">
+                    Modify Values
+                </button>
+                <button type="button" onclick="submitMarksForm()" class="btn btn-primary" style="font-weight: 700;">
+                    Confirm & Save to Database
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openReviewModal() {
+    const ia1 = document.getElementById('ia1_marks').value.trim();
+    const ia2 = document.getElementById('ia2_marks').value.trim();
+    const final_ia = document.getElementById('final_ia_marks').value.trim();
+    const reasonInput = document.getElementById('reason');
+
+    if (!ia1 && !ia2 && !final_ia) {
+        alert('Please enter at least one assessment component (IA1, IA2, or Final IA).');
+        return;
+    }
+
+    // If existing record and reasonInput is present, validate if changed
+    if (reasonInput) {
+        const reason = reasonInput.value.trim();
+        // Check if values differ from existing
+        const prevIa1 = "{{ existing_mark.ia1_marks if existing_mark and existing_mark.ia1_marks is not none else '' }}";
+        const prevIa2 = "{{ existing_mark.ia2_marks if existing_mark and existing_mark.ia2_marks is not none else '' }}";
+        const prevFinal = "{{ existing_mark.final_ia_marks if existing_mark and existing_mark.final_ia_marks is not none else '' }}";
+
+        const hasChanged = (ia1 !== prevIa1) || (ia2 !== prevIa2) || (final_ia !== prevFinal);
+        if (hasChanged && !reason) {
+            alert('A reason for correction is required when updating existing internal marks.');
+            reasonInput.focus();
+            return;
+        }
+
+        if (reason) {
+            document.getElementById('modal_reason_wrap').style.display = 'block';
+            document.getElementById('modal_reason').innerText = reason;
+        } else {
+            document.getElementById('modal_reason_wrap').style.display = 'none';
+        }
+    }
+
+    document.getElementById('modal_ia1').innerHTML = ia1 !== '' ? `<strong style="color: var(--primary);">${ia1}</strong>` : `<span style="color: var(--text-muted); font-style: italic;">Not Entered</span>`;
+    document.getElementById('modal_ia2').innerHTML = ia2 !== '' ? `<strong style="color: var(--primary);">${ia2}</strong>` : `<span style="color: var(--text-muted); font-style: italic;">Not Entered</span>`;
+    document.getElementById('modal_final').innerHTML = final_ia !== '' ? `<strong style="color: var(--primary);">${final_ia}</strong>` : `<span style="color: var(--text-muted); font-style: italic;">Not Entered</span>`;
+
+    document.getElementById('reviewModal').style.display = 'flex';
+}
+
+function closeReviewModal() {
+    document.getElementById('reviewModal').style.display = 'none';
+}
+
+function submitMarksForm() {
+    document.getElementById('marksForm').submit();
+}
+</script>
+
+{% endblock %}

@@ -390,6 +390,34 @@ Located at `/admin/staff_master`:
 
 ---
 
+### 6.8 Student Internal Assessment Marks Management
+
+Implemented in `app.py` and `templates/internal_marks/`:
+- **Overview:** Fully integrated, production-grade module allowing authorized teachers to manage individual student IA marks (IA1, IA2, and Final IA).
+- **Core Models:**
+  - `InternalMark`: Stores `student_id`, `course`, `academic_year`, `semester`, `section`, `subject`, `assessment_cycle`, `ia1_marks`, `ia2_marks`, `final_ia_marks`, `version`, `created_by_id`, `updated_by_id`.
+  - `InternalMarkAudit`: Immutable audit record of every modification capturing `component`, `previous_value`, `new_value`, `changed_by_id`, `reason`, and `created_at`.
+- **Database Uniqueness & Duplicate Prevention:**
+  - Unique constraint: `uq_student_subj_sem_cycle` on `(student_id, subject, academic_year, semester, assessment_cycle)`.
+  - Updates occur in-place; duplicate records are prevented at both application and database engine levels.
+- **Configurable Assessment Maxima Policy:**
+  - Configurable via `get_assessment_maxima()` and environment variables (`IA1_MAX_MARKS`, `IA2_MAX_MARKS`, `FINAL_IA_MAX_MARKS`). Default: 25.0 each.
+  - *Institutional Policy Note:* College administration must verify and confirm official maximum values for the current academic year before production finalization.
+- **Strict Validation Rules:**
+  - Numeric input, non-negative ($0.0 \le \text{mark} \le \text{max}$).
+  - Decimal precision enforced to $\le 2$ decimal places.
+  - Missing/un-conducted components are stored as `None` and distinguished from an actual zero (`0.0`).
+  - Partial drafts supported (e.g. IA1 entered before IA2).
+  - Editing one component preserves unchanged components.
+- **Teacher Workflow & Usability:**
+  - Teacher Login → Select Course, Semester, Section, Subject → Server-side Student Search by UUCMS ID / Name → Enter / Edit Marks → Interactive Review Modal → Commit Transaction → Context preserved for next student.
+- **Concurrency Control & Audit Trails:**
+  - Optimistic locking via `version` column prevents concurrent overwrite hazards.
+  - Mandatory "Reason for Correction" required on any modifications to already-saved marks.
+  - Audit failures cause an immediate transaction rollback.
+
+---
+
 ## 7. Comprehensive Endpoint / Route Reference
 
 Below is the verified registry of active routes:
@@ -410,6 +438,14 @@ Below is the verified registry of active routes:
 - `GET, POST /academic/session/<int:session_id>` — View session details / export
 - `GET, POST /academic/take_attendance/<int:session_id>` — Conduct student roll-call
 - `GET, POST /academic/edit_attendance/<int:session_id>` — Edit completed attendance (Audited)
+
+### Student Internal Assessment Marks
+- `GET /internal-marks` — Internal Marks Dashboard & class/subject selectors
+- `GET /internal-marks/students` — Server-side student search restricted to authorized class
+- `GET /internal-marks/entry` — Individual student marks evaluation & pre-filled edit form
+- `POST /internal-marks/save` — Transactional validation, concurrency check, audit logging & save
+- `GET /internal-marks/history` — Scoped marks archives with server-side filters & pagination
+- `GET /internal-marks/audit/<int:mark_id>` — Tamper-resistant audit history trail
 
 ### Attendance & Kiosk Operations
 - `GET, POST /attendance` — Personal punch history & manual clock-in
@@ -436,7 +472,21 @@ Below is the verified registry of active routes:
 
 The codebase includes comprehensive automated regression test suites:
 
-### 1. Authoritative Timetable Test Suite
+### 1. Internal Assessment Marks Test Suite
+**File:** `test_internal_marks.py`  
+**Command:** `python test_internal_marks.py`  
+- Validates authentication & RBAC (unauthenticated rejected, Accountant 403, Faculty 200).
+- Validates teacher subject authorization (authorized teacher passes, unauthorized teacher 403).
+- Validates student search by UUCMS ID and Name restricted to class.
+- Validates rejection of inactive students and class context mismatches.
+- Validates assessment decimal numbers, negative rejection, maximum enforcement, and decimal precision $\le 2$.
+- Validates that zero (`0.0`) is stored and distinct from missing (`None`).
+- Validates partial draft saving and updating in-place without creating duplicate records.
+- Validates preservation of unchanged components when editing another.
+- Validates optimistic concurrency locking (`version` check).
+- Validates immutable audit logging on actual changes with mandatory reason.
+
+### 2. Authoritative Timetable Test Suite
 **File:** `test_authoritative_timetable.py`  
 **Command:** `python test_authoritative_timetable.py`  
 - Validates all 20 Semester V slots match the authoritative source schedule.

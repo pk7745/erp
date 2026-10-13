@@ -285,6 +285,88 @@ class StudentAttendanceAudit(db.Model):
         return f'<StudentAttendanceAudit session:{self.class_session_id} field:{self.field_name} {self.previous_value}->{self.new_value}>'
 
 
+# ==========================================
+# 2.2 STUDENT INTERNAL ASSESSMENT MARKS MODELS
+# ==========================================
+
+class InternalMark(db.Model):
+    __tablename__ = 'internal_mark'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False, index=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    subject = db.Column(db.String(100), nullable=False, index=True)
+    assessment_cycle = db.Column(db.String(50), default='2026-27', nullable=False)
+
+    # 3 Distinct Assessment Components
+    # Float allows decimal precision (e.g. 18.5, 22.75). None indicates 'Not Entered'. 0.0 is an actual zero!
+    ia1_marks = db.Column(db.Float, nullable=True)
+    ia2_marks = db.Column(db.Float, nullable=True)
+    final_ia_marks = db.Column(db.Float, nullable=True)
+
+    # Creator & Editor tracking
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    # Optimistic locking for concurrency control
+    version = db.Column(db.Integer, default=1, nullable=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', backref=db.backref('internal_marks', lazy=True, cascade='all, delete-orphan'))
+    creator = db.relationship('User', foreign_keys=[created_by_id], backref='created_internal_marks')
+    updater = db.relationship('User', foreign_keys=[updated_by_id], backref='updated_internal_marks')
+
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'subject', 'academic_year', 'semester', 'assessment_cycle', name='uq_student_subj_sem_cycle'),
+    )
+
+    @property
+    def completion_status(self):
+        """
+        Returns status string:
+        - 'Complete': All 3 components entered (either positive or zero)
+        - 'Partial': 1 or 2 components entered
+        - 'Not Started': 0 components entered
+        """
+        entered_count = sum(1 for m in [self.ia1_marks, self.ia2_marks, self.final_ia_marks] if m is not None)
+        if entered_count == 3:
+            return 'Complete'
+        elif entered_count > 0:
+            return 'Partial'
+        return 'Not Started'
+
+    def __repr__(self):
+        return f'<InternalMark student:{self.student_id} subj:{self.subject} IA1:{self.ia1_marks} IA2:{self.ia2_marks} Final:{self.final_ia_marks}>'
+
+
+class InternalMarkAudit(db.Model):
+    __tablename__ = 'internal_mark_audit'
+    id = db.Column(db.Integer, primary_key=True)
+    internal_mark_id = db.Column(db.Integer, db.ForeignKey('internal_mark.id', ondelete='CASCADE'), nullable=True, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False, index=True)
+    subject = db.Column(db.String(100), nullable=False)
+    academic_year = db.Column(db.String(20), nullable=False)
+    semester = db.Column(db.String(20), nullable=False)
+    assessment_cycle = db.Column(db.String(50), nullable=False)
+    component = db.Column(db.String(20), nullable=False) # 'IA1', 'IA2', 'Final IA'
+    previous_value = db.Column(db.String(50), nullable=True) # string representation or None
+    new_value = db.Column(db.String(50), nullable=True)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reason = db.Column(db.String(255), nullable=True) # mandatory for corrections of existing saved values
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', foreign_keys=[student_id], backref='internal_mark_audits')
+    editor = db.relationship('User', foreign_keys=[changed_by_id], backref='conducted_mark_audits')
+    internal_mark = db.relationship('InternalMark', backref=db.backref('audits', cascade='all, delete-orphan', lazy=True))
+
+    def __repr__(self):
+        return f'<InternalMarkAudit mark:{self.internal_mark_id} comp:{self.component} {self.previous_value}->{self.new_value}>'
+
+
 def inject_heavy_timetable():
     def get_id(uname):
         u = User.query.filter_by(username=uname).first()
@@ -2008,6 +2090,552 @@ def academic_attendance_history():
 def academic_attendance_today():
     return redirect(url_for('view_timetable') + '#todays-classes')
 
+
+# ==============================================================================
+# FEATURE — STUDENT INTERNAL ASSESSMENT MARKS MANAGEMENT
+# ==============================================================================
+
+# Configurable assessment maxima (defaults to 25.0 each per BU/BMSCCM practice)
+# College administration must confirm official maximum marks before production use.
+DEFAULT_ASSESSMENT_MAXIMA = {
+    'IA1': 25.0,
+    'IA2': 25.0,
+    'Final IA': 25.0
+}
+
+def get_assessment_maxima():
+    return {
+        'IA1': float(os.getenv('IA1_MAX_MARKS', DEFAULT_ASSESSMENT_MAXIMA['IA1'])),
+        'IA2': float(os.getenv('IA2_MAX_MARKS', DEFAULT_ASSESSMENT_MAXIMA['IA2'])),
+        'Final IA': float(os.getenv('FINAL_IA_MAX_MARKS', DEFAULT_ASSESSMENT_MAXIMA['Final IA']))
+    }
+
+def parse_and_validate_mark(raw_value, component_name, max_mark):
+    if raw_value is None:
+        return None, None
+    raw_str = str(raw_value).strip()
+    if raw_str == '':
+        return None, None
+
+    try:
+        val = float(raw_str)
+    except (ValueError, TypeError):
+        return None, f"Invalid value for {component_name}: '{raw_str}' is not a valid number."
+
+    if math.isnan(val) or math.isinf(val):
+        return None, f"Invalid value for {component_name}: infinite or NaN numbers are prohibited."
+
+    if val < 0.0:
+        return None, f"Invalid value for {component_name}: marks cannot be negative ({val} entered)."
+
+    if val > max_mark:
+        return None, f"Invalid value for {component_name}: marks ({val}) exceed maximum allowed ({max_mark})."
+
+    if '.' in raw_str:
+        dec_part = raw_str.split('.')[1]
+        if len(dec_part) > 2:
+            return None, f"Invalid value for {component_name}: decimal precision cannot exceed 2 decimal places."
+
+    return round(val, 2), None
+
+def get_authorized_subject_contexts(user):
+    if user.role in ['Principal', 'admin']:
+        rows = db.session.query(
+            Timetable.course,
+            Timetable.semester,
+            Timetable.section,
+            Timetable.subject
+        ).distinct().order_by(Timetable.course, Timetable.semester, Timetable.section, Timetable.subject).all()
+    elif user.role == 'HOD - BCA Dept':
+        rows = db.session.query(
+            Timetable.course,
+            Timetable.semester,
+            Timetable.section,
+            Timetable.subject
+        ).filter(Timetable.course == 'BCA').distinct().order_by(Timetable.semester, Timetable.section, Timetable.subject).all()
+    else:
+        rows = db.session.query(
+            Timetable.course,
+            Timetable.semester,
+            Timetable.section,
+            Timetable.subject
+        ).filter(Timetable.user_id == user.id).distinct().order_by(Timetable.semester, Timetable.section, Timetable.subject).all()
+
+    contexts = []
+    for c, sem, sec, subj in rows:
+        contexts.append({
+            'course': c or 'BCA',
+            'semester': sem,
+            'section': sec or 'A',
+            'subject': subj
+        })
+    return contexts
+
+def is_user_authorized_for_context(user, course, semester, section, subject):
+    if user.role in ['Principal', 'admin']:
+        return True
+    if user.role == 'HOD - BCA Dept' and course == 'BCA':
+        return True
+    if user.role == 'Faculty':
+        match = Timetable.query.filter_by(
+            user_id=user.id,
+            course=course,
+            semester=semester,
+            section=section,
+            subject=subject
+        ).first()
+        return match is not None
+    return False
+
+
+@app.route('/internal-marks', methods=['GET'])
+@login_required
+def internal_marks_dashboard():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized: Internal Marks Management is restricted to faculty members.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    authorized_contexts = get_authorized_subject_contexts(user)
+    maxima = get_assessment_maxima()
+
+    scope_subjects = [c['subject'] for c in authorized_contexts]
+    if user.role in ['Principal', 'admin']:
+        base_marks_query = InternalMark.query
+    elif user.role == 'HOD - BCA Dept':
+        base_marks_query = InternalMark.query.filter(InternalMark.course == 'BCA')
+    else:
+        base_marks_query = InternalMark.query.filter(InternalMark.subject.in_(scope_subjects) if scope_subjects else False)
+
+    total_records = base_marks_query.count()
+    all_records = base_marks_query.all()
+    complete_count = sum(1 for m in all_records if m.completion_status == 'Complete')
+    partial_count = sum(1 for m in all_records if m.completion_status == 'Partial')
+    recent_marks = base_marks_query.order_by(InternalMark.updated_at.desc()).limit(8).all()
+
+    courses = sorted(list({c['course'] for c in authorized_contexts}))
+    semesters = sorted(list({c['semester'] for c in authorized_contexts}))
+    sections = sorted(list({c['section'] for c in authorized_contexts}))
+    subjects = sorted(list({c['subject'] for c in authorized_contexts}))
+
+    return render_template(
+        'internal_marks/dashboard.html',
+        user=user,
+        authorized_contexts=authorized_contexts,
+        courses=courses,
+        semesters=semesters,
+        sections=sections,
+        subjects=subjects,
+        maxima=maxima,
+        total_records=total_records,
+        complete_count=complete_count,
+        partial_count=partial_count,
+        recent_marks=recent_marks
+    )
+
+
+@app.route('/internal-marks/students', methods=['GET'])
+@login_required
+def internal_marks_students():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    course = (request.args.get('course') or '').strip()
+    semester = (request.args.get('semester') or '').strip()
+    section = (request.args.get('section') or '').strip()
+    subject = (request.args.get('subject') or '').strip()
+    assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
+    search = (request.args.get('search') or '').strip()
+
+    if not course or not semester or not section or not subject:
+        flash('Please select Course, Semester, Section, and Subject.', 'warning')
+        return redirect(url_for('internal_marks_dashboard'))
+
+    # Backend authorization check
+    if not is_user_authorized_for_context(user, course, semester, section, subject):
+        flash('Access Denied: You are not authorized to manage internal marks for this subject and class.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    # Query active students in this class
+    query = Student.query.filter_by(
+        course=course,
+        semester=semester,
+        section=section,
+        is_active=True
+    )
+    if search:
+        search_pattern = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Student.name.ilike(search_pattern),
+                Student.uucms_id.ilike(search_pattern)
+            )
+        )
+    students = query.order_by(Student.name.asc()).all()
+
+    # Preload existing internal marks for these students in this subject & cycle
+    student_ids = [s.id for s in students]
+    existing_marks = {}
+    if student_ids:
+        marks_rows = InternalMark.query.filter(
+            InternalMark.student_id.in_(student_ids),
+            InternalMark.subject == subject,
+            InternalMark.semester == semester,
+            InternalMark.section == section,
+            InternalMark.assessment_cycle == assessment_cycle
+        ).all()
+        for m in marks_rows:
+            existing_marks[m.student_id] = m
+
+    maxima = get_assessment_maxima()
+
+    return render_template(
+        'internal_marks/students.html',
+        user=user,
+        course=course,
+        semester=semester,
+        section=section,
+        subject=subject,
+        assessment_cycle=assessment_cycle,
+        search=search,
+        students=students,
+        existing_marks=existing_marks,
+        maxima=maxima
+    )
+
+
+@app.route('/internal-marks/entry', methods=['GET'])
+@login_required
+def internal_marks_entry():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    student_id = request.args.get('student_id', type=int)
+    course = (request.args.get('course') or '').strip()
+    semester = (request.args.get('semester') or '').strip()
+    section = (request.args.get('section') or '').strip()
+    subject = (request.args.get('subject') or '').strip()
+    assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
+
+    if not student_id or not course or not semester or not section or not subject:
+        flash('Invalid request parameters.', 'warning')
+        return redirect(url_for('internal_marks_dashboard'))
+
+    # Backend authorization check
+    if not is_user_authorized_for_context(user, course, semester, section, subject):
+        flash('Access Denied: You are not authorized to enter marks for this subject.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    student = Student.query.get(student_id)
+    if not student or not student.is_active or student.course != course or student.semester != semester or student.section != section:
+        flash('Selected student does not belong to the specified active class context.', 'danger')
+        return redirect(url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    existing_mark = InternalMark.query.filter_by(
+        student_id=student.id,
+        subject=subject,
+        semester=semester,
+        section=section,
+        assessment_cycle=assessment_cycle
+    ).first()
+
+    maxima = get_assessment_maxima()
+
+    return render_template(
+        'internal_marks/entry.html',
+        user=user,
+        student=student,
+        course=course,
+        semester=semester,
+        section=section,
+        subject=subject,
+        assessment_cycle=assessment_cycle,
+        existing_mark=existing_mark,
+        maxima=maxima
+    )
+
+
+@app.route('/internal-marks/save', methods=['POST'])
+@login_required
+def internal_marks_save():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    student_id = request.form.get('student_id', type=int)
+    course = (request.form.get('course') or '').strip()
+    semester = (request.form.get('semester') or '').strip()
+    section = (request.form.get('section') or '').strip()
+    subject = (request.form.get('subject') or '').strip()
+    assessment_cycle = (request.form.get('assessment_cycle') or '2026-27').strip()
+    submitted_version = request.form.get('version', type=int)
+    reason = (request.form.get('reason') or '').strip()
+
+    # 1. Authorize subject context
+    if not is_user_authorized_for_context(user, course, semester, section, subject):
+        flash('Access Denied: You are not authorized to save marks for this subject.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    # 2. Validate student
+    student = Student.query.get(student_id)
+    if not student or not student.is_active or student.course != course or student.semester != semester or student.section != section:
+        flash('Invalid student record or student is not active in this class.', 'danger')
+        return redirect(url_for('internal_marks_dashboard'))
+
+    # 3. Parse and validate submitted marks
+    maxima = get_assessment_maxima()
+    raw_ia1 = request.form.get('ia1_marks')
+    raw_ia2 = request.form.get('ia2_marks')
+    raw_final = request.form.get('final_ia_marks')
+
+    ia1_val, err1 = parse_and_validate_mark(raw_ia1, 'IA1', maxima['IA1'])
+    if err1:
+        flash(err1, 'danger')
+        return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    ia2_val, err2 = parse_and_validate_mark(raw_ia2, 'IA2', maxima['IA2'])
+    if err2:
+        flash(err2, 'danger')
+        return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    final_val, err3 = parse_and_validate_mark(raw_final, 'Final IA', maxima['Final IA'])
+    if err3:
+        flash(err3, 'danger')
+        return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    if ia1_val is None and ia2_val is None and final_val is None:
+        flash('Please enter at least one assessment component (IA1, IA2, or Final IA).', 'warning')
+        return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    # 4. Transactional persistence with duplicate prevention & concurrency check
+    try:
+        existing_mark = InternalMark.query.filter_by(
+            student_id=student.id,
+            subject=subject,
+            semester=semester,
+            section=section,
+            assessment_cycle=assessment_cycle
+        ).first()
+
+        academic_year = student.academic_year or '3rd Year'
+
+        if existing_mark:
+            # Optimistic concurrency check
+            if submitted_version is not None and submitted_version != existing_mark.version:
+                flash('Concurrent update detected: Another session modified this student\'s marks. Please reload and review the latest values.', 'danger')
+                return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+            # Detect actual changes
+            changes = []
+            if existing_mark.ia1_marks != ia1_val:
+                changes.append(('IA1', existing_mark.ia1_marks, ia1_val))
+            if existing_mark.ia2_marks != ia2_val:
+                changes.append(('IA2', existing_mark.ia2_marks, ia2_val))
+            if existing_mark.final_ia_marks != final_val:
+                changes.append(('Final IA', existing_mark.final_ia_marks, final_val))
+
+            if not changes:
+                flash('No changes detected in internal assessment marks.', 'info')
+                return redirect(url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+            # A correction reason is mandatory when updating existing saved marks
+            if not reason:
+                flash('A reason for correction is required when updating existing internal marks.', 'warning')
+                return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+            # Apply updates
+            existing_mark.ia1_marks = ia1_val
+            existing_mark.ia2_marks = ia2_val
+            existing_mark.final_ia_marks = final_val
+            existing_mark.updated_by_id = user.id
+            existing_mark.version += 1
+
+            # Create audit records
+            for comp, prev_val, new_v in changes:
+                audit = InternalMarkAudit(
+                    internal_mark_id=existing_mark.id,
+                    student_id=student.id,
+                    subject=subject,
+                    academic_year=academic_year,
+                    semester=semester,
+                    assessment_cycle=assessment_cycle,
+                    component=comp,
+                    previous_value=str(prev_val) if prev_val is not None else 'Not Entered',
+                    new_value=str(new_v) if new_v is not None else 'Not Entered',
+                    changed_by_id=user.id,
+                    reason=reason
+                )
+                db.session.add(audit)
+
+        else:
+            # Create new record
+            new_mark = InternalMark(
+                student_id=student.id,
+                course=course,
+                academic_year=academic_year,
+                semester=semester,
+                section=section,
+                subject=subject,
+                assessment_cycle=assessment_cycle,
+                ia1_marks=ia1_val,
+                ia2_marks=ia2_val,
+                final_ia_marks=final_val,
+                created_by_id=user.id,
+                updated_by_id=user.id,
+                version=1
+            )
+            db.session.add(new_mark)
+            db.session.flush()
+
+            # Create initial audit log for entered components
+            for comp, val in [('IA1', ia1_val), ('IA2', ia2_val), ('Final IA', final_val)]:
+                if val is not None:
+                    audit = InternalMarkAudit(
+                        internal_mark_id=new_mark.id,
+                        student_id=student.id,
+                        subject=subject,
+                        academic_year=academic_year,
+                        semester=semester,
+                        assessment_cycle=assessment_cycle,
+                        component=comp,
+                        previous_value='Not Entered',
+                        new_value=str(val),
+                        changed_by_id=user.id,
+                        reason=reason or 'Initial marks entry'
+                    )
+                    db.session.add(audit)
+
+        db.session.commit()
+        flash(f'Internal assessment marks for {student.name} ({student.uucms_id}) saved successfully!', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash('Database transaction failed while saving marks. Please try again.', 'danger')
+        return redirect(url_for('internal_marks_entry', student_id=student_id, course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+    # Keep class & subject context active to work on next student smoothly
+    return redirect(url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+
+
+@app.route('/internal-marks/history', methods=['GET'])
+@login_required
+def internal_marks_history():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    authorized_contexts = get_authorized_subject_contexts(user)
+    scope_subjects = [c['subject'] for c in authorized_contexts]
+
+    course_filter = (request.args.get('course') or '').strip()
+    semester_filter = (request.args.get('semester') or '').strip()
+    section_filter = (request.args.get('section') or '').strip()
+    subject_filter = (request.args.get('subject') or '').strip()
+    status_filter = (request.args.get('status') or 'all').strip()
+    search = (request.args.get('search') or '').strip()
+    page = request.args.get('page', 1, type=int)
+
+    # Scoped base query
+    if user.role in ['Principal', 'admin']:
+        query = InternalMark.query
+    elif user.role == 'HOD - BCA Dept':
+        query = InternalMark.query.filter(InternalMark.course == 'BCA')
+    else:
+        query = InternalMark.query.filter(InternalMark.subject.in_(scope_subjects) if scope_subjects else False)
+
+    if course_filter:
+        query = query.filter(InternalMark.course == course_filter)
+    if semester_filter:
+        query = query.filter(InternalMark.semester == semester_filter)
+    if section_filter:
+        query = query.filter(InternalMark.section == section_filter)
+    if subject_filter:
+        if subject_filter in scope_subjects or user.role in ['Principal', 'admin']:
+            query = query.filter(InternalMark.subject == subject_filter)
+        else:
+            flash('Unauthorized subject filter.', 'danger')
+            return redirect(url_for('internal_marks_history')), 403
+
+    if search:
+        query = query.join(Student).filter(
+            db.or_(
+                Student.name.ilike(f'%{search}%'),
+                Student.uucms_id.ilike(f'%{search}%')
+            )
+        )
+
+    query = query.order_by(InternalMark.updated_at.desc())
+
+    all_results = query.all()
+    if status_filter == 'complete':
+        filtered = [m for m in all_results if m.completion_status == 'Complete']
+    elif status_filter == 'partial':
+        filtered = [m for m in all_results if m.completion_status == 'Partial']
+    elif status_filter == 'not_started':
+        filtered = [m for m in all_results if m.completion_status == 'Not Started']
+    else:
+        filtered = all_results
+
+    per_page = 20
+    total = len(filtered)
+    total_pages = max(1, math.ceil(total / per_page))
+    start_idx = (page - 1) * per_page
+    paginated_items = filtered[start_idx:start_idx + per_page]
+
+    courses = sorted(list({c['course'] for c in authorized_contexts}))
+    semesters = sorted(list({c['semester'] for c in authorized_contexts}))
+    sections = sorted(list({c['section'] for c in authorized_contexts}))
+    subjects = sorted(list({c['subject'] for c in authorized_contexts}))
+
+    return render_template(
+        'internal_marks/history.html',
+        user=user,
+        marks=paginated_items,
+        page=page,
+        total_pages=total_pages,
+        total=total,
+        course_filter=course_filter,
+        semester_filter=semester_filter,
+        section_filter=section_filter,
+        subject_filter=subject_filter,
+        status_filter=status_filter,
+        search=search,
+        courses=courses,
+        semesters=semesters,
+        sections=sections,
+        subjects=subjects
+    )
+
+
+@app.route('/internal-marks/audit/<int:mark_id>', methods=['GET'])
+@login_required
+def internal_marks_audit(mark_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    mark = InternalMark.query.get_or_404(mark_id)
+    if not is_user_authorized_for_context(user, mark.course, mark.semester, mark.section, mark.subject):
+        flash('Access Denied: You are not authorized to view the audit history for this subject.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    audits = InternalMarkAudit.query.filter_by(internal_mark_id=mark.id).order_by(InternalMarkAudit.created_at.desc()).all()
+
+    return render_template(
+        'internal_marks/audit.html',
+        user=user,
+        mark=mark,
+        audits=audits
+    )
+
+
 @app.route('/activity_room')
 def activity_room():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -3635,6 +4263,13 @@ def seed_database():
                     conn.commit()
                 except Exception:
                     pass
+
+        # Ensure Internal Assessment Marks tables exist
+        try:
+            InternalMark.__table__.create(db.engine, checkfirst=True)
+            InternalMarkAudit.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
 
         # System Admin with Address & Dept
         if not User.query.filter_by(username='admin').first():

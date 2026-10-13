@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('internal_marks_history', subject=mark.subject, course=mark.course, semester=mark.semester, section=mark.section) }}"
+           style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+            <i class="fas fa-arrow-left"></i> Back to Subject History ({{ mark.subject }})
+        </a>
+    </div>
+
+    <!-- Student & Subject Summary Card -->
+    <div class="card" style="margin-bottom: 24px; padding: 20px 24px; border-left: 4px solid var(--primary); background: var(--bg-surface);">
+        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <span class="badge badge-info" style="font-weight: 800; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 6px;">
+                    Immutable Audit Trail
+                </span>
+                <h2 style="margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--text-main);">
+                    {{ mark.student.name if mark.student else 'Unknown' }}
+                </h2>
+                <div style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">
+                    UUCMS ID: <strong style="color: var(--text-main);">{{ mark.student.uucms_id if mark.student else 'N/A' }}</strong>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <div class="badge badge-primary" style="font-size: 0.85rem; padding: 6px 12px;">
+                    {{ mark.course }} • {{ mark.semester }} (Section {{ mark.section }})
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                    Cycle: {{ mark.assessment_cycle }} • Version: {{ mark.version }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Stored State -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border);">
+            <div style="background: var(--bg-body); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">CURRENT IA1</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">
+                    {{ mark.ia1_marks if mark.ia1_marks is not none else 'Not Entered' }}
+                </div>
+            </div>
+            <div style="background: var(--bg-body); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">CURRENT IA2</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">
+                    {{ mark.ia2_marks if mark.ia2_marks is not none else 'Not Entered' }}
+                </div>
+            </div>
+            <div style="background: var(--bg-body); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">CURRENT FINAL IA</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">
+                    {{ mark.final_ia_marks if mark.final_ia_marks is not none else 'Not Entered' }}
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: flex-end;">
+                <a href="{{ url_for('internal_marks_entry', student_id=mark.student_id, course=mark.course, semester=mark.semester, section=mark.section, subject=mark.subject, assessment_cycle=mark.assessment_cycle) }}"
+                   class="btn btn-secondary btn-sm" style="padding: 8px 16px;">
+                    <i class="fas fa-edit"></i> Edit Marks
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Events Timeline / Table -->
+    <div class="card">
+        <div class="card-header" style="background: var(--bg-surface); padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                <i class="fas fa-history" style="color: var(--primary); margin-right: 8px;"></i>
+                Chronological Modification Log ({{ audits|length }} Entries)
+            </h3>
+            <span class="badge badge-outline" style="font-size: 0.75rem;">
+                Tamper-Resistant
+            </span>
+        </div>
+
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+            {% if audits %}
+            <table class="table" style="width: 100%; margin: 0; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--bg-surface); border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 14px 20px;">Timestamp (UTC/IST)</th>
+                        <th style="padding: 14px 20px;">Component</th>
+                        <th style="padding: 14px 20px;">Previous → New Value</th>
+                        <th style="padding: 14px 20px;">Modified By</th>
+                        <th style="padding: 14px 20px;">Justification / Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in audits %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 14px 20px; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap;">
+                            {{ a.created_at.strftime('%d %b %Y, %H:%M:%S') }}
+                        </td>
+                        <td style="padding: 14px 20px; font-weight: 700; color: var(--primary);">
+                            {{ a.component }}
+                        </td>
+                        <td style="padding: 14px 20px; font-family: monospace;">
+                            <span style="color: #ef4444; text-decoration: line-through;">{{ a.previous_value or 'Not Entered' }}</span>
+                            <span style="margin: 0 6px; color: var(--text-muted);">→</span>
+                            <strong style="color: #10b981;">{{ a.new_value or 'Not Entered' }}</strong>
+                        </td>
+                        <td style="padding: 14px 20px; font-weight: 600; color: var(--text-main);">
+                            {{ a.editor.full_name if a.editor else 'User' }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">
+                                {{ a.editor.role if a.editor else '' }}
+                            </div>
+                        </td>
+                        <td style="padding: 14px 20px; font-style: italic; color: var(--text-main);">
+                            {{ a.reason or 'Initial entry' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+                No modification events recorded for this assessment record.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
