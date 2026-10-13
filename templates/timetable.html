@@ -14,9 +14,16 @@
             <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Faculty: <strong>{{ target_user.full_name }}</strong></div>
         </div>
 
-        <button class="btn btn-primary" onclick="document.getElementById('addClassModal').style.display='flex'">
-            ➕ New Session Assignment
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            {% if user and user.username != 'admin' and user.role != 'admin' %}
+            <a href="{{ url_for('timetable_overview') }}" class="btn btn-secondary">
+                <i class="fas fa-calendar-alt"></i> College Timetable Overview
+            </a>
+            {% endif %}
+            <button class="btn btn-primary" onclick="document.getElementById('addClassModal').style.display='flex'">
+                ➕ New Session Assignment
+            </button>
+        </div>
     </div>
 
     <!-- Today's Classes & Academic Attendance Banner -->

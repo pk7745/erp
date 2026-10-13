@@ -121,6 +121,12 @@
                         <i class="fas fa-clock sidebar-icon"></i>
                         <span class="sidebar-label">Weekly Schedule</span>
                     </a>
+                    {% if user and user.username != 'admin' and user.role != 'admin' %}
+                    <a href="{{ url_for('timetable_overview') }}" class="sidebar-link {% if request.endpoint == 'timetable_overview' %}active{% endif %}">
+                        <i class="fas fa-calendar-alt sidebar-icon"></i>
+                        <span class="sidebar-label">College Timetable</span>
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('academic_attendance_history') }}" class="sidebar-link {% if request.endpoint in ['academic_attendance_history', 'view_class_session', 'take_academic_attendance'] %}active{% endif %}">
                         <i class="fas fa-user-graduate sidebar-icon"></i>
                         <span class="sidebar-label">Student Attendance</span>

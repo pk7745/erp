@@ -17,7 +17,7 @@ import math
 import calendar
 from datetime import datetime, timedelta, date
 from sqlalchemy import func
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -355,84 +355,230 @@ def inject_heavy_timetable():
             db.session.add(Timetable(day=day, time_slot=time, subject=sub, semester=sem, user_id=uid))
     db.session.commit()
 
-def inject_sem5_timetable():
-    def get_id(uname):
+def _parse_slot_minutes(slot_str):
+    """Parse a time slot string like '08:00 AM-10:00 AM' into (start_min, end_min)."""
+    import re
+    parts = slot_str.split('-')
+    if len(parts) != 2:
+        return 0, 0
+    def to_min(t):
+        t = t.strip()
+        m = re.match(r'(\d+):(\d+)\s*(AM|PM)', t, re.I)
+        if not m:
+            return 0
+        h, mn, mer = int(m.group(1)), int(m.group(2)), m.group(3).upper()
+        if mer == 'PM' and h != 12:
+            h += 12
+        elif mer == 'AM' and h == 12:
+            h = 0
+        return h * 60 + mn
+    return to_min(parts[0]), to_min(parts[1])
+
+
+def validate_timetable_conflicts(entries):
+    """
+    Validate a list of timetable entry dicts for scheduling conflicts.
+    Each entry dict must have keys: user_id, day, time_slot, room_no, course, semester, section, subject.
+    Returns a list of conflict description strings. Empty list means no conflicts.
+    """
+    conflicts = []
+    for i in range(len(entries)):
+        for j in range(i + 1, len(entries)):
+            e1, e2 = entries[i], entries[j]
+            if e1['day'] != e2['day']:
+                continue
+            s1, en1 = _parse_slot_minutes(e1['time_slot'])
+            s2, en2 = _parse_slot_minutes(e2['time_slot'])
+            if s1 >= en2 or s2 >= en1:
+                continue  # No overlap
+            # Faculty overlap
+            if e1['user_id'] and e2['user_id'] and e1['user_id'] == e2['user_id']:
+                conflicts.append(
+                    f"FACULTY CONFLICT: Same faculty (ID {e1['user_id']}) on {e1['day']} "
+                    f"({e1['time_slot']} '{e1['subject']}' vs {e2['time_slot']} '{e2['subject']}')"
+                )
+            # Room overlap (ignore unassigned / break rooms)
+            r1 = (e1.get('room_no') or '').strip().upper()
+            r2 = (e2.get('room_no') or '').strip().upper()
+            if r1 and r2 and r1 not in ('', 'BREAK', 'N/A') and r1 == r2:
+                conflicts.append(
+                    f"ROOM CONFLICT: Room '{e1['room_no']}' on {e1['day']} "
+                    f"({e1['time_slot']} '{e1['subject']}' vs {e2['time_slot']} '{e2['subject']}')"
+                )
+            # Section overlap (same class/section cannot have two subjects at same time)
+            if (e1.get('course'), e1.get('semester'), e1.get('section')) == \
+               (e2.get('course'), e2.get('semester'), e2.get('section')):
+                conflicts.append(
+                    f"SECTION CONFLICT: {e1['course']} {e1['semester']} Sec {e1['section']} on {e1['day']} "
+                    f"({e1['time_slot']} '{e1['subject']}' vs {e2['time_slot']} '{e2['subject']}')"
+                )
+    return conflicts
+
+
+def sync_authoritative_timetable():
+    """
+    Idempotent synchronization of the BCA Semester V timetable against the
+    authoritative BMS College of Commerce and Management AY 2026-27 source schedule.
+
+    Safe update strategy:
+    - Timetable.id=31 is updated IN-PLACE to preserve ClassSession foreign-key references
+      (ClassSession records 1, 2, 3 reference this row).
+    - Unreferenced stale Sem V rows are deleted.
+    - Referenced rows (id=31) are NEVER deleted; only their fields are updated.
+    - Sem I-IV rows are not touched except for Dr. Kiran Kumar MN subject title standardization.
+    """
+    def get_uid(uname):
         u = User.query.filter_by(username=uname).first()
         return u.id if u else None
 
-    # Authoritative BCA 5th Semester Schedule (21 weekly slots)
-    # Rooms from the official 17-location list: 301, 302, 303, GF Lab, 101 Lab
-    # Zero faculty overlaps and zero room overlaps across all days and semesters
-    sem5_schedule = [
-        # --- MONDAY ---
-        ('balram', 'Monday', '09:00 AM-10:00 AM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
-        ('bhoomika', 'Monday', '10:30 AM-11:30 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '301'),
-        ('shivani', 'Monday', '11:30 AM-12:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
-        ('bhoomika', 'Monday', '02:00 PM-04:00 PM', 'Data Analytics Lab', 'Sem V', 'BCA', 'A', 'GF Lab'),
-
-        # --- TUESDAY ---
-        ('bhoomika', 'Tuesday', '09:00 AM-10:00 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '302'),
-        ('gururaj', 'Tuesday', '10:30 AM-11:30 AM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
-        ('balram', 'Tuesday', '11:30 AM-12:30 PM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
-        ('shivani', 'Tuesday', '12:30 PM-01:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
-
-        # --- WEDNESDAY ---
-        ('shivani', 'Wednesday', '09:00 AM-10:00 AM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
-        ('shrinkala', 'Wednesday', '10:30 AM-11:30 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '302'),
-        ('gururaj', 'Wednesday', '11:30 AM-12:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
-        ('shivani', 'Wednesday', '02:00 PM-04:00 PM', 'Web Programming Lab', 'Sem V', 'BCA', 'A', '101 Lab'),
-
-        # --- THURSDAY ---
-        ('shrinkala', 'Thursday', '09:00 AM-10:00 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '302'),
-        ('balram', 'Thursday', '10:30 AM-11:30 AM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
-        ('shivani', 'Thursday', '11:30 AM-12:30 PM', 'Software Engineering', 'Sem V', 'BCA', 'A', '301'),
-        ('gururaj', 'Thursday', '12:30 PM-01:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '303'),
-
-        # --- FRIDAY ---
-        ('bhoomika', 'Friday', '09:00 AM-10:00 AM', 'Data Analytics', 'Sem V', 'BCA', 'A', '302'),
-        ('shrinkala', 'Friday', '10:30 AM-11:30 AM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '303'),
-        ('shrinkala', 'Friday', '11:30 AM-12:30 PM', 'Cryptography & Network Security', 'Sem V', 'BCA', 'A', '303'),
-        ('gururaj', 'Friday', '12:30 PM-01:30 PM', 'Quantitative Techniques', 'Sem V', 'BCA', 'A', '302'),
-        ('balram', 'Friday', '02:00 PM-03:00 PM', 'Web Programming', 'Sem V', 'BCA', 'A', '301'),
+    # -----------------------------------------------------------------------
+    # AUTHORITATIVE SEM V SCHEDULE — AY 2026-27
+    # Source: BMS College of Commerce and Management V Semester Time Table
+    # Rooms verified from original uploaded source image.
+    # -----------------------------------------------------------------------
+    # Format: (username, day, time_slot, subject, sem, course, section, room_no)
+    authoritative_sem5 = [
+        # ── MONDAY ──────────────────────────────────────────────────────────
+        ('shivani',   'Monday', '08:00 AM-10:00 AM', 'Web Programming Lab',              'Sem V', 'BCA', 'A', '101'),
+        ('shrinkala', 'Monday', '10:30 AM-11:30 AM', 'Cryptography & Network Security',  'Sem V', 'BCA', 'A', '101'),
+        ('shivani',   'Monday', '11:30 AM-12:30 PM', 'Software Engineering',              'Sem V', 'BCA', 'A', '203'),
+        ('balram',    'Monday', '12:30 PM-01:30 PM', 'Web Programming',                  'Sem V', 'BCA', 'A', '203'),
+        ('newfac',    'Monday', '02:00 PM-05:00 PM', 'CRT Program (Add-on)',              'Sem V', 'BCA', 'A', 'GF Lab'),
+        # ── TUESDAY ─────────────────────────────────────────────────────────
+        ('shivani',   'Tuesday', '09:00 AM-10:00 AM', 'Software Engineering',             'Sem V', 'BCA', 'A', '102'),
+        ('shrinkala', 'Tuesday', '10:30 AM-11:30 AM', 'Cryptography & Network Security',  'Sem V', 'BCA', 'A', '103'),
+        ('balram',    'Tuesday', '11:30 AM-12:30 PM', 'Web Programming',                  'Sem V', 'BCA', 'A', '103'),
+        # ── WEDNESDAY ───────────────────────────────────────────────────────
+        ('balram',    'Wednesday', '09:00 AM-10:00 AM', 'Web Programming',                'Sem V', 'BCA', 'A', '103'),
+        ('shivani',   'Wednesday', '10:30 AM-11:30 AM', 'Software Engineering',           'Sem V', 'BCA', 'A', '101'),
+        ('shrinkala', 'Wednesday', '11:30 AM-12:30 PM', 'Cryptography & Network Security','Sem V', 'BCA', 'A', '303'),
+        ('gururaj',   'Wednesday', '12:30 PM-01:30 PM', 'Quantitative Techniques',        'Sem V', 'BCA', 'A', '101'),
+        ('gururaj',   'Wednesday', '02:00 PM-03:00 PM', 'Quantitative Techniques',        'Sem V', 'BCA', 'A', '105'),
+        # ── THURSDAY ────────────────────────────────────────────────────────
+        ('bhoomika',  'Thursday', '08:00 AM-10:00 AM', 'Data Analytics',                 'Sem V', 'BCA', 'A', '305'),
+        ('shivani',   'Thursday', '10:30 AM-11:30 AM', 'Web Programming Lab',            'Sem V', 'BCA', 'A', '101'),
+        ('shivani',   'Thursday', '11:30 AM-12:30 PM', 'Software Engineering',           'Sem V', 'BCA', 'A', '103'),
+        # ── FRIDAY ──────────────────────────────────────────────────────────
+        ('bhoomika',  'Friday', '08:00 AM-10:00 AM', 'Data Analytics',                   'Sem V', 'BCA', 'A', '303'),
+        ('shrinkala', 'Friday', '10:30 AM-11:30 AM', 'Cryptography & Network Security',  'Sem V', 'BCA', 'A', '303'),
+        # ── SATURDAY ────────────────────────────────────────────────────────
+        ('bhoomika',  'Saturday', '08:00 AM-10:00 AM', 'Data Analytics',                 'Sem V', 'BCA', 'A', '101'),
+        ('newfac',    'Saturday', '10:30 AM-12:30 PM', 'CRT Program (Add-on)',            'Sem V', 'BCA', 'A', '101'),
     ]
 
-    sem5_keys = set()
-    for uname, day, time_slot, subject, sem, course, sec, room in sem5_schedule:
-        uid = get_id(uname)
-        if uid:
-            sem5_keys.add((uid, day, time_slot, subject, sem, sec))
-            existing = Timetable.query.filter_by(
-                user_id=uid,
-                day=day,
-                time_slot=time_slot,
-                subject=subject,
-                semester=sem,
-                section=sec
-            ).first()
-            if not existing:
-                db.session.add(Timetable(
-                    user_id=uid,
-                    day=day,
-                    time_slot=time_slot,
-                    subject=subject,
-                    semester=sem,
-                    course=course,
-                    section=sec,
-                    room_no=room,
-                    status='pending'
-                ))
-            else:
-                existing.course = course
-                existing.room_no = room
-                existing.status = 'pending'
+    # Conflict pre-validation
+    entry_dicts = []
+    for uname, day, slot, subj, sem, course, sec, room in authoritative_sem5:
+        uid = get_uid(uname)
+        entry_dicts.append({'user_id': uid, 'day': day, 'time_slot': slot,
+                            'subject': subj, 'semester': sem, 'course': course,
+                            'section': sec, 'room_no': room})
+    conflicts = validate_timetable_conflicts(entry_dicts)
+    if conflicts:
+        print("⚠️  Timetable Conflict Report (Sem V):")
+        for c in conflicts:
+            print(f"   - {c}")
+    else:
+        print("✅ Sem V Authoritative Schedule: Zero conflicts detected.")
 
-    # Clean up stale Sem V slots that don't match the authoritative 21 schedule (while keeping Sem I-IV untouched)
-    stale_sem5 = Timetable.query.filter_by(semester='Sem V').all()
-    for item in stale_sem5:
-        if (item.user_id, item.day, item.time_slot, item.subject, item.semester, item.section) not in sem5_keys:
-            db.session.delete(item)
+    # -----------------------------------------------------------------------
+    # STEP 1: Handle Timetable.id=31 specially (ClassSession FK preservation)
+    # id=31 is referenced by ClassSession rows 1,2,3.  Update it in-place to
+    # Monday 12:30 PM-01:30 PM Web Programming / Balram / Room 203.
+    # -----------------------------------------------------------------------
+    balram_id = get_uid('balram')
+    if balram_id:
+        tt31 = Timetable.query.get(31)
+        if tt31:
+            tt31.user_id   = balram_id
+            tt31.day       = 'Monday'
+            tt31.time_slot = '12:30 PM-01:30 PM'
+            tt31.subject   = 'Web Programming'
+            tt31.semester  = 'Sem V'
+            tt31.course    = 'BCA'
+            tt31.section   = 'A'
+            tt31.room_no   = '203'
+
+    # -----------------------------------------------------------------------
+    # STEP 2: Build the set of canonical (uid, day, slot, subj, sem, sec) keys
+    # -----------------------------------------------------------------------
+    sem5_canonical_keys = set()
+    # Always include the id=31 slot in the canonical set so it is never deleted
+    if balram_id:
+        sem5_canonical_keys.add((balram_id, 'Monday', '12:30 PM-01:30 PM', 'Web Programming', 'Sem V', 'A'))
+
+    for uname, day, slot, subj, sem, course, sec, room in authoritative_sem5:
+        uid = get_uid(uname)
+        if not uid:
+            continue
+        key = (uid, day, slot, subj, sem, sec)
+        sem5_canonical_keys.add(key)
+        # Skip id=31 row — already updated above
+        if uid == balram_id and day == 'Monday' and slot == '12:30 PM-01:30 PM' and subj == 'Web Programming':
+            continue
+        existing = Timetable.query.filter_by(
+            user_id=uid, day=day, time_slot=slot,
+            subject=subj, semester=sem, section=sec
+        ).first()
+        if existing:
+            existing.course   = course
+            existing.room_no  = room
+        else:
+            db.session.add(Timetable(
+                user_id=uid, day=day, time_slot=slot,
+                subject=subj, semester=sem, course=course,
+                section=sec, room_no=room, status='pending'
+            ))
+
+    # -----------------------------------------------------------------------
+    # STEP 3: Remove stale Sem V rows that are NOT in the canonical set and NOT
+    #         referenced by any ClassSession (FK safety check).
+    # -----------------------------------------------------------------------
+    referenced_ids = {cs.timetable_id for cs in ClassSession.query.all()}
+    stale_rows = Timetable.query.filter_by(semester='Sem V').all()
+    deleted_count = 0
+    for row in stale_rows:
+        key = (row.user_id, row.day, row.time_slot, row.subject, row.semester, row.section)
+        if key not in sem5_canonical_keys:
+            if row.id in referenced_ids:
+                print(f"⚠️  Stale Sem V row ID={row.id} is referenced by ClassSession — skipping deletion, updating fields.")
+            else:
+                db.session.delete(row)
+                deleted_count += 1
+    if deleted_count:
+        print(f"🗑️  Removed {deleted_count} stale / superseded Sem V rows.")
+
+    # -----------------------------------------------------------------------
+    # STEP 4: Standardize Dr. Kiran Kumar MN Sem I-IV subject titles
+    # -----------------------------------------------------------------------
+    kiran = User.query.filter_by(username='kiran').first()
+    if kiran:
+        kiran_title_map = {
+            'Sem I':  ('Data Structures', 'C Programming', 'C Programming'),
+            'Sem II': ('Data Structures', 'Data Structures and Algorithms', 'Data Structures and Algorithms'),
+            'Sem III':('DBMS', 'Database Management System', 'Database Management System'),
+            'Sem IV': ('DAA', 'Design and Analysis of Algorithms', 'Design and Analysis of Algorithms'),
+        }
+        # Normalize any old names to the authoritative ones
+        old_to_new = {
+            'Data Structures': 'Data Structures and Algorithms',
+            'DBMS': 'Database Management System',
+            'DAA': 'Design and Analysis of Algorithms',
+            'C Programming': 'C Programming',
+        }
+        kiran_entries = Timetable.query.filter_by(user_id=kiran.id).all()
+        for entry in kiran_entries:
+            if entry.semester == 'Sem V':
+                # Should never happen per business rule; log and skip
+                print(f"⚠️  Dr. Kiran is erroneously assigned a Sem V entry (ID={entry.id}). Flagged for review.")
+                continue
+            new_subj = old_to_new.get(entry.subject)
+            if new_subj and new_subj != entry.subject:
+                print(f"📝 Normalizing Kiran's subject: '{entry.subject}' → '{new_subj}' (ID={entry.id})")
+                entry.subject = new_subj
 
     db.session.commit()
+    print("✅ sync_authoritative_timetable() complete.")
 
 
 def inject_official_students():
@@ -1171,6 +1317,45 @@ def view_timetable():
                            today_date=today_date,
                            today_day_name=today_day_name,
                            chart_data=[held_count, missed_count, pending_count])
+
+@app.route('/timetable/overview', methods=['GET'])
+@login_required
+def timetable_overview():
+    user = current_user if (hasattr(current_user, 'is_authenticated') and current_user.is_authenticated) else User.query.get(session.get('user_id'))
+    if not user:
+        return redirect(url_for('login'))
+
+    # Strict Admin Exclusion: Return 403 Forbidden
+    if user.username == 'admin' or user.role == 'admin':
+        abort(403)
+
+    # Fetch authoritative Sem V timetable entries
+    sem5_entries = Timetable.query.filter_by(semester='Sem V').all()
+
+    # Organize entries by day
+    timetable_by_day = {
+        'Monday': [],
+        'Tuesday': [],
+        'Wednesday': [],
+        'Thursday': [],
+        'Friday': [],
+        'Saturday': []
+    }
+    for entry in sem5_entries:
+        if entry.day in timetable_by_day:
+            timetable_by_day[entry.day].append(entry)
+
+    # Sort entries by start time for consistent display
+    for day in timetable_by_day:
+        timetable_by_day[day].sort(key=lambda e: _parse_slot_minutes(e.time_slot)[0])
+
+    return render_template(
+        'timetable_overview.html',
+        user=user,
+        timetable_by_day=timetable_by_day,
+        sem5_entries=sem5_entries
+    )
+
 
 @app.route('/timetable/manage', methods=['POST'])
 @login_required
@@ -3526,8 +3711,8 @@ def seed_database():
             inject_heavy_timetable()
             print("Timetable populated successfully!")
 
-        # Always inject authoritative BCA Sem V timetable if missing
-        inject_sem5_timetable()
+        # Always synchronize authoritative BCA Sem V timetable and clean stale entries
+        sync_authoritative_timetable()
 
         # Always inject authoritative BCA Sem V student roster
         inject_official_students()

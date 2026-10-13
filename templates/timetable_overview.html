@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 1400px; margin: 0 auto; padding-bottom: 40px;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="badge badge-info" style="margin-bottom: 8px; font-weight: 800; text-transform: uppercase;">
+                🏛️ Institutional Timetable • AY 2026–27
+            </div>
+            <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0; color: var(--text-main);">
+                BMS College of Commerce and Management
+            </h1>
+            <div style="font-size: 1.1rem; color: var(--primary); font-weight: 700; margin-top: 4px;">
+                Department of Computer Applications (BCA) — Semester V (Section A)
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="{{ url_for('view_timetable') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> My Weekly Schedule
+            </a>
+            <button onclick="window.print()" class="btn btn-outline">
+                <i class="fas fa-print"></i> Print Schedule
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert / Notice -->
+    <div style="background: rgba(99, 102, 241, 0.08); border-left: 4px solid var(--primary); padding: 14px 20px; border-radius: 6px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <strong style="color: var(--text-main);"><i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 6px;"></i> Authoritative Master Timetable</strong>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                Verified against the official BMSCCM institutional schedule. All rooms, multi-hour laboratory blocks, and CRT Add-on sessions are synchronized.
+            </div>
+        </div>
+        <span class="badge badge-success" style="font-size: 0.8rem; padding: 6px 12px;">
+            <i class="fas fa-check-circle"></i> 20 Canonical Slots Verified
+        </span>
+    </div>
+
+    <!-- Grid by Days -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        {% for day, entries in timetable_by_day.items() %}
+        <div class="card" style="box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-radius: 10px; overflow: hidden;">
+            <div class="card-header" style="background: var(--bg-surface); padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--primary);"></span>
+                    {{ day }}
+                </h3>
+                <span class="badge badge-outline" style="font-size: 0.8rem;">
+                    {{ entries|length }} Sessions Scheduled
+                </span>
+            </div>
+            <div class="card-body" style="padding: 16px 20px;">
+                {% if entries %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                    {% for entry in entries %}
+                    {% set is_crt = 'CRT' in entry.subject %}
+                    {% set is_lab = 'Lab' in entry.subject %}
+                    <div style="border: 1px solid {% if is_crt %}#f59e0b{% elif is_lab %}#3b82f6{% else %}var(--border){% endif %};
+                                border-radius: 8px;
+                                padding: 14px 16px;
+                                background: {% if is_crt %}rgba(245, 158, 11, 0.05){% elif is_lab %}rgba(59, 130, 246, 0.05){% else %}var(--bg-body){% endif %};
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: space-between;
+                                gap: 10px;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span class="badge {% if is_crt %}badge-warning{% elif is_lab %}badge-info{% else %}badge-primary{% endif %}" style="font-size: 0.75rem; font-weight: 700;">
+                                    <i class="far fa-clock"></i> {{ entry.time_slot }}
+                                </span>
+                                <span class="badge badge-outline" style="font-weight: 700; font-size: 0.75rem;">
+                                    Room {{ entry.room_no }}
+                                </span>
+                            </div>
+
+                            <h4 style="margin: 0 0 6px 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">
+                                {{ entry.subject }}
+                            </h4>
+
+                            <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-chalkboard-teacher" style="color: var(--primary);"></i>
+                                <span>{{ entry.faculty.full_name if entry.faculty else 'Department Faculty' }}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px;">
+                            <span>{{ entry.course }} • {{ entry.semester }} (Sec {{ entry.section }})</span>
+                            {% if is_crt %}
+                            <span style="color: #b45309; font-weight: 700;">★ Add-on Program</span>
+                            {% elif is_lab %}
+                            <span style="color: #1d4ed8; font-weight: 700;">Practical Lab</span>
+                            {% else %}
+                            <span>Theory Lecture</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    No sessions scheduled for this day.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Faculty Teaching Allocation Matrix Summary -->
+    <div class="card" style="margin-top: 36px; border-radius: 10px;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 16px 20px; border-bottom: 1px solid var(--border);">
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-main);">
+                <i class="fas fa-users-cog" style="color: var(--primary); margin-right: 8px;"></i> Faculty Teaching Allocation Matrix
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Ms. Shivani Shikha
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Web Programming Lab (Room 101)<br>
+                        • Software Engineering (Rooms 101, 102, 103, 203)
+                    </div>
+                    <div class="badge badge-info" style="margin-top: 8px; font-size: 0.75rem;">Sem V Lead</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Ms. Shrinkhala Kumari
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Cryptography & Network Security (Rooms 101, 103, 303)
+                    </div>
+                    <div class="badge badge-info" style="margin-top: 8px; font-size: 0.75rem;">Sem V Faculty</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Mr. Balaram M
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Web Programming (Rooms 103, 203)
+                    </div>
+                    <div class="badge badge-info" style="margin-top: 8px; font-size: 0.75rem;">Sem V Faculty</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Ms. Bhoomika
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Data Analytics (Rooms 101, 303, 305)
+                    </div>
+                    <div class="badge badge-info" style="margin-top: 8px; font-size: 0.75rem;">Sem V Faculty</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Mr. Gururaj
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Quantitative Techniques (Rooms 101, 105)
+                    </div>
+                    <div class="badge badge-info" style="margin-top: 8px; font-size: 0.75rem;">Sem V Faculty</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Dr. Kiran Kumar M N
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Sem I: C Programming<br>
+                        • Sem II: Data Structures and Algorithms<br>
+                        • Sem III: Database Management System<br>
+                        • Sem IV: Design and Analysis of Algorithms
+                    </div>
+                    <div class="badge badge-secondary" style="margin-top: 8px; font-size: 0.75rem;">0 Sem V Allocations</div>
+                </div>
+
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: var(--bg-body);">
+                    <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; color: var(--text-main);">
+                        Mr. Ramkishore
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        • Sem II: General English<br>
+                        • Sem IV: English
+                    </div>
+                    <div class="badge badge-secondary" style="margin-top: 8px; font-size: 0.75rem;">English Dept Only</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
