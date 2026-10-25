@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assignment.title }} | Assignment Detail | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 1000px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('assignments_dashboard') }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Main Detail Card -->
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span class="badge" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                        {{ assignment.course }} {{ assignment.semester }} • Sec {{ assignment.section }}
+                    </span>
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                        {{ assignment.subject }}
+                    </span>
+                    <span class="badge" style="background: {% if assignment.status == 'Published' %}#dcfce7; color: #166534;{% else %}#f1f5f9; color: #475569;{% endif %} padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">
+                        {{ assignment.status }}
+                    </span>
+                </div>
+                <h1 style="margin: 0; font-size: 1.85rem; font-weight: 800; color: var(--text-main); line-height: 1.25;">
+                    {{ assignment.title }}
+                </h1>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id) }}" class="btn btn-primary" style="padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-users"></i> Submission Roster ({{ submitted_count }}/{{ enrolled_count }})
+                </a>
+                {% if can_edit %}
+                <a href="{{ url_for('assignment_edit', assignment_id=assignment.id) }}" class="btn btn-outline" style="padding: 10px 16px; font-weight: 700;">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                <form method="POST" action="{{ url_for('assignment_archive', assignment_id=assignment.id) }}" style="display: inline;" onsubmit="return confirm('Archive this assignment? Students will no longer see it as active.');">
+                    <button type="submit" class="btn btn-outline" style="padding: 10px 16px; color: #dc2626; border-color: #fca5a5;">
+                        <i class="fas fa-archive"></i> Archive
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Metric Cards Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 24px 0;">
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Assigned Date</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">
+                    {{ assignment.assigned_date.strftime('%d %B %Y') }}
+                </div>
+            </div>
+
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Deadline</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: {% if now > assignment.deadline %}#dc2626{% else %}#2563eb{% endif %}; margin-top: 4px;">
+                    {{ assignment.deadline.strftime('%d %b %Y, %I:%M %p') }}
+                </div>
+            </div>
+
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Maximum Marks</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #047857; margin-top: 4px;">
+                    {{ assignment.max_marks or 'Ungraded / Complete' }}
+                </div>
+            </div>
+
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Submissions</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">
+                    {{ submitted_count }} / {{ enrolled_count }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Body -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0 0 10px 0;">
+                Instructions &amp; Requirements
+            </h3>
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 20px; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); white-space: pre-wrap;">{{ assignment.description }}</div>
+        </div>
+
+        <!-- Attachment Download -->
+        {% if assignment.attachment_filename %}
+        <div style="background: rgba(37, 99, 235, 0.04); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 8px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <i class="fas fa-file-pdf" style="font-size: 1.75rem; color: #2563eb;"></i>
+                <div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">
+                        {{ assignment.attachment_filename }}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">
+                        Institutional Attachment • {{ (assignment.attachment_size / 1024)|round(1) if assignment.attachment_size else 'N/A' }} KB
+                    </div>
+                </div>
+            </div>
+            <a href="{{ url_for('download_assignment_attachment', assignment_id=assignment.id) }}" class="btn btn-outline" style="font-weight: 700; padding: 8px 16px;">
+                <i class="fas fa-download"></i> Download File
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Metadata Footer -->
+        <div style="font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span>Created by: <strong>{{ assignment.creator.full_name if assignment.creator else 'Faculty' }}</strong> on {{ assignment.created_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+            <span>Last updated: {{ assignment.updated_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+        </div>
+    </div>
+
+    <!-- Audit History Trail -->
+    {% if audits %}
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 800; color: var(--text-main);">
+            <i class="fas fa-history"></i> Assignment Audit Trail
+        </h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                        <th style="padding: 8px;">Timestamp</th>
+                        <th style="padding: 8px;">Action</th>
+                        <th style="padding: 8px;">Actor</th>
+                        <th style="padding: 8px;">Remarks / Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aud in audits %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 8px; color: var(--text-muted);">{{ aud.created_at.strftime('%d %b %Y, %I:%M %p') }}</td>
+                        <td style="padding: 8px;">
+                            <span class="badge" style="background: #e2e8f0; color: #334155; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">
+                                {{ aud.action }}
+                            </span>
+                        </td>
+                        <td style="padding: 8px; font-weight: 600;">{{ aud.actor_user.full_name if aud.actor_user else 'System' }}</td>
+                        <td style="padding: 8px; color: var(--text-muted);">{{ aud.reason or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

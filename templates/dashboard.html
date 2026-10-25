@@ -227,16 +227,17 @@
     function fetchLiveNotifications() {
         fetch('/api/notifications').then(res => res.json()).then(data => {
             const list = document.getElementById('notification-list');
-            if (!data || data.length === 0) {
+            const items = Array.isArray(data) ? data : (data.notifications || []);
+            if (!items || items.length === 0) {
                 list.innerHTML = '<div class="text-center text-muted p-2">No active alerts in current session.</div>';
                 return;
             }
-            list.innerHTML = data.map(n => `
+            list.innerHTML = items.map(n => `
                 <div style="padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background-color: var(--gray-50); font-size: var(--font-size-xs); display: flex; gap: 8px; align-items: start;">
                     <i class="fas fa-bolt" style="color: var(--primary); margin-top: 2px;"></i>
-                    <div>
-                        <div style="font-weight: 600;">${n.msg}</div>
-                        ${n.time ? `<div style="color: var(--text-muted); margin-top: 2px;">${n.time}</div>` : ''}
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600;">${n.title ? `<strong>${n.title}:</strong> ` : ''}${n.message || n.msg || ''}</div>
+                        ${(n.time_display || n.time) ? `<div style="color: var(--text-muted); margin-top: 2px;">${n.time_display || n.time}</div>` : ''}
                     </div>
                 </div>
             `).join('');

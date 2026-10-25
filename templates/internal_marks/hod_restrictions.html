@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 1400px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb & Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="badge badge-primary" style="margin-bottom: 8px; font-weight: 800; text-transform: uppercase; background: #4f46e5; color: white;">
+                <i class="fas fa-shield-alt"></i> Departmental Academic Oversight
+            </div>
+            <h1 style="font-size: 2.2rem; font-weight: 800; margin: 0; color: var(--text-main);">
+                HOD Marks Restrictions & Overrides
+            </h1>
+            <div style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px;">
+                Department Authority: <strong>{{ user.full_name }}</strong> ({{ user.role }}) • Scope: <strong>{{ course }}</strong>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <a href="{{ url_for('internal_marks_hod_restrictions_audit', course=course) }}" class="btn btn-secondary">
+                <i class="fas fa-history"></i> Department Override Audit
+            </a>
+            <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Marks Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Policy Banner -->
+    <div style="background: rgba(79, 70, 229, 0.06); border-left: 4px solid #4f46e5; padding: 16px 20px; border-radius: 8px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <strong style="color: var(--text-main); font-size: 0.95rem;">
+                    <i class="fas fa-balance-scale" style="color: #4f46e5; margin-right: 6px;"></i> Institutional Attendance Eligibility Policy
+                </strong>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+                    Students with qualifying subject attendance <strong>&ge; 75.0%</strong> up to the IA assessment date can view their internal assessment marks.
+                    For students below 75%, marks viewing is <strong>automatically restricted</strong>.
+                    As Head of Department, you may grant an explicit <strong>Allow Override</strong> or impose a <strong>Manual Restriction</strong>.
+                    All manual actions require a mandatory institutional justification reason and are permanently audited.
+                </div>
+            </div>
+            <div style="text-align: right; background: var(--bg-surface); padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Cutoff Date ({{ component }})</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #4f46e5; margin-top: 2px;">
+                    {{ cutoff_date.strftime('%d %b %Y') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form Card -->
+    <div class="card" style="margin-bottom: 24px; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
+        <form method="GET" action="{{ url_for('internal_marks_hod_restrictions') }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: flex-end;">
+            {% if allowed_courses|length > 1 %}
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">COURSE</label>
+                <select name="course" class="form-control" onchange="this.form.submit()">
+                    {% for c in allowed_courses %}
+                    <option value="{{ c }}" {% if c == course %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% else %}
+            <input type="hidden" name="course" value="{{ course }}">
+            {% endif %}
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">SEMESTER</label>
+                <select name="semester" class="form-control" onchange="this.form.submit()">
+                    <option value="Sem V" {% if semester == 'Sem V' %}selected{% endif %}>Sem V</option>
+                    <option value="Sem IV" {% if semester == 'Sem IV' %}selected{% endif %}>Sem IV</option>
+                    <option value="Sem III" {% if semester == 'Sem III' %}selected{% endif %}>Sem III</option>
+                    <option value="Sem II" {% if semester == 'Sem II' %}selected{% endif %}>Sem II</option>
+                    <option value="Sem I" {% if semester == 'Sem I' %}selected{% endif %}>Sem I</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">SECTION</label>
+                <select name="section" class="form-control" onchange="this.form.submit()">
+                    <option value="A" {% if section == 'A' %}selected{% endif %}>Section A</option>
+                    <option value="B" {% if section == 'B' %}selected{% endif %}>Section B</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">SUBJECT</label>
+                <select name="subject" class="form-control" onchange="this.form.submit()">
+                    {% for s in available_subjects %}
+                    <option value="{{ s }}" {% if s == subject %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">ASSESSMENT COMPONENT</label>
+                <select name="component" class="form-control" onchange="this.form.submit()">
+                    <option value="IA1" {% if component == 'IA1' %}selected{% endif %}>IA1 (First Assessment)</option>
+                    <option value="IA2" {% if component == 'IA2' %}selected{% endif %}>IA2 (Second Assessment)</option>
+                    <option value="Final IA" {% if component == 'Final IA' %}selected{% endif %}>Final IA (Overall)</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">STUDENT SEARCH</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" name="search" value="{{ search }}" placeholder="Name / UUCMS ID" class="form-control">
+                    <button type="submit" class="btn btn-primary" style="padding: 8px 14px;">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Student Attendance & Eligibility Table Card -->
+    <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-main);">
+                    <i class="fas fa-users-cog" style="color: #4f46e5; margin-right: 8px;"></i>
+                    Student Eligibility Roster: {{ subject }} ({{ component }})
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                    {{ roster_data|length }} active student(s) enrolled • Assessment Date Cutoff: <strong>{{ cutoff_date.strftime('%d %b %Y') }}</strong>
+                </div>
+            </div>
+            <div>
+                <span class="badge badge-outline" style="font-size: 0.8rem;">
+                    Academic Year 2026–27
+                </span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table" style="width: 100%; margin: 0; border-collapse: collapse;">
+                <thead style="background: var(--bg-body); border-bottom: 2px solid var(--border);">
+                    <tr>
+                        <th style="padding: 14px 20px; text-align: left; width: 60px;">#</th>
+                        <th style="padding: 14px 20px; text-align: left;">Student</th>
+                        <th style="padding: 14px 20px; text-align: left;">UUCMS ID</th>
+                        <th style="padding: 14px 20px; text-align: center;">Attended / Conducted</th>
+                        <th style="padding: 14px 20px; text-align: center;">Live Attendance %</th>
+                        <th style="padding: 14px 20px; text-align: center;">Automatic Rule</th>
+                        <th style="padding: 14px 20px; text-align: center;">HOD Decision</th>
+                        <th style="padding: 14px 20px; text-align: center;">Marks Visibility</th>
+                        <th style="padding: 14px 20px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in roster_data %}
+                    {% set s = row.student %}
+                    {% set att = row.attendance %}
+                    {% set elig = row.eligibility %}
+                    {% set ovr = row.active_override %}
+                    <tr style="border-bottom: 1px solid var(--border); background: {% if loop.index % 2 == 0 %}var(--bg-surface){% else %}var(--bg-body){% endif %};">
+                        <td style="padding: 14px 20px; color: var(--text-muted); font-weight: 600;">
+                            {{ loop.index }}
+                        </td>
+                        <td style="padding: 14px 20px; font-weight: 700; color: var(--text-main);">
+                            {{ s.name }}
+                        </td>
+                        <td style="padding: 14px 20px; font-family: monospace; font-weight: 600; color: var(--text-muted);">
+                            {{ s.uucms_id }}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center; font-weight: 600;">
+                            {{ att.attended }} / {{ att.conducted }}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if att.percentage is not none %}
+                            <span style="font-weight: 800; font-size: 0.95rem; color: {% if att.percentage >= 75.0 %}#10b981{% else %}#ef4444{% endif %};">
+                                {{ att.percentage }}%
+                            </span>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-style: italic;">No Classes Conducted</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if att.status == 'ELIGIBLE' %}
+                            <span class="badge badge-success" style="background: #10b981; color: white; font-size: 0.75rem;">
+                                <i class="fas fa-check"></i> Eligible (&ge;75%)
+                            </span>
+                            {% elif att.status == 'RESTRICTED' %}
+                            <span class="badge badge-danger" style="background: #ef4444; color: white; font-size: 0.75rem;">
+                                <i class="fas fa-times"></i> Below 75%
+                            </span>
+                            {% else %}
+                            <span class="badge badge-secondary" style="font-size: 0.75rem;">
+                                <i class="fas fa-clock"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if ovr and ovr.is_active %}
+                                {% if ovr.decision_type == 'ALLOW_OVERRIDE' %}
+                                <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem; padding: 5px 10px;" title="Reason: {{ ovr.reason }}">
+                                    <i class="fas fa-user-check"></i> HOD Allowed
+                                </span>
+                                {% elif ovr.decision_type == 'MANUAL_RESTRICT' %}
+                                <span class="badge" style="background: #7c3aed; color: white; font-size: 0.75rem; padding: 5px 10px;" title="Reason: {{ ovr.reason }}">
+                                    <i class="fas fa-user-slash"></i> HOD Restricted
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">
+                                None (Auto)
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if elig.can_view %}
+                            <span class="badge badge-success" style="background: #10b981; color: white; font-size: 0.8rem; padding: 5px 12px;">
+                                <i class="fas fa-eye"></i> Visible
+                            </span>
+                            {% else %}
+                            <span class="badge badge-danger" style="background: #dc2626; color: white; font-size: 0.8rem; padding: 5px 12px;">
+                                <i class="fas fa-eye-slash"></i> Restricted
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: right;">
+                            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                {% if ovr and ovr.is_active %}
+                                <button type="button"
+                                        onclick="openOverrideModal('{{ s.id }}', '{{ s.name|escape }}', 'REVOKE', 'Revoke Manual Decision')"
+                                        class="btn btn-sm btn-outline"
+                                        style="font-size: 0.75rem; padding: 4px 10px; color: #b45309; border-color: #f59e0b;">
+                                    <i class="fas fa-undo"></i> Revoke
+                                </button>
+                                {% else %}
+                                    {% if att.percentage is not none and att.percentage < 75.0 %}
+                                    <button type="button"
+                                            onclick="openOverrideModal('{{ s.id }}', '{{ s.name|escape }}', 'ALLOW_OVERRIDE', 'Allow Override (< 75%)')"
+                                            class="btn btn-sm btn-primary"
+                                            style="font-size: 0.75rem; padding: 4px 10px; background: #3b82f6; border-color: #3b82f6;">
+                                        <i class="fas fa-check-circle"></i> Allow
+                                    </button>
+                                    {% else %}
+                                    <button type="button"
+                                            onclick="openOverrideModal('{{ s.id }}', '{{ s.name|escape }}', 'MANUAL_RESTRICT', 'Manual Restrict (&ge; 75%)')"
+                                            class="btn btn-sm btn-danger"
+                                            style="font-size: 0.75rem; padding: 4px 10px; background: #7c3aed; border-color: #7c3aed;">
+                                        <i class="fas fa-ban"></i> Restrict
+                                    </button>
+                                    {% endif %}
+                                {% endif %}
+
+                                <a href="{{ url_for('internal_marks_hod_restrictions_audit', student_id=s.id, subject=subject, course=course) }}"
+                                   class="btn btn-sm btn-outline"
+                                   style="font-size: 0.75rem; padding: 4px 8px;"
+                                   title="View Decision Audit Trail">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No active students found matching the selected class and search filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dialog for Applying / Revoking Overrides -->
+<div id="overrideModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden;">
+        <div class="card-header" style="background: #4f46e5; color: white; padding: 18px 24px;">
+            <h3 id="modalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 800;">
+                HOD Eligibility Decision
+            </h3>
+        </div>
+        <form method="POST" action="{{ url_for('internal_marks_hod_restrictions_save') }}" style="padding: 24px;">
+            <input type="hidden" name="student_id" id="modalStudentId">
+            <input type="hidden" name="course" value="{{ course }}">
+            <input type="hidden" name="semester" value="{{ semester }}">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="hidden" name="subject" value="{{ subject }}">
+            <input type="hidden" name="assessment_cycle" value="{{ assessment_cycle }}">
+            <input type="hidden" name="component" value="{{ component }}">
+            <input type="hidden" name="action" id="modalAction">
+
+            <div style="margin-bottom: 16px;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Student</label>
+                <div id="modalStudentName" style="font-weight: 800; font-size: 1.1rem; color: var(--text-main); margin-top: 2px;"></div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                    Subject: <strong>{{ subject }}</strong> • Component: <strong>{{ component }}</strong>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="modalReason" style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+                    Justification Reason <span style="color: #ef4444;">* (Strictly Mandatory)</span>
+                </label>
+                <textarea name="reason" id="modalReason" required rows="3" class="form-control"
+                          placeholder="e.g. Approved medical leave dispensation / Scrutiny restriction / Committee waiver..."
+                          style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem;"></textarea>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                    This reason is recorded in the immutable audit log and required for regulatory compliance.
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 18px;">
+                <button type="button" onclick="closeOverrideModal()" class="btn btn-outline">Cancel</button>
+                <button type="submit" id="modalSubmitBtn" class="btn btn-primary" style="background: #4f46e5; border-color: #4f46e5;">
+                    Confirm & Save Decision
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openOverrideModal(studentId, studentName, action, title) {
+    document.getElementById('modalStudentId').value = studentId;
+    document.getElementById('modalStudentName').textContent = studentName;
+    document.getElementById('modalAction').value = action;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalReason').value = '';
+
+    const btn = document.getElementById('modalSubmitBtn');
+    if (action === 'REVOKE') {
+        btn.textContent = 'Confirm Revocation';
+        btn.style.background = '#f59e0b';
+        btn.style.borderColor = '#f59e0b';
+    } else if (action === 'ALLOW_OVERRIDE') {
+        btn.textContent = 'Grant Allow Override';
+        btn.style.background = '#3b82f6';
+        btn.style.borderColor = '#3b82f6';
+    } else {
+        btn.textContent = 'Apply Manual Restriction';
+        btn.style.background = '#7c3aed';
+        btn.style.borderColor = '#7c3aed';
+    }
+
+    document.getElementById('overrideModal').style.display = 'flex';
+}
+
+function closeOverrideModal() {
+    document.getElementById('overrideModal').style.display = 'none';
+}
+
+window.onclick = function(e) {
+    const modal = document.getElementById('overrideModal');
+    if (e.target === modal) {
+        closeOverrideModal();
+    }
+}
+</script>
+
+{% endblock %}

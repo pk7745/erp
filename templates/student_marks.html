@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Marks Statement | BMS College ERP</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .student-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 20px 60px 20px;
+        }
+
+        .student-profile-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border-left: 5px solid #2563eb;
+        }
+
+        .subject-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .subject-card:hover {
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .component-box {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            background: #f8fafc;
+        }
+
+        .component-box.eligible {
+            border-color: #cbd5e1;
+            background: #ffffff;
+        }
+
+        .component-box.restricted {
+            border-color: #fecaca;
+            background: #fff5f5;
+        }
+
+        .score-display {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 8px;
+        }
+
+        .score-restricted {
+            color: #dc2626;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header Navigation -->
+<header class="student-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce & Management</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Examination & Assessment Cell</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+        {% if is_staff_view %}
+        <span class="badge" style="background: #e0e7ff; color: #4338ca; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+            <i class="fas fa-eye"></i> Staff Preview Mode
+        </span>
+        <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none;">
+            Return to Dashboard
+        </a>
+        {% else %}
+        <div style="text-align: right;">
+            <div style="font-weight: 700; font-size: 0.9rem;">{{ student.name }}</div>
+            <div style="font-family: monospace; font-size: 0.75rem; color: #64748b;">{{ student.uucms_id }}</div>
+        </div>
+                <!-- Student Notifications Dropdown -->
+        <div class="notifications-wrapper" style="position: relative;">
+            <button class="navbar-icon-button" id="notifications-btn" title="Notifications" aria-label="Notifications" aria-expanded="false" onclick="window.BMSNotifications.toggleDropdown(event)" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; width: 38px; height: 38px; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-bell" style="color: #334155; font-size: 1rem;"></i>
+                <span id="notif-badge" class="notif-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Dropdown Panel -->
+            <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                <div class="notif-header">
+                    <div class="notif-header-title">
+                        <i class="fas fa-bell" style="color: #2563eb;"></i>
+                        <span>Student Alerts</span>
+                        <span id="notif-unread-pill" class="notif-unread-pill">0 unread</span>
+                    </div>
+                    <div class="notif-header-actions">
+                        <button type="button" class="notif-btn-icon" title="Mark all as read" onclick="window.BMSNotifications.markAllRead()">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        <button type="button" class="notif-btn-icon" title="Sound Settings" onclick="window.BMSNotifications.toggleSettings()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="notif-quick-bar">
+                    <button type="button" id="notif-sound-btn" class="notif-pill-btn active" onclick="window.BMSNotifications.toggleSound()">
+                        <i class="fas fa-volume-up"></i> Sound ON
+                    </button>
+                    <button type="button" id="notif-browser-btn" class="notif-pill-btn" onclick="window.BMSNotifications.toggleBrowser()">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                    <button type="button" class="notif-pill-btn" onclick="window.BMSNotifications.testSound()">
+                        <i class="fas fa-play"></i> Test Sound
+                    </button>
+                </div>
+
+                <div id="notif-settings-drawer" class="notif-settings-drawer">
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Sound Volume</span>
+                        <input type="range" id="notif-vol-slider" min="10" max="100" value="70" style="width: 120px;" oninput="window.BMSNotifications.setVolume(this.value)">
+                    </div>
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Audio Engine Status</span>
+                        <span id="notif-audio-status" style="font-size: 0.75rem;">Initializing...</span>
+                    </div>
+                </div>
+
+                <div class="notif-tabs">
+                    <div id="notif-tab-all" class="notif-tab active" onclick="window.BMSNotifications.setTab('all')">All Alerts</div>
+                    <div id="notif-tab-unread" class="notif-tab" onclick="window.BMSNotifications.setTab('unread')">Unread</div>
+                </div>
+
+                <div id="notif-list-container" class="notif-list"></div>
+
+                <div class="notif-footer">
+                    <a href="{{ url_for('clear_notifications') }}" style="color: var(--text-muted); text-decoration: none;">
+                        <i class="fas fa-check"></i> Mark all read
+                    </a>
+                    <span style="color: var(--text-muted); font-size: 0.72rem;">Live Portal Gateway</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('student_logout') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; border-radius: 6px; border: 1px solid #cbd5e1; color: #dc2626;">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
+        {% endif %}
+    </div>
+</header>
+
+<div class="container">
+    {% if not is_staff_view %}
+    <!-- Academic Portal Tabs -->
+    <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 24px;">
+        <a href="{{ url_for('student_marks') }}" style="padding: 12px 18px; text-decoration: none; color: #2563eb; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid #2563eb; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-chart-bar"></i> Internal Marks
+        </a>
+        <a href="{{ url_for('student_assignments') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-tasks"></i> Assignments
+        </a>
+        <a href="{{ url_for('student_study_materials') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-book"></i> Study Materials Library
+        </a>
+        <a href="{{ url_for('student_timetable_view') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-calendar-alt"></i> Semester Timetable
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Student Profile Banner -->
+    <div class="student-profile-card">
+        <div>
+            <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; padding: 4px 8px; border-radius: 4px;">
+                Verified Student Profile
+            </span>
+            <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: #0f172a;">
+                {{ student.name }}
+            </h2>
+            <div style="font-size: 0.95rem; color: #64748b; margin-top: 4px; font-family: monospace;">
+                University Reg No (UUCMS): <strong style="color: #0f172a;">{{ student.uucms_id }}</strong>
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <div class="badge" style="background: #2563eb; color: white; font-size: 0.9rem; padding: 6px 14px; border-radius: 6px; font-weight: 700;">
+                {{ student.course }} • {{ student.semester }} (Section {{ student.section }})
+            </div>
+            <div style="font-size: 0.85rem; color: #64748b; margin-top: 6px;">
+                Academic Year: <strong>{{ student.academic_year }}</strong> • Cycle: <strong>{{ assessment_cycle }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Examination Policy Notice -->
+    <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; font-size: 0.85rem; color: #475569; line-height: 1.5;">
+        <strong style="color: #1e3a8a;"><i class="fas fa-info-circle" style="color: #2563eb; margin-right: 6px;"></i> Official Attendance Eligibility Notice:</strong>
+        As per Bangalore University & BMS College academic regulations, internal assessment marks visibility is governed by subject-wise class attendance calculated up to the respective IA assessment cutoff date.
+        A minimum of <strong>75.0% attendance</strong> is mandatory to view internal marks. For subjects where attendance is below 75%, marks remain restricted unless authorized by the Head of Department.
+    </div>
+
+    <!-- Subject Marks Grid -->
+    <div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 16px;">
+            Subject Internal Assessment Records
+        </h3>
+
+        {% for subj_item in subject_evaluations %}
+        {% set subj_name = subj_item.subject %}
+        {% set comps = subj_item.components %}
+        <div class="subject-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">
+                        <i class="fas fa-book-open" style="color: #2563eb; margin-right: 8px;"></i>
+                        {{ subj_name }}
+                    </h4>
+                </div>
+                <div>
+                    <span style="font-size: 0.8rem; color: #64748b;">
+                        Course Component: Theory / Practical
+                    </span>
+                </div>
+            </div>
+
+            <!-- 3 Assessment Components Grid -->
+            <div class="component-grid">
+                <!-- IA1 -->
+                {% set c1 = comps['IA1'] %}
+                <div class="component-box {% if c1.eligible %}eligible{% else %}restricted{% endif %}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: #334155;">IA1 Marks</span>
+                        {% if c1.eligible %}
+                            {% if c1.status == 'AUTHORIZED' %}
+                            <span class="badge" style="background: #3b82f6; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-user-check"></i> HOD Authorized
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #10b981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-check"></i> Eligible (&ge;75%)
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge" style="background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-lock"></i> Restricted
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if c1.eligible %}
+                        {% if c1.entered %}
+                        <div class="score-display">
+                            {{ c1.mark }} <span style="font-size: 1rem; color: #94a3b8; font-weight: 500;">/ {{ maxima['IA1'] }}</span>
+                        </div>
+                        {% else %}
+                        <div style="font-size: 1rem; color: #94a3b8; font-style: italic; margin-top: 12px;">
+                            Marks Not Yet Entered
+                        </div>
+                        {% endif %}
+                        {% if c1.attendance_pct is not none %}
+                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 8px; font-weight: 600;">
+                            <i class="fas fa-user-clock"></i> Attendance: {{ c1.attendance_pct }}% ({{ c1.attended }}/{{ c1.conducted }} sessions)
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- STRICT ZERO EXPOSURE: NO MARKS RENDERED -->
+                        <div class="score-restricted">
+                            <i class="fas fa-shield-alt"></i> Viewing Restricted
+                        </div>
+                        <div style="font-size: 0.78rem; color: #b91c1c; margin-top: 8px; line-height: 1.4;">
+                            {{ c1.public_message }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- IA2 -->
+                {% set c2 = comps['IA2'] %}
+                <div class="component-box {% if c2.eligible %}eligible{% else %}restricted{% endif %}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: #334155;">IA2 Marks</span>
+                        {% if c2.eligible %}
+                            {% if c2.status == 'AUTHORIZED' %}
+                            <span class="badge" style="background: #3b82f6; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-user-check"></i> HOD Authorized
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #10b981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-check"></i> Eligible (&ge;75%)
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge" style="background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-lock"></i> Restricted
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if c2.eligible %}
+                        {% if c2.entered %}
+                        <div class="score-display">
+                            {{ c2.mark }} <span style="font-size: 1rem; color: #94a3b8; font-weight: 500;">/ {{ maxima['IA2'] }}</span>
+                        </div>
+                        {% else %}
+                        <div style="font-size: 1rem; color: #94a3b8; font-style: italic; margin-top: 12px;">
+                            Marks Not Yet Entered
+                        </div>
+                        {% endif %}
+                        {% if c2.attendance_pct is not none %}
+                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 8px; font-weight: 600;">
+                            <i class="fas fa-user-clock"></i> Attendance: {{ c2.attendance_pct }}% ({{ c2.attended }}/{{ c2.conducted }} sessions)
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- STRICT ZERO EXPOSURE: NO MARKS RENDERED -->
+                        <div class="score-restricted">
+                            <i class="fas fa-shield-alt"></i> Viewing Restricted
+                        </div>
+                        <div style="font-size: 0.78rem; color: #b91c1c; margin-top: 8px; line-height: 1.4;">
+                            {{ c2.public_message }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Final IA -->
+                {% set c3 = comps['Final IA'] %}
+                <div class="component-box {% if c3.eligible %}eligible{% else %}restricted{% endif %}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: #334155;">Final IA Marks</span>
+                        {% if c3.eligible %}
+                            {% if c3.status == 'AUTHORIZED' %}
+                            <span class="badge" style="background: #3b82f6; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-user-check"></i> HOD Authorized
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #10b981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-check"></i> Eligible (&ge;75%)
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge" style="background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px;">
+                                <i class="fas fa-lock"></i> Restricted
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if c3.eligible %}
+                        {% if c3.entered %}
+                        <div class="score-display">
+                            {{ c3.mark }} <span style="font-size: 1rem; color: #94a3b8; font-weight: 500;">/ {{ maxima['Final IA'] }}</span>
+                        </div>
+                        {% else %}
+                        <div style="font-size: 1rem; color: #94a3b8; font-style: italic; margin-top: 12px;">
+                            Marks Not Yet Entered
+                        </div>
+                        {% endif %}
+                        {% if c3.attendance_pct is not none %}
+                        <div style="font-size: 0.75rem; color: #10b981; margin-top: 8px; font-weight: 600;">
+                            <i class="fas fa-user-clock"></i> Attendance: {{ c3.attendance_pct }}% ({{ c3.attended }}/{{ c3.conducted }} sessions)
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- STRICT ZERO EXPOSURE: NO MARKS RENDERED -->
+                        <div class="score-restricted">
+                            <i class="fas fa-shield-alt"></i> Viewing Restricted
+                        </div>
+                        <div style="font-size: 0.78rem; color: #b91c1c; margin-top: 8px; line-height: 1.4;">
+                            {{ c3.public_message }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Official Disclaimers Footer -->
+    <div style="margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.8rem; color: #94a3b8; text-align: center;">
+        BMS College of Commerce & Management, Basavanagudi, Bengaluru &copy; 2026<br>
+        This is an official computer-generated institutional statement. For queries or attendance scrutiny, consult the Department Head.
+    </div>
+</div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+</body>
+</html>

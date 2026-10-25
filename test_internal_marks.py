@@ -70,6 +70,7 @@ class InternalMarksTestCase(unittest.TestCase):
                 db.session.commit()
             cls.inactive_student_id = inactive.id
 
+            InternalMarkAudit.query.filter_by(student_id=cls.student_id, assessment_cycle='TEST-CYCLE-26').delete()
             InternalMark.query.filter_by(student_id=cls.student_id, assessment_cycle='TEST-CYCLE-26').delete()
             db.session.commit()
 
@@ -145,17 +146,17 @@ class InternalMarksTestCase(unittest.TestCase):
         max_ia1 = maxima['IA1']
 
         # 1. Valid numbers
-        val, err = parse_and_validate_mark('20.5', 'IA1', max_ia1)
+        val, err = parse_and_validate_mark('15.5', 'IA1', max_ia1)
         self.assertIsNone(err)
-        self.assertEqual(val, 20.5)
+        self.assertEqual(val, 15.5)
 
         val, err = parse_and_validate_mark('0', 'IA1', max_ia1)
         self.assertIsNone(err)
         self.assertEqual(val, 0.0)
 
-        val, err = parse_and_validate_mark('25.0', 'IA1', max_ia1)
+        val, err = parse_and_validate_mark('20.0', 'IA1', max_ia1)
         self.assertIsNone(err)
-        self.assertEqual(val, 25.0)
+        self.assertEqual(val, 20.0)
 
         # 2. Blank / None input
         val, err = parse_and_validate_mark('', 'IA1', max_ia1)
@@ -243,8 +244,8 @@ class InternalMarksTestCase(unittest.TestCase):
             'subject': 'Web Programming',
             'assessment_cycle': cycle,
             'version': current_ver,
-            'ia1_marks': '21.0',  # Modified from 19.5
-            'ia2_marks': '22.5',  # Newly entered
+            'ia1_marks': '18.0',  # Modified from 19.5
+            'ia2_marks': '17.5',  # Newly entered
             'final_ia_marks': '',
             'reason': 'Re-evaluation mark addition'
         }
@@ -253,15 +254,15 @@ class InternalMarksTestCase(unittest.TestCase):
 
         with app.app_context():
             updated = InternalMark.query.filter_by(student_id=self.student_id, subject='Web Programming', assessment_cycle=cycle).first()
-            self.assertEqual(updated.ia1_marks, 21.0)
-            self.assertEqual(updated.ia2_marks, 22.5)
+            self.assertEqual(updated.ia1_marks, 18.0)
+            self.assertEqual(updated.ia2_marks, 17.5)
             self.assertIsNone(updated.final_ia_marks)
             self.assertEqual(updated.version, 2)
 
             audits = InternalMarkAudit.query.filter_by(internal_mark_id=updated.id).order_by(InternalMarkAudit.created_at.asc()).all()
             self.assertEqual(len(audits), 3)
             ia1_update = [a for a in audits if a.component == 'IA1' and a.previous_value == '19.5'][0]
-            self.assertEqual(ia1_update.new_value, '21.0')
+            self.assertEqual(ia1_update.new_value, '18.0')
             self.assertEqual(ia1_update.reason, 'Re-evaluation mark addition')
 
     def test_06_concurrency_optimistic_locking(self):
@@ -278,8 +279,8 @@ class InternalMarksTestCase(unittest.TestCase):
             'subject': 'Web Programming',
             'assessment_cycle': cycle,
             'version': 1,  # STALE VERSION (actual is 2)
-            'ia1_marks': '24.0',
-            'ia2_marks': '22.5',
+            'ia1_marks': '19.0',
+            'ia2_marks': '17.5',
             'final_ia_marks': '',
             'reason': 'Concurrent edit attempt'
         }
@@ -288,7 +289,7 @@ class InternalMarksTestCase(unittest.TestCase):
 
         with app.app_context():
             mark = InternalMark.query.filter_by(student_id=self.student_id, subject='Web Programming', assessment_cycle=cycle).first()
-            self.assertEqual(mark.ia1_marks, 21.0)
+            self.assertEqual(mark.ia1_marks, 18.0)
 
     def test_07_unauthorized_teacher_tampering_rejected(self):
         with self.client.session_transaction() as sess:
@@ -302,7 +303,7 @@ class InternalMarksTestCase(unittest.TestCase):
             'section': 'A',
             'subject': 'Web Programming',  # Shrinkala not authorized!
             'assessment_cycle': 'TEST-CYCLE-26',
-            'ia1_marks': '25.0',
+            'ia1_marks': '19.0',
             'reason': 'Tamper attempt'
         }
         res = self.client.post('/internal-marks/save', data=payload)
@@ -349,6 +350,7 @@ class InternalMarksTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         with app.app_context():
+            InternalMarkAudit.query.filter_by(assessment_cycle='TEST-CYCLE-26').delete()
             InternalMark.query.filter_by(assessment_cycle='TEST-CYCLE-26').delete()
             db.session.commit()
 

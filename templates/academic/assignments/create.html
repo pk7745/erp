@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Create Academic Assignment | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 900px; margin: 0 auto;">
+    <div style="margin-bottom: 24px;">
+        <a href="{{ url_for('assignments_dashboard') }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Assignments
+        </a>
+        <h1 style="margin: 10px 0 4px 0; font-size: 1.8rem; font-weight: 800; color: var(--text-main);">
+            Create Assignment
+        </h1>
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+            Publish a structured assignment with course, academic year, semester, instructions, deadlines, and optional attachments.
+        </p>
+    </div>
+
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden;">
+        <form method="POST" action="{{ url_for('assignment_create') }}" enctype="multipart/form-data" style="padding: 28px;" id="assignmentForm">
+            
+            <!-- Section 1: Academic Scope Selection -->
+            <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-graduation-cap" style="color: var(--primary);"></i> Academic Target Class &amp; Subject
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Program / Course <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select name="course" id="courseSelect" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;" onchange="onScopeFilterChange()">
+                            {% for c in valid_courses|default(['BCA', 'B.Com', 'BBA']) %}
+                            <option value="{{ c }}" {% if form_data.get('course') == c or (not form_data.get('course') and c == 'BCA') %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Academic Year <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select name="academic_year" id="yearSelect" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;" onchange="updateSemesterDropdown()">
+                            {% for y in valid_years|default(['1st Year', '2nd Year', '3rd Year']) %}
+                            <option value="{{ y }}" {% if form_data.get('academic_year') == y or (not form_data.get('academic_year') and y == '3rd Year') %}selected{% endif %}>{{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Semester <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select name="semester" id="semesterSelect" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;" onchange="onScopeFilterChange()">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Section <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select name="section" id="sectionSelect" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;" onchange="onScopeFilterChange()">
+                            {% for sec in valid_sections|default(['A', 'B', 'ALL']) %}
+                            <option value="{{ sec }}" {% if form_data.get('section') == sec or (not form_data.get('section') and sec == 'A') %}selected{% endif %}>
+                                {% if sec == 'ALL' %}All Sections (ALL){% else %}Section {{ sec }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Authorized Target Subject <span style="color: #dc2626;">*</span>
+                    </label>
+                    <select name="subject" id="subject_select" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 700;" onchange="onSubjectSelectChange()">
+                        <option value="">-- Choose an Authorized Subject --</option>
+                        {% for c in contexts %}
+                        <option value="{{ c.subject }}" 
+                                data-course="{{ c.course }}" 
+                                data-year="{{ c.academic_year }}" 
+                                data-sem="{{ c.semester }}" 
+                                data-sec="{{ c.section }}">
+                            {{ c.subject }} ({{ c.course }} {{ c.academic_year }} {{ c.semester }} Sec {{ c.section }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div id="subject_scope_hint" style="margin-top: 6px; font-size: 0.8rem; color: var(--primary); font-weight: 600;">
+                        Selecting a subject automatically synchronizes Course, Academic Year, Semester, and Section.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Assignment Details -->
+            <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 20px;">
+                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-edit" style="color: var(--primary);"></i> Assignment Specifications
+                </h3>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Assignment Title <span style="color: #dc2626;">*</span>
+                    </label>
+                    <input type="text" name="title" value="{{ form_data.get('title', '') }}" required placeholder="e.g. Lab Assignment 1: PHP Session Management & CSRF" class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 1rem;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Detailed Instructions / Problem Statement <span style="color: #dc2626;">*</span>
+                    </label>
+                    <textarea name="description" rows="5" required placeholder="Describe the task requirements, coding guidelines, format expectations, and evaluation rubric..." class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); line-height: 1.5; font-family: inherit; font-size: 0.95rem;">{{ form_data.get('description', '') }}</textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Assigned / Given Date <span style="color: #dc2626;">*</span>
+                        </label>
+                        <input type="date" name="assigned_date" id="assigned_date" value="{{ form_data.get('assigned_date', '') }}" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Submission Deadline <span style="color: #dc2626;">*</span>
+                        </label>
+                        <input type="datetime-local" name="deadline" id="deadline" value="{{ form_data.get('deadline', '') }}" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Maximum Marks (Optional)
+                        </label>
+                        <input type="number" step="0.5" min="0" max="100" name="max_marks" value="{{ form_data.get('max_marks', '') }}" placeholder="e.g. 20" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                            Publication Status
+                        </label>
+                        <select name="status" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                            <option value="Published" {% if form_data.get('status') == 'Published' or not form_data.get('status') %}selected{% endif %}>Published (Immediately Visible &amp; Notified)</option>
+                            <option value="Draft" {% if form_data.get('status') == 'Draft' %}selected{% endif %}>Draft (Saved Privately)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Attachment -->
+            <div style="margin-bottom: 28px;">
+                <h3 style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-paperclip" style="color: var(--primary);"></i> Assignment Document / Reference Attachment
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0 0 12px 0;">
+                    Accepted formats: PDF, DOCX, PPTX, TXT, ZIP, Images. Maximum size: 15 MB. Files are stored securely in private institutional storage.
+                </p>
+
+                <div style="border: 2px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; background: var(--bg-body);">
+                    <input type="file" name="attachment" id="attachment" class="form-control" style="max-width: 400px; margin: 0 auto;">
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+                <a href="{{ url_for('assignments_dashboard') }}" class="btn btn-outline" style="padding: 10px 20px;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="padding: 10px 28px; font-weight: 700;">
+                    <i class="fas fa-check"></i> Create Assignment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const validYearSemesters = {{ (valid_year_semesters|default({
+        '1st Year': ['Sem I', 'Sem II'],
+        '2nd Year': ['Sem III', 'Sem IV'],
+        '3rd Year': ['Sem V', 'Sem VI']
+    }))|tojson }};
+
+    function updateSemesterDropdown(selectedSem) {
+        const yearSelect = document.getElementById('yearSelect');
+        const semesterSelect = document.getElementById('semesterSelect');
+        const selectedYear = yearSelect.value;
+        const availableSems = validYearSemesters[selectedYear] || [];
+
+        semesterSelect.innerHTML = '';
+        availableSems.forEach(sem => {
+            const opt = document.createElement('option');
+            opt.value = sem;
+            opt.textContent = sem;
+            if (selectedSem && selectedSem === sem) {
+                opt.selected = true;
+            } else if (!selectedSem && sem === availableSems[0]) {
+                opt.selected = true;
+            }
+            semesterSelect.appendChild(opt);
+        });
+
+        onScopeFilterChange();
+    }
+
+    function onSubjectSelectChange() {
+        const subjectSelect = document.getElementById('subject_select');
+        const selectedOpt = subjectSelect.options[subjectSelect.selectedIndex];
+        if (!selectedOpt || !selectedOpt.value) return;
+
+        const course = selectedOpt.dataset.course;
+        const year = selectedOpt.dataset.year;
+        const sem = selectedOpt.dataset.sem;
+        const sec = selectedOpt.dataset.sec;
+
+        if (course) document.getElementById('courseSelect').value = course;
+        if (year) {
+            document.getElementById('yearSelect').value = year;
+            updateSemesterDropdown(sem);
+        }
+        if (sec) document.getElementById('sectionSelect').value = sec;
+
+        document.getElementById('subject_scope_hint').innerHTML = 
+            `<i class="fas fa-check-circle" style="color: #10b981;"></i> Scope verified: <strong>${course} ${year} ${sem} Sec ${sec}</strong>`;
+    }
+
+    function onScopeFilterChange() {
+        const course = document.getElementById('courseSelect').value;
+        const year = document.getElementById('yearSelect').value;
+        const sem = document.getElementById('semesterSelect').value;
+        const sec = document.getElementById('sectionSelect').value;
+
+        const subjectSelect = document.getElementById('subject_select');
+        let matchCount = 0;
+
+        for (let i = 1; i < subjectSelect.options.length; i++) {
+            const opt = subjectSelect.options[i];
+            const optCourse = opt.dataset.course;
+            const optSem = opt.dataset.sem;
+            const optSec = opt.dataset.sec;
+
+            const courseMatch = !course || optCourse === course;
+            const semMatch = !sem || optSem === sem;
+            const secMatch = !sec || sec === 'ALL' || optSec === sec;
+
+            if (courseMatch && semMatch && secMatch) {
+                opt.style.display = '';
+                matchCount++;
+            } else {
+                opt.style.display = 'none';
+            }
+        }
+
+        const currentOpt = subjectSelect.options[subjectSelect.selectedIndex];
+        if (currentOpt && currentOpt.style.display === 'none') {
+            subjectSelect.value = '';
+            document.getElementById('subject_scope_hint').innerHTML = 
+                `<span style="color: #64748b;">Filtered: ${matchCount} authorized subject(s) match this scope.</span>`;
+        }
+    }
+
+    // Initialize defaults
+    document.addEventListener('DOMContentLoaded', function() {
+        const initialYear = "{{ form_data.get('academic_year', '3rd Year') }}";
+        const initialSem = "{{ form_data.get('semester', 'Sem V') }}";
+        document.getElementById('yearSelect').value = initialYear;
+        updateSemesterDropdown(initialSem);
+
+        if (!document.getElementById('assigned_date').value) {
+            document.getElementById('assigned_date').value = new Date().toISOString().split('T')[0];
+        }
+
+        if (!document.getElementById('deadline').value) {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            nextWeek.setHours(23, 59, 0, 0);
+            document.getElementById('deadline').value = nextWeek.toISOString().slice(0, 16);
+        }
+    });
+</script>
+{% endblock %}

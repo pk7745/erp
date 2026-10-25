@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Student Semester Timetables | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px;">
+    <!-- Top Action Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--text-main);">
+                    Student Semester Timetables
+                </h1>
+                <span class="badge badge-primary" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 20px;">
+                    {{ timetables|length }} Total
+                </span>
+            </div>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+                Publish official class timetables for student portal viewing. New uploads automatically archive previous versions for the same academic scope.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="{{ url_for('student_timetables_upload') }}" class="btn btn-primary" style="padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-upload"></i> Upload Semester Timetable
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="card" style="margin-bottom: 24px; padding: 18px 20px; background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border);">
+        <form method="GET" action="{{ url_for('student_timetables_dashboard') }}" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+            <div style="flex: 1; min-width: 140px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Course</label>
+                <select name="course" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    <option value="all">All Courses</option>
+                    <option value="BCA" {% if selected_course == 'BCA' %}selected{% endif %}>BCA</option>
+                    <option value="B.Com" {% if selected_course == 'B.Com' %}selected{% endif %}>B.Com</option>
+                    <option value="BBA" {% if selected_course == 'BBA' %}selected{% endif %}>BBA</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Academic Year</label>
+                <select name="academic_year" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    <option value="all">All Years</option>
+                    <option value="1st Year" {% if selected_year == '1st Year' %}selected{% endif %}>1st Year</option>
+                    <option value="2nd Year" {% if selected_year == '2nd Year' %}selected{% endif %}>2nd Year</option>
+                    <option value="3rd Year" {% if selected_year == '3rd Year' %}selected{% endif %}>3rd Year</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 140px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Semester</label>
+                <select name="semester" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    <option value="all">All Semesters</option>
+                    {% for sem in ['Sem I', 'Sem II', 'Sem III', 'Sem IV', 'Sem V', 'Sem VI'] %}
+                    <option value="{{ sem }}" {% if selected_semester == sem %}selected{% endif %}>{{ sem }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 120px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Section</label>
+                <select name="section" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    <option value="all">All Sections</option>
+                    <option value="A" {% if selected_section == 'A' %}selected{% endif %}>Sec A</option>
+                    <option value="B" {% if selected_section == 'B' %}selected{% endif %}>Sec B</option>
+                    <option value="ALL" {% if selected_section == 'ALL' %}selected{% endif %}>All Sections</option>
+                </select>
+            </div>
+
+            <div style="flex: 1; min-width: 130px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</label>
+                <select name="status" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                    <option value="all">All Statuses</option>
+                    <option value="PUBLISHED" {% if status_filter == 'PUBLISHED' %}selected{% endif %}>Published Only</option>
+                    <option value="ARCHIVED" {% if status_filter == 'ARCHIVED' %}selected{% endif %}>Archived Only</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-secondary" style="padding: 8px 16px; font-weight: 600;">
+                    <i class="fas fa-filter"></i> Apply Filter
+                </button>
+                <a href="{{ url_for('student_timetables_dashboard') }}" class="btn btn-outline" style="padding: 8px 14px; text-decoration: none; color: var(--text-muted);">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Timetables Table / Cards -->
+    {% if timetables %}
+    <div class="card" style="background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border); overflow: hidden;">
+        <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="background: rgba(0,0,0,0.02); border-bottom: 2px solid var(--border);">
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Status</th>
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Academic Scope</th>
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Timetable Title & File</th>
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Version</th>
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Published By</th>
+                        <th style="padding: 14px 18px; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tt in timetables %}
+                    <tr style="border-bottom: 1px solid var(--border); {% if tt.status == 'ARCHIVED' %}opacity: 0.75; background: rgba(0,0,0,0.01);{% endif %}">
+                        <td style="padding: 16px 18px; vertical-align: middle;">
+                            {% if tt.status == 'PUBLISHED' %}
+                            <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-check-circle"></i> Active
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                                <i class="fas fa-archive"></i> Archived
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px 18px; vertical-align: middle;">
+                            <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);">
+                                {{ tt.course }} {{ tt.semester }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                                {{ tt.academic_year }} &bull; Section {{ tt.section }}
+                            </div>
+                        </td>
+                        <td style="padding: 16px 18px; vertical-align: middle;">
+                            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">
+                                {{ tt.title }}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                                {% if tt.file_filename.endswith('.pdf') %}
+                                <i class="fas fa-file-pdf" style="color: #ef4444;"></i>
+                                {% elif tt.file_filename.endswith(('.png', '.jpg', '.jpeg')) %}
+                                <i class="fas fa-file-image" style="color: #3b82f6;"></i>
+                                {% elif tt.file_filename.endswith(('.xlsx', '.csv')) %}
+                                <i class="fas fa-file-excel" style="color: #10b981;"></i>
+                                {% else %}
+                                <i class="fas fa-file-alt" style="color: #64748b;"></i>
+                                {% endif %}
+                                <span>{{ tt.file_filename }}</span>
+                                <span>&bull;</span>
+                                <span>{{ (tt.file_size / 1024)|round(1) }} KB</span>
+                            </div>
+                        </td>
+                        <td style="padding: 16px 18px; vertical-align: middle;">
+                            <span class="badge badge-secondary" style="font-size: 0.8rem; font-weight: 800; padding: 3px 8px; border-radius: 4px;">
+                                v{{ tt.version }}
+                            </span>
+                        </td>
+                        <td style="padding: 16px 18px; vertical-align: middle;">
+                            <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main);">
+                                {{ tt.uploader.full_name if tt.uploader else 'Faculty' }}
+                            </div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">
+                                {{ tt.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                            </div>
+                        </td>
+                        <td style="padding: 16px 18px; vertical-align: middle; text-align: right;">
+                            <div style="display: inline-flex; gap: 8px; align-items: center;">
+                                <a href="{{ url_for('view_student_timetable_file', timetable_id=tt.id) }}" target="_blank" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem;" title="View Preview in Browser">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('download_student_timetable', timetable_id=tt.id) }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" title="Download File">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% if tt.status == 'PUBLISHED' %}
+                                <form method="POST" action="{{ url_for('student_timetables_archive', timetable_id=tt.id) }}" style="display: inline;" onsubmit="return confirm('Archive this published timetable? Students will no longer see it until a replacement is uploaded.');">
+                                    <button type="submit" class="btn btn-outline" style="padding: 6px 10px; font-size: 0.85rem; color: #dc2626; border-color: rgba(220,38,38,0.3);" title="Archive Timetable">
+                                        <i class="fas fa-archive"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card" style="padding: 60px 24px; text-align: center; background: var(--bg-surface); border-radius: 10px; border: 1px dashed var(--border);">
+        <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 16px;">
+            <i class="fas fa-calendar-times"></i>
+        </div>
+        <h3 style="margin: 0 0 8px 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">
+            No Student Semester Timetables Found
+        </h3>
+        <p style="margin: 0 0 20px 0; color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin-left: auto; margin-right: auto;">
+            {% if selected_course != 'all' or selected_semester != 'all' or selected_year != 'all' %}
+            No timetables match your selected filters. Try resetting the filter criteria.
+            {% else %}
+            No student semester timetables have been published yet. Upload your first class schedule to make it visible to students.
+            {% endif %}
+        </p>
+        <a href="{{ url_for('student_timetables_upload') }}" class="btn btn-primary" style="padding: 10px 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-upload"></i> Upload Semester Timetable
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

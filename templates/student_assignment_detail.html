@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ assignment.title }} | Assignment Detail | BMS Student Portal</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .student-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 24px 20px 60px 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="student-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce &amp; Management</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Student Academic Portal</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="text-align: right;">
+            <div style="font-weight: 700; font-size: 0.9rem;">{{ student.name }}</div>
+            <div style="font-family: monospace; font-size: 0.75rem; color: #64748b;">{{ student.uucms_id }}</div>
+        </div>
+        <a href="{{ url_for('student_logout') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; border-radius: 6px; border: 1px solid #cbd5e1; color: #dc2626;">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
+    </div>
+</header>
+
+<div class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('student_assignments') }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Assignments List
+        </a>
+    </div>
+
+    <!-- Assignment Overview Card -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
+            <div>
+                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                    {{ assignment.subject }}
+                </span>
+                <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; margin-left: 6px;">
+                    {{ assignment.course }} {{ assignment.semester }} • Sec {{ assignment.section }}
+                </span>
+            </div>
+
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: #64748b;">Deadline:</div>
+                <div style="font-size: 1rem; font-weight: 800; color: {% if is_past_deadline %}#dc2626{% else %}#2563eb{% endif %};">
+                    {{ assignment.deadline.strftime('%d %B %Y, %I:%M %p') }}
+                </div>
+            </div>
+        </div>
+
+        <h1 style="margin: 0 0 16px 0; font-size: 1.7rem; font-weight: 800; color: #0f172a;">
+            {{ assignment.title }}
+        </h1>
+
+        <!-- Details Strip -->
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.85rem;">
+            <div>
+                <span style="color: #64748b;">Assigned:</span>
+                <strong style="color: #0f172a; margin-left: 4px;">{{ assignment.assigned_date.strftime('%d %b %Y') }}</strong>
+            </div>
+            {% if assignment.max_marks %}
+            <div>
+                <span style="color: #64748b;">Maximum Score:</span>
+                <strong style="color: #047857; margin-left: 4px;">{{ assignment.max_marks }} Marks</strong>
+            </div>
+            {% endif %}
+            <div>
+                <span style="color: #64748b;">Faculty In-Charge:</span>
+                <strong style="color: #0f172a; margin-left: 4px;">{{ assignment.creator.full_name if assignment.creator else 'Faculty' }}</strong>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div style="margin-bottom: 24px;">
+            <h3 style="font-size: 1rem; font-weight: 800; color: #0f172a; margin: 0 0 10px 0;">
+                Task Instructions
+            </h3>
+            <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; font-size: 0.95rem; line-height: 1.6; color: #1e293b; white-space: pre-wrap;">{{ assignment.description }}</div>
+        </div>
+
+        <!-- Attachment Download Link -->
+        {% if assignment.attachment_filename %}
+        <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 8px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fas fa-file-alt" style="font-size: 1.5rem; color: #2563eb;"></i>
+                <div>
+                    <div style="font-weight: 700; font-size: 0.92rem; color: #0f172a;">{{ assignment.attachment_filename }}</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">Assignment Reference Document</div>
+                </div>
+            </div>
+            <a href="{{ url_for('download_assignment_attachment', assignment_id=assignment.id) }}" class="btn btn-outline" style="font-weight: 700; padding: 8px 16px; text-decoration: none; border-radius: 6px;">
+                <i class="fas fa-download"></i> Download
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Student Submission Section -->
+    <div class="card" style="border-top: 4px solid #2563eb;">
+        <h3 style="margin: 0 0 16px 0; font-size: 1.2rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-upload" style="color: #2563eb;"></i> Your Submission
+        </h3>
+
+        {% if submission %}
+        <!-- Existing Submission Summary -->
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                    {% if submission.status == 'Late' %}
+                    <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                        <i class="fas fa-clock"></i> Submitted Late
+                    </span>
+                    {% else %}
+                    <span class="badge" style="background: #dcfce7; color: #166534; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                        <i class="fas fa-check-circle"></i> Submitted On Time
+                    </span>
+                    {% endif %}
+                    <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">Version {{ submission.version }}</span>
+                </div>
+
+                {% if submission.submitted_at %}
+                <span style="font-size: 0.82rem; color: #64748b;">
+                    Submitted: {{ submission.submitted_at.strftime('%d %b %Y, %I:%M %p') }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Uploaded file link -->
+            {% if submission.file_storage_key %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-file-check" style="color: #16a34a; font-size: 1.2rem;"></i>
+                    <span style="font-weight: 700; font-size: 0.9rem;">{{ submission.file_filename }}</span>
+                </div>
+                <a href="{{ url_for('download_submission_file', submission_id=submission.id) }}" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 14px; text-decoration: none; border-radius: 4px;">
+                    <i class="fas fa-download"></i> Download Submitted File
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Grade / Feedback from Teacher -->
+            {% if submission.marks_obtained is not none or submission.teacher_feedback %}
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin-top: 14px;">
+                <div style="font-size: 0.8rem; font-weight: 800; color: #065f46; text-transform: uppercase;">
+                    Evaluation Result
+                </div>
+                {% if submission.marks_obtained is not none %}
+                <div style="font-size: 1.4rem; font-weight: 800; color: #047857; margin-top: 4px;">
+                    Score: {{ submission.marks_obtained }} / {{ assignment.max_marks or 100 }}
+                </div>
+                {% endif %}
+                {% if submission.teacher_feedback %}
+                <div style="font-size: 0.9rem; color: #065f46; margin-top: 6px;">
+                    <strong>Faculty Feedback:</strong> {{ submission.teacher_feedback }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Upload / Re-upload Form -->
+        <div>
+            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 800; color: #0f172a;">
+                {% if submission %}Resubmit Assignment (Upload Revised Solution){% else %}Upload Assignment Solution{% endif %}
+            </h4>
+
+            {% if is_past_deadline %}
+            <div style="background: #fff7ed; border-left: 4px solid #f97316; padding: 12px 16px; border-radius: 4px; font-size: 0.85rem; color: #9a3412; margin-bottom: 16px;">
+                <strong>Notice:</strong> The official deadline has passed. Submitting now will record your work as a <strong>Late Submission</strong> with an accurate audit timestamp.
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('student_assignment_submit', assignment_id=assignment.id) }}" enctype="multipart/form-data">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 6px;">
+                        Select Solution Document <span style="color: #dc2626;">*</span>
+                    </label>
+                    <input type="file" name="file" required class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #ffffff;">
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
+                        Allowed formats: PDF, DOCX, DOC, PPTX, TXT, ZIP, Images. Max file size: 15 MB.
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 6px;">
+                        Student Submission Comments / Notes (Optional)
+                    </label>
+                    <textarea name="student_comment" rows="2" placeholder="Add any explanatory comments for the evaluating faculty..." class="form-control" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #ffffff; font-family: inherit; font-size: 0.9rem;">{{ submission.student_comment if submission else '' }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; border-radius: 6px;">
+                    <i class="fas fa-paper-plane"></i> {% if submission %}Confirm Resubmission{% else %}Submit Assignment{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

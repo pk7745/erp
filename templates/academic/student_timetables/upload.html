@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Student Semester Timetable | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 860px; margin: 0 auto;">
+    <!-- Breadcrumb & Header -->
+    <div style="margin-bottom: 24px;">
+        <a href="{{ url_for('student_timetables_dashboard') }}" style="color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+            <i class="fas fa-arrow-left"></i> Back to Student Timetables
+        </a>
+        <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800; color: var(--text-main);">
+            Publish Student Semester Timetable
+        </h1>
+        <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+            Upload official semester class schedules for student portal display. The system preserves version history and notifies enrolled students upon publication.
+        </p>
+    </div>
+
+    <!-- Upload Form Card -->
+    <div class="card" style="background: var(--bg-surface); border-radius: 12px; border: 1px solid var(--border); padding: 28px;">
+        <form method="POST" action="{{ url_for('student_timetables_upload') }}" enctype="multipart/form-data" id="timetableUploadForm">
+            <!-- Academic Scope Section -->
+            <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-graduation-cap" style="color: var(--primary);"></i> Academic Scope & Target Class
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                            Course / Programme <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="course" id="courseSelect" required class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;">
+                            <option value="BCA" {% if form_data.get('course') == 'BCA' or not form_data.get('course') %}selected{% endif %}>BCA (Bachelor of Computer Applications)</option>
+                            <option value="B.Com" {% if form_data.get('course') == 'B.Com' %}selected{% endif %}>B.Com</option>
+                            <option value="BBA" {% if form_data.get('course') == 'BBA' %}selected{% endif %}>BBA</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                            Academic Year <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="academic_year" id="yearSelect" required class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;" onchange="updateSemesterDropdown()">
+                            <option value="3rd Year" {% if form_data.get('academic_year') == '3rd Year' or not form_data.get('academic_year') %}selected{% endif %}>3rd Year (Final Year)</option>
+                            <option value="2nd Year" {% if form_data.get('academic_year') == '2nd Year' %}selected{% endif %}>2nd Year</option>
+                            <option value="1st Year" {% if form_data.get('academic_year') == '1st Year' %}selected{% endif %}>1st Year</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                            Semester <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="semester" id="semesterSelect" required class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;">
+                            <!-- Populated dynamically via updateSemesterDropdown() -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                            Section <span style="color: #ef4444;">*</span>
+                        </label>
+                        <select name="section" id="sectionSelect" required class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;">
+                            <option value="A" {% if form_data.get('section') == 'A' or not form_data.get('section') %}selected{% endif %}>Section A</option>
+                            <option value="B" {% if form_data.get('section') == 'B' %}selected{% endif %}>Section B</option>
+                            <option value="ALL" {% if form_data.get('section') == 'ALL' %}selected{% endif %}>All Sections (Entire Cohort)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details Section -->
+            <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle" style="color: var(--primary);"></i> Timetable Details
+                </h3>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                        Timetable Title <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="text" name="title" id="titleInput" required placeholder="e.g., BCA Sem V Section A - Odd Semester Timetable 2026" value="{{ form_data.get('title', '') }}" class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-size: 0.95rem;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                        Description / Student Instructions (Optional)
+                    </label>
+                    <textarea name="description" rows="3" placeholder="e.g., Room 204. Effective from 01 August 2026. Practical lab batches are scheduled on alternate Thursdays." class="form-control" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-size: 0.9rem;">{{ form_data.get('description', '') }}</textarea>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 1rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-file-upload" style="color: var(--primary);"></i> Document Upload
+                </h3>
+
+                <div style="border: 2px dashed var(--border); border-radius: 10px; padding: 28px; text-align: center; background: rgba(0,0,0,0.01);" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 12px;"></i>
+                    <div style="font-weight: 700; font-size: 1rem; color: var(--text-main); margin-bottom: 4px;">
+                        Choose timetable file or drag and drop here
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px;">
+                        Supported Formats: PDF, PNG, JPG, JPEG, Excel (XLSX, CSV), DOCX &bull; Maximum file size: 10 MB
+                    </div>
+                    <input type="file" name="file" id="fileInput" required accept=".pdf,.png,.jpg,.jpeg,.xlsx,.csv,.docx" style="display: none;" onchange="handleFileSelected(this)">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="padding: 9px 18px; font-weight: 600;">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </button>
+                    <div id="fileSelectionInfo" style="margin-top: 12px; font-weight: 700; color: #16a34a; font-size: 0.9rem; display: none;"></div>
+                </div>
+
+                <!-- Scope Replacement Notice -->
+                <div style="margin-top: 14px; padding: 12px 16px; background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3b82f6; border-radius: 4px; font-size: 0.85rem; color: var(--text-main);">
+                    <i class="fas fa-info-circle" style="color: #3b82f6; margin-right: 6px;"></i>
+                    <strong>Automated Versioning:</strong> If an active timetable already exists for this exact course, year, semester, and section, it will be automatically archived and replaced with version <strong>N+1</strong>.
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+                <a href="{{ url_for('student_timetables_dashboard') }}" class="btn btn-outline" style="padding: 10px 18px; text-decoration: none; color: var(--text-muted);">
+                    Cancel
+                </a>
+                <button type="submit" id="submitBtn" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-paper-plane"></i> Publish Timetable
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const VALID_SEMS_MAP = {
+    '1st Year': ['Sem I', 'Sem II'],
+    '2nd Year': ['Sem III', 'Sem IV'],
+    '3rd Year': ['Sem V', 'Sem VI']
+};
+
+const preselectedSem = "{{ form_data.get('semester', 'Sem V') }}";
+
+function updateSemesterDropdown() {
+    const year = document.getElementById('yearSelect').value;
+    const semSelect = document.getElementById('semesterSelect');
+    const sems = VALID_SEMS_MAP[year] || [];
+    
+    semSelect.innerHTML = '';
+    sems.forEach(sem => {
+        const opt = document.createElement('option');
+        opt.value = sem;
+        opt.textContent = sem;
+        if (sem === preselectedSem || (!preselectedSem && sems.indexOf(sem) === 0)) {
+            opt.selected = true;
+        }
+        semSelect.appendChild(opt);
+    });
+
+    // Auto-update suggested title if title is empty or defaults
+    const titleInput = document.getElementById('titleInput');
+    const course = document.getElementById('courseSelect').value;
+    const section = document.getElementById('sectionSelect').value;
+    if (!titleInput.value || titleInput.value.includes('Timetable')) {
+        titleInput.value = `${course} ${semSelect.value || sems[0]} Sec ${section} - Official Semester Timetable`;
+    }
+}
+
+function handleFileSelected(input) {
+    const info = document.getElementById('fileSelectionInfo');
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        info.innerHTML = `<i class="fas fa-check-circle"></i> Selected: <strong>${file.name}</strong> (${sizeMb} MB)`;
+        info.style.display = 'block';
+    } else {
+        info.style.display = 'none';
+    }
+}
+
+// Drag & drop support
+const dropZone = document.getElementById('dropZone');
+['dragenter', 'dragover'].forEach(evt => {
+    dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--primary)';
+        dropZone.style.background = 'rgba(59, 130, 246, 0.05)';
+    });
+});
+['dragleave', 'drop'].forEach(evt => {
+    dropZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--border)';
+        dropZone.style.background = 'rgba(0,0,0,0.01)';
+    });
+});
+dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt.files && dt.files.length > 0) {
+        document.getElementById('fileInput').files = dt.files;
+        handleFileSelected(document.getElementById('fileInput'));
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateSemesterDropdown();
+    document.getElementById('courseSelect').addEventListener('change', updateSemesterDropdown);
+    document.getElementById('sectionSelect').addEventListener('change', updateSemesterDropdown);
+});
+</script>
+{% endblock %}

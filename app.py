@@ -15,16 +15,18 @@ import pytz
 import shutil
 import math
 import calendar
+import uuid
+import json
 from datetime import datetime, timedelta, date
 from sqlalchemy import func
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify, Response, make_response, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, send_from_directory, jsonify, Response, make_response, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from fpdf import FPDF
 import qrcode
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_mail import Mail, Message as MailMessage
 from datetime import datetime
 from flask_login import logout_user
@@ -48,8 +50,27 @@ login_manager.login_view = 'login'
 # Create upload directory if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Private Storage for Academic Resources (Assignments & Study Materials)
+app.config['PRIVATE_STORAGE_FOLDER'] = os.environ.get(
+    'ACADEMIC_STORAGE_PATH',
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'private_storage')
+)
+app.config['ASSIGNMENTS_STORAGE_FOLDER'] = os.path.join(app.config['PRIVATE_STORAGE_FOLDER'], 'assignments')
+app.config['STUDY_MATERIALS_STORAGE_FOLDER'] = os.path.join(app.config['PRIVATE_STORAGE_FOLDER'], 'study_materials')
+app.config['SUBMISSIONS_STORAGE_FOLDER'] = os.path.join(app.config['PRIVATE_STORAGE_FOLDER'], 'submissions')
+app.config['STUDENT_TIMETABLES_STORAGE_FOLDER'] = os.path.join(app.config['PRIVATE_STORAGE_FOLDER'], 'student_timetables')
+os.makedirs(app.config['STUDENT_TIMETABLES_STORAGE_FOLDER'], exist_ok=True)
+app.config['MAX_ACADEMIC_UPLOAD_BYTES'] = int(os.environ.get('MAX_ACADEMIC_UPLOAD_BYTES', 15 * 1024 * 1024))  # 15 MB default
+app.config['ALLOWED_ACADEMIC_EXTENSIONS'] = {'pdf', 'docx', 'doc', 'pptx', 'ppt', 'txt', 'zip', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'}
+app.config['PROHIBITED_EXTENSIONS'] = {'exe', 'sh', 'py', 'php', 'html', 'htm', 'js', 'svg', 'bat', 'cmd', 'ps1', 'vbs', 'jar', 'war'}
+
+os.makedirs(app.config['ASSIGNMENTS_STORAGE_FOLDER'], exist_ok=True)
+os.makedirs(app.config['STUDY_MATERIALS_STORAGE_FOLDER'], exist_ok=True)
+os.makedirs(app.config['SUBMISSIONS_STORAGE_FOLDER'], exist_ok=True)
+
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 mail = Mail(app)
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -117,6 +138,25 @@ else:
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+from notification_service import (
+    init_notifications,
+    create_notification,
+    notify_users,
+    notify_class_students,
+    notify_role,
+    get_unread_count,
+    get_notifications_list,
+    mark_as_read,
+    mark_all_as_read,
+    get_or_create_preferences,
+    update_preferences,
+    get_vapid_public_key,
+    get_or_create_vapid_keys,
+    _dispatch_web_push_batch
+)
+init_notifications(app, db, socketio)
+
 
 def get_ist_time():
     return datetime.now(pytz.timezone('Asia/Kolkata'))
@@ -365,6 +405,260 @@ class InternalMarkAudit(db.Model):
 
     def __repr__(self):
         return f'<InternalMarkAudit mark:{self.internal_mark_id} comp:{self.component} {self.previous_value}->{self.new_value}>'
+
+
+# ==========================================
+# 2.3 IA ASSESSMENT CUTOFF & ELIGIBILITY OVERRIDE MODELS
+# ==========================================
+
+class AssessmentCutoff(db.Model):
+    __tablename__ = 'assessment_cutoff'
+    id = db.Column(db.Integer, primary_key=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False, index=True)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False, index=True)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    subject = db.Column(db.String(100), nullable=True) # None = class default
+    assessment_cycle = db.Column(db.String(50), default='2026-27', nullable=False, index=True)
+    component = db.Column(db.String(20), nullable=False) # 'IA1', 'IA2', 'Final IA'
+    cutoff_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('course', 'semester', 'section', 'subject', 'assessment_cycle', 'component', name='uq_assessment_cutoff'),
+    )
+
+    def __repr__(self):
+        return f'<AssessmentCutoff {self.course} {self.semester} {self.subject or "All"} {self.component}: {self.cutoff_date}>'
+
+
+class MarksEligibilityOverride(db.Model):
+    __tablename__ = 'marks_eligibility_override'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False, index=True)
+    subject = db.Column(db.String(100), nullable=False, index=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    assessment_cycle = db.Column(db.String(50), default='2026-27', nullable=False)
+    component = db.Column(db.String(20), default='ALL', nullable=False) # 'ALL', 'IA1', 'IA2', 'Final IA'
+    decision_type = db.Column(db.String(30), nullable=False) # 'ALLOW_OVERRIDE', 'MANUAL_RESTRICT'
+    reason = db.Column(db.Text, nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    version = db.Column(db.Integer, default=1, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', backref=db.backref('eligibility_overrides', lazy=True, cascade='all, delete-orphan'))
+    creator = db.relationship('User', foreign_keys=[created_by_id], backref='created_eligibility_overrides')
+    updater = db.relationship('User', foreign_keys=[updated_by_id], backref='updated_eligibility_overrides')
+
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'subject', 'course', 'semester', 'section', 'assessment_cycle', 'component', name='uq_marks_eligibility_override'),
+    )
+
+    def __repr__(self):
+        return f'<MarksEligibilityOverride student:{self.student_id} subj:{self.subject} {self.decision_type} active:{self.is_active}>'
+
+
+class MarksEligibilityAudit(db.Model):
+    __tablename__ = 'marks_eligibility_audit'
+    id = db.Column(db.Integer, primary_key=True)
+    override_id = db.Column(db.Integer, db.ForeignKey('marks_eligibility_override.id', ondelete='SET NULL'), nullable=True, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False, index=True)
+    subject = db.Column(db.String(100), nullable=False)
+    course = db.Column(db.String(50), nullable=False)
+    semester = db.Column(db.String(20), nullable=False)
+    section = db.Column(db.String(20), nullable=False)
+    assessment_cycle = db.Column(db.String(50), nullable=False)
+    component = db.Column(db.String(20), nullable=False) # 'ALL', 'IA1', 'IA2', 'Final IA'
+    action = db.Column(db.String(30), nullable=False) # 'ALLOW_OVERRIDE', 'MANUAL_RESTRICT', 'REVOKE'
+    previous_decision = db.Column(db.String(50), nullable=True) # e.g. 'AUTOMATIC', 'ALLOW_OVERRIDE', 'MANUAL_RESTRICT'
+    new_decision = db.Column(db.String(50), nullable=False) # 'ALLOW_OVERRIDE', 'MANUAL_RESTRICT', 'AUTOMATIC'
+    reason = db.Column(db.Text, nullable=False)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', foreign_keys=[student_id], backref='eligibility_audits')
+    editor = db.relationship('User', foreign_keys=[changed_by_id], backref='conducted_eligibility_audits')
+    override = db.relationship('MarksEligibilityOverride', foreign_keys=[override_id])
+
+    def __repr__(self):
+        return f'<MarksEligibilityAudit student:{self.student_id} action:{self.action} by:{self.changed_by_id}>'
+
+
+# ==========================================
+# 2.4 ACADEMIC ASSIGNMENTS & STUDY MATERIALS MODELS
+# ==========================================
+
+class Assignment(db.Model):
+    __tablename__ = 'assignment'
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='A', nullable=False)
+    subject = db.Column(db.String(100), nullable=False, index=True)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False)
+    assigned_date = db.Column(db.Date, nullable=False, default=date.today)
+    deadline = db.Column(db.DateTime, nullable=False)
+    max_marks = db.Column(db.Float, nullable=True) # e.g. 20.0 or 10.0
+    status = db.Column(db.String(20), default='Published', nullable=False) # 'Draft', 'Published', 'Archived', 'Cancelled'
+
+    # Secure Attachment Reference
+    attachment_filename = db.Column(db.String(255), nullable=True) # Safe display name
+    attachment_storage_key = db.Column(db.String(255), nullable=True) # Randomized private key
+    attachment_mimetype = db.Column(db.String(100), nullable=True)
+    attachment_size = db.Column(db.Integer, nullable=True)
+
+    # Ownership & Timestamps
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    creator = db.relationship('User', foreign_keys=[created_by_id], backref='created_assignments')
+    updater = db.relationship('User', foreign_keys=[updated_by_id], backref='updated_assignments')
+    submissions = db.relationship('AssignmentSubmission', backref='assignment', cascade='all, delete-orphan', lazy=True)
+
+    def __repr__(self):
+        return f'<Assignment {self.title} ({self.subject} {self.course} {self.semester} Sec {self.section})>'
+
+
+class AssignmentSubmission(db.Model):
+    __tablename__ = 'assignment_submission'
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id', ondelete='CASCADE'), nullable=False, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False, index=True)
+    status = db.Column(db.String(30), default='Submitted', nullable=False) # 'Submitted', 'Not submitted', 'Late'
+    status_source = db.Column(db.String(30), default='STUDENT_UPLOAD', nullable=False) # 'STUDENT_UPLOAD', 'TEACHER_RECORDED', 'SYSTEM_DEFAULT'
+    submitted_at = db.Column(db.DateTime, nullable=True)
+
+    # Submission File
+    file_filename = db.Column(db.String(255), nullable=True)
+    file_storage_key = db.Column(db.String(255), nullable=True)
+    file_mimetype = db.Column(db.String(100), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
+    version = db.Column(db.Integer, default=1, nullable=False)
+    student_comment = db.Column(db.Text, nullable=True)
+
+    # Optional grading & feedback
+    marks_obtained = db.Column(db.Float, nullable=True)
+    teacher_feedback = db.Column(db.Text, nullable=True)
+    graded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    graded_at = db.Column(db.DateTime, nullable=True)
+
+    # Status modification audit
+    last_status_changed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    last_status_changed_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    student = db.relationship('Student', backref=db.backref('assignment_submissions', lazy=True, cascade='all, delete-orphan'))
+    grader = db.relationship('User', foreign_keys=[graded_by_id])
+    status_changer = db.relationship('User', foreign_keys=[last_status_changed_by_id])
+
+    __table_args__ = (
+        db.UniqueConstraint('assignment_id', 'student_id', name='uq_assignment_student_submission'),
+    )
+
+    def __repr__(self):
+        return f'<AssignmentSubmission asg:{self.assignment_id} student:{self.student_id} status:{self.status}>'
+
+
+class StudyMaterial(db.Model):
+    __tablename__ = 'study_material'
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(50), nullable=False, index=True) # 'Textbooks', 'Previous Year Papers', 'Question Banks'
+    subject = db.Column(db.String(100), nullable=False, index=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False)
+    section = db.Column(db.String(20), default='ALL', nullable=True)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False)
+    unit_or_chapter = db.Column(db.String(100), nullable=True)
+    exam_year = db.Column(db.String(20), nullable=True) # e.g. '2024', '2023'
+    tags = db.Column(db.String(255), nullable=True)
+
+    # Secure File Reference
+    file_filename = db.Column(db.String(255), nullable=False)
+    file_storage_key = db.Column(db.String(255), nullable=False)
+    file_mimetype = db.Column(db.String(100), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+    file_checksum = db.Column(db.String(64), nullable=True)
+    status = db.Column(db.String(20), default='Published', nullable=False) # 'Published', 'Archived', 'Draft'
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    creator = db.relationship('User', foreign_keys=[created_by_id], backref='uploaded_study_materials')
+    updater = db.relationship('User', foreign_keys=[updated_by_id], backref='updated_study_materials')
+
+    def __repr__(self):
+        return f'<StudyMaterial {self.category}: {self.title} ({self.subject})>'
+
+
+class StudentSemesterTimetable(db.Model):
+    __tablename__ = 'student_semester_timetable'
+    id = db.Column(db.Integer, primary_key=True)
+    course = db.Column(db.String(50), default='BCA', nullable=False, index=True)
+    academic_year = db.Column(db.String(20), default='3rd Year', nullable=False, index=True)
+    semester = db.Column(db.String(20), default='Sem V', nullable=False, index=True)
+    section = db.Column(db.String(20), default='A', nullable=False, index=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # Secure file reference
+    file_filename = db.Column(db.String(255), nullable=False)
+    file_storage_key = db.Column(db.String(255), nullable=False)
+    file_mimetype = db.Column(db.String(100), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False, default=0)
+    file_checksum = db.Column(db.String(64), nullable=True)
+
+    version = db.Column(db.Integer, default=1, nullable=False)
+    status = db.Column(db.String(20), default='PUBLISHED', nullable=False, index=True) # 'PUBLISHED' or 'ARCHIVED'
+
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    uploader = db.relationship('User', foreign_keys=[uploaded_by_id], backref='uploaded_student_timetables')
+
+    __table_args__ = (
+        db.Index('idx_student_tt_scope', 'course', 'academic_year', 'semester', 'section', 'status'),
+    )
+
+    def __repr__(self):
+        return f'<StudentSemesterTimetable {self.course} {self.semester} Sec {self.section} v{self.version} ({self.status})>'
+
+
+class AcademicResourceAudit(db.Model):
+    __tablename__ = 'academic_resource_audit'
+    id = db.Column(db.Integer, primary_key=True)
+    resource_type = db.Column(db.String(50), nullable=False, index=True) # 'ASSIGNMENT', 'SUBMISSION', 'STUDY_MATERIAL'
+    resource_id = db.Column(db.Integer, nullable=False, index=True)
+    action = db.Column(db.String(50), nullable=False) # 'CREATE', 'UPDATE', 'STATUS_CHANGE', 'DELETE', 'ARCHIVE', 'GRADE'
+    actor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    actor_student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=True)
+    before_state = db.Column(db.Text, nullable=True)
+    after_state = db.Column(db.Text, nullable=True)
+    reason = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    actor_user = db.relationship('User', foreign_keys=[actor_id])
+    actor_student = db.relationship('Student', foreign_keys=[actor_student_id])
+
+    def __repr__(self):
+        return f'<AcademicResourceAudit {self.resource_type}:{self.resource_id} {self.action}>'
 
 
 def inject_heavy_timetable():
@@ -733,6 +1027,8 @@ class Attendance(db.Model):
     work_mode = db.Column(db.String(20))
     lat = db.Column(db.Float)
     lon = db.Column(db.Float)
+    accuracy = db.Column(db.Float, nullable=True)
+    location_status = db.Column(db.String(50), nullable=True)
 
 class RegisteredDevice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -801,11 +1097,49 @@ class Task(db.Model):
     task_sender = db.relationship('User', foreign_keys=[assigned_by], overlaps="sender_link,tasks_delegated_by_me")
 
 class Notification(db.Model):
+    __tablename__ = 'notification'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
-    message = db.Column(db.String(255))
-    is_read = db.Column(db.Boolean, default=False)
-    timestamp = db.Column(db.DateTime, default=get_ist_time)
+    user_id = db.Column(db.Integer, nullable=True) # Legacy & User.id
+    recipient_type = db.Column(db.String(20), default='USER', nullable=False) # 'USER' or 'STUDENT'
+    student_id = db.Column(db.Integer, nullable=True) # Student.id
+    title = db.Column(db.String(150), nullable=True)
+    message = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(50), default='general', nullable=False)
+    action_url = db.Column(db.String(255), nullable=True)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    idempotency_key = db.Column(db.String(100), nullable=True, index=True)
+    timestamp = db.Column(db.DateTime, default=get_ist_time, nullable=False)
+
+    def __init__(self, **kwargs):
+        if 'msg' in kwargs and 'message' not in kwargs:
+            kwargs['message'] = kwargs.pop('msg')
+        super().__init__(**kwargs)
+
+class NotificationPreference(db.Model):
+    __tablename__ = 'notification_preference'
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_type = db.Column(db.String(20), default='USER', nullable=False) # 'USER' or 'STUDENT'
+    user_id = db.Column(db.Integer, nullable=True)
+    student_id = db.Column(db.Integer, nullable=True)
+    sound_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    browser_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    email_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    volume = db.Column(db.Float, default=0.7, nullable=False)
+    muted_categories = db.Column(db.String(255), default='', nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscription'
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_type = db.Column(db.String(20), default='USER', nullable=False) # 'USER' or 'STUDENT'
+    user_id = db.Column(db.Integer, nullable=True)
+    student_id = db.Column(db.Integer, nullable=True)
+    endpoint = db.Column(db.Text, unique=True, nullable=False)
+    p256dh_key = db.Column(db.Text, nullable=False)
+    auth_key = db.Column(db.Text, nullable=False)
+    user_agent = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=get_ist_time, nullable=False)
+    last_seen_at = db.Column(db.DateTime, default=get_ist_time, nullable=False)
 
 class ActivityReport(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -853,10 +1187,76 @@ def log_action(action_text, target="System"):
     db.session.add(new_log)
     db.session.commit()
 
-# BMS College of Commerce and Management, Basavanagudi, Bengaluru 560004
+class VaultDocument(db.Model):
+    __tablename__ = 'vault_document'
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_hash = db.Column(db.String(64), nullable=False, index=True)
+    file_size = db.Column(db.Integer, nullable=False)
+    mime_type = db.Column(db.String(100), nullable=False)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    uploader = db.relationship('User', foreign_keys=[uploaded_by_id], backref='uploaded_vault_documents')
+
+    def __repr__(self):
+        return f'<VaultDocument {self.original_filename} ({self.file_hash[:8]})>'
+
+
+class VaultProposal(db.Model):
+    __tablename__ = 'vault_proposal'
+    id = db.Column(db.Integer, primary_key=True)
+    proposal_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    document_id = db.Column(db.Integer, db.ForeignKey('vault_document.id', ondelete='SET NULL'), nullable=True)
+    target_type = db.Column(db.String(20), nullable=False) # 'STUDENT' or 'STAFF'
+    operation = db.Column(db.String(20), nullable=False) # 'CREATE' or 'UPDATE'
+    target_record_id = db.Column(db.Integer, nullable=True)
+    target_identifier = db.Column(db.String(100), nullable=True)
+    classification = db.Column(db.String(40), nullable=False)
+    raw_ocr_text = db.Column(db.Text, nullable=True)
+    extracted_data_json = db.Column(db.Text, nullable=False, default='{}')
+    proposed_changes_json = db.Column(db.Text, nullable=False, default='{}')
+    before_values_json = db.Column(db.Text, nullable=True, default='{}')
+    diff_summary_json = db.Column(db.Text, nullable=True, default='[]')
+    validation_warnings_json = db.Column(db.Text, nullable=True, default='[]')
+    status = db.Column(db.String(30), default='PENDING_APPROVAL', nullable=False, index=True)
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    review_notes = db.Column(db.Text, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    applied_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    applied_at = db.Column(db.DateTime, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    version = db.Column(db.Integer, default=1, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    document = db.relationship('VaultDocument', backref=db.backref('proposals', lazy=True))
+    submitter = db.relationship('User', foreign_keys=[submitted_by_id], backref='submitted_vault_proposals')
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by_id], backref='reviewed_vault_proposals')
+    applier = db.relationship('User', foreign_keys=[applied_by_id], backref='applied_vault_proposals')
+
+    def __repr__(self):
+        return f'<VaultProposal {self.proposal_id[:8]} {self.target_type} {self.operation} {self.status}>'
+
+from campus_geofence import (
+    verify_campus_presence,
+    get_geofence_config,
+    update_geofence_config,
+    haversine_distance,
+    point_in_polygon
+)
+
+# Canonical Institution Reference: BMS College of Commerce & Management (BMSCCM)
+# Address: No. 97, Kavi Lakshmisha Road, Parvathi Nagar / V.V. Puram, Bengaluru – 560004
 CAMPUS_LAT = float(os.environ.get('CAMPUS_LAT', 12.9515))
 CAMPUS_LON = float(os.environ.get('CAMPUS_LON', 77.5762))
-CAMPUS_RADIUS_METERS = float(os.environ.get('CAMPUS_RADIUS_METERS', 1000.0))
+CAMPUS_RADIUS_METERS = float(os.environ.get('CAMPUS_RADIUS_METERS', 150.0))
 CAMPUS_IP_PREFIXES = [ip.strip() for ip in os.environ.get('CAMPUS_IP_PREFIXES', '127.0.0.1,192.168.,10.0.').split(',') if ip.strip()]
 
 SHIFT_START = os.environ.get('SHIFT_START', '09:00 AM')
@@ -876,14 +1276,8 @@ def teardown_request(exception):
             pass
 
 def calculate_distance(lat1, lon1, lat2, lon2):
-    """Haversine formula to calculate distance in meters."""
-    R = 6371000  # Radius of Earth in meters
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = (math.sin(dphi/2)**2 + 
-         math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2)
-    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    """Haversine formula to calculate geodesic distance in meters (delegates to authoritative campus_geofence)."""
+    return haversine_distance(lat1, lon1, lat2, lon2)
 
 def generate_rotating_qr_token(window_offset=0):
     """Generates a signed HMAC token valid for a 30-second time window."""
@@ -1028,6 +1422,16 @@ NOTIFICATION_ROUTING_MAP = {
         'channels': ['email'],
         'subject': lambda u, c: f"Attendance Notification - BMS College ({c.get('subject', 'Academic Session')})",
         'email_body': lambda u, c: f"<h3>Attendance Notification — BMS College</h3><p>Dear {getattr(u, 'name', getattr(u, 'full_name', 'Student'))},</p><p>This is to inform you that you were marked <strong>ABSENT</strong> for the following academic session:</p><ul><li><strong>Course:</strong> {c.get('course', 'BCA')}</li><li><strong>Semester:</strong> {c.get('semester', 'Sem V')}</li><li><strong>Section:</strong> {c.get('section', 'A')}</li><li><strong>Subject:</strong> {c.get('subject', 'N/A')}</li><li><strong>Date:</strong> {c.get('date', 'Today')}</li><li><strong>Time Slot:</strong> {c.get('time_slot', 'N/A')}</li><li><strong>Room:</strong> {c.get('room_no', 'N/A')}</li><li><strong>Faculty:</strong> {c.get('faculty', 'Faculty')}</li></ul><p>If you believe this attendance record is incorrect, please contact the concerned faculty member promptly.</p><p>Regards,<br><strong>BMS College ERP Academic Cell</strong></p>",
+    },
+    'assignment_published': {
+        'channels': ['email'],
+        'subject': lambda u, c: f"BMS College ERP — New Assignment: {c.get('subject', 'Academic')} ({c.get('title', 'Assignment')})",
+        'email_body': lambda u, c: f"<h3>New Academic Assignment Published</h3><p>Dear {getattr(u, 'name', getattr(u, 'full_name', 'Student'))},</p><p>A new academic assignment has been published for your class:</p><ul><li><strong>Subject:</strong> {c.get('subject', 'N/A')}</li><li><strong>Title:</strong> {c.get('title', 'Assignment')}</li><li><strong>Assigned Date:</strong> {c.get('assigned_date', 'Today')}</li><li><strong>Submission Deadline:</strong> {c.get('deadline', 'As scheduled')}</li><li><strong>Maximum Marks:</strong> {c.get('max_marks', 'N/A')}</li></ul><p>Please log in to your Student Portal to view detailed instructions and submit your work before the deadline.</p><p>Best regards,<br><strong>BMS College ERP Academic Cell</strong></p>",
+    },
+    'assignment_deadline_updated': {
+        'channels': ['email'],
+        'subject': lambda u, c: f"BMS College ERP — Deadline Update: {c.get('subject', 'Academic')} ({c.get('title', 'Assignment')})",
+        'email_body': lambda u, c: f"<h3>Assignment Deadline Updated</h3><p>Dear {getattr(u, 'name', getattr(u, 'full_name', 'Student'))},</p><p>The submission deadline for the following assignment has been revised:</p><ul><li><strong>Subject:</strong> {c.get('subject', 'N/A')}</li><li><strong>Title:</strong> {c.get('title', 'Assignment')}</li><li><strong>Revised Deadline:</strong> {c.get('deadline', 'As scheduled')}</li></ul><p>Please ensure your submission is recorded before the revised deadline.</p><p>Best regards,<br><strong>BMS College ERP Academic Cell</strong></p>",
     }
 }
 
@@ -1190,6 +1594,19 @@ def notify(event, user, context=None, channels=None):
 
     return results
 
+
+def dispatch_notification(user, event, context=None):
+    """Unified dispatcher for User or Student notifications."""
+    try:
+        route_info = NOTIFICATION_ROUTING_MAP.get(event, {})
+        subj_tmpl = route_info.get('subject', 'BMS College ERP Notification')
+        subject = subj_tmpl(user, context or {}) if callable(subj_tmpl) else subj_tmpl
+        email_tmpl = route_info.get('email_body')
+        body = email_tmpl(user, context or {}) if callable(email_tmpl) else f"<p>{event}</p>"
+        _send_email_notification(user, subject, body)
+    except Exception as e:
+        app.logger.warning(f"Notification dispatch skipped: {e}")
+
 # 4. ALL ORIGINAL ROUTES + NEW UPDATES
 # ==========================================
 
@@ -1256,6 +1673,16 @@ def login():
                         'ip': client_ip,
                         'browser': user_agent[:80]
                     })
+                    create_notification(
+                        recipient_type='USER',
+                        recipient_id=user.id,
+                        title="Security Alert: New Sign-In",
+                        message=f"New sign-in detected from {user_agent[:40]} (IP: {client_ip}).",
+                        category='security',
+                        action_url=url_for('my_profile'),
+                        idempotency_key=f"login_dev_{user.id}_{device_hash}",
+                        sound=True
+                    )
             except Exception as dev_err:
                 print(f"Device security check note: {dev_err}")
 
@@ -1657,8 +2084,22 @@ def take_academic_attendance(timetable_id):
             flash(f"Database persistence error: {str(db_err)}", "danger")
             return redirect(url_for('take_academic_attendance', timetable_id=timetable_id))
 
-        # AFTER COMMIT: Dispatch personalized absence emails non-blocking
+        # AFTER COMMIT: Dispatch in-app notifications and absence emails
         if absent_students:
+            for s in absent_students:
+                try:
+                    create_notification(
+                        recipient_type='STUDENT',
+                        recipient_id=s.id,
+                        title=f"Absence Notice: {session_record.actual_subject}",
+                        message=f"You were marked ABSENT for {session_record.actual_subject} on {session_record.date.strftime('%d %b %Y')} ({session_record.time_slot}).",
+                        category='attendance',
+                        action_url=url_for('student_marks'),
+                        idempotency_key=f"att_abs_{session_record.id}_{s.id}",
+                        sound=True
+                    )
+                except Exception as notif_err:
+                    pass
             _dispatch_absence_emails_async(
                 absent_students=[{'id': s.id, 'name': s.name, 'email': s.email, 'uucms_id': s.uucms_id} for s in absent_students],
                 session_info={
@@ -1887,6 +2328,23 @@ def edit_academic_attendance(session_id):
             flash(f"Database error during attendance correction: {str(db_err)}", "danger")
             return redirect(url_for('edit_academic_attendance', session_id=session_id))
 
+        # Post-commit In-App Notifications for corrected attendance
+        for ch in status_changes:
+            try:
+                st = ch['student']
+                create_notification(
+                    recipient_type='STUDENT',
+                    recipient_id=st.id,
+                    title=f"Attendance Corrected: {session_obj.actual_subject}",
+                    message=f"Your attendance for {session_obj.actual_subject} on {session_obj.date.strftime('%d %b %Y')} was corrected to {ch['new_status']} (Reason: {reason}).",
+                    category='attendance',
+                    action_url=url_for('student_marks'),
+                    idempotency_key=f"att_corr_{session_obj.id}_{st.id}_{ch['new_status']}",
+                    sound=True
+                )
+            except Exception:
+                pass
+
         # Post-commit Notification Policy:
         # Only notify students whose status changed from Present -> Absent.
         # Do not resend emails for students unchanged or changed to Present.
@@ -2095,12 +2553,11 @@ def academic_attendance_today():
 # FEATURE — STUDENT INTERNAL ASSESSMENT MARKS MANAGEMENT
 # ==============================================================================
 
-# Configurable assessment maxima (defaults to 25.0 each per BU/BMSCCM practice)
-# College administration must confirm official maximum marks before production use.
+# Configurable assessment maxima (defaults to 20.0 each per BMS College policy)
 DEFAULT_ASSESSMENT_MAXIMA = {
-    'IA1': 25.0,
-    'IA2': 25.0,
-    'Final IA': 25.0
+    'IA1': 20.0,
+    'IA2': 20.0,
+    'Final IA': 20.0
 }
 
 def get_assessment_maxima():
@@ -2138,6 +2595,24 @@ def parse_and_validate_mark(raw_value, component_name, max_mark):
 
     return round(val, 2), None
 
+VALID_STUDY_MATERIAL_CATEGORIES = ['Textbooks', 'Previous Year Papers', 'Question Banks']
+VALID_COURSES = ['BCA', 'B.Com', 'BBA']
+VALID_ACADEMIC_YEARS = ['1st Year', '2nd Year', '3rd Year']
+VALID_SECTIONS = ['A', 'B', 'ALL']
+VALID_ACADEMIC_YEAR_SEMESTERS = {
+    '1st Year': ['Sem I', 'Sem II'],
+    '2nd Year': ['Sem III', 'Sem IV'],
+    '3rd Year': ['Sem V', 'Sem VI']
+}
+SEMESTER_TO_ACADEMIC_YEAR = {
+    'Sem I': '1st Year',
+    'Sem II': '1st Year',
+    'Sem III': '2nd Year',
+    'Sem IV': '2nd Year',
+    'Sem V': '3rd Year',
+    'Sem VI': '3rd Year'
+}
+
 def get_authorized_subject_contexts(user):
     if user.role in ['Principal', 'admin']:
         rows = db.session.query(
@@ -2165,6 +2640,7 @@ def get_authorized_subject_contexts(user):
     for c, sem, sec, subj in rows:
         contexts.append({
             'course': c or 'BCA',
+            'academic_year': SEMESTER_TO_ACADEMIC_YEAR.get(sem, '3rd Year'),
             'semester': sem,
             'section': sec or 'A',
             'subject': subj
@@ -2186,6 +2662,630 @@ def is_user_authorized_for_context(user, course, semester, section, subject):
         ).first()
         return match is not None
     return False
+
+def is_user_authorized_for_class(user, course, semester, section):
+    """
+    Checks if a user is authorized to view students/records for this class context.
+    - Principal & admin: All classes
+    - HOD - BCA Dept: BCA courses
+    - Faculty: Classes where they teach at least one subject
+    """
+    if user.role in ['Principal', 'admin']:
+        return True
+    if user.role == 'HOD - BCA Dept' and course == 'BCA':
+        return True
+    if user.role == 'Faculty':
+        match = Timetable.query.filter_by(
+            user_id=user.id,
+            course=course,
+            semester=semester,
+            section=section
+        ).first()
+        return match is not None
+    return False
+
+def get_assessment_cutoff_date(course='BCA', semester='Sem V', section='A', subject=None, assessment_cycle='2026-27', component='IA1'):
+    """
+    Resolves the authoritative cutoff date for an assessment component.
+    Hierarchy:
+    1. Exact subject-level cutoff
+    2. Class-level default cutoff (subject=None)
+    3. Institutional default fallback for the cycle
+    """
+    if subject:
+        specific = AssessmentCutoff.query.filter_by(
+            course=course,
+            semester=semester,
+            section=section,
+            subject=subject,
+            assessment_cycle=assessment_cycle,
+            component=component
+        ).first()
+        if specific:
+            return specific.cutoff_date
+
+    general = AssessmentCutoff.query.filter_by(
+        course=course,
+        semester=semester,
+        section=section,
+        subject=None,
+        assessment_cycle=assessment_cycle,
+        component=component
+    ).first()
+    if general:
+        return general.cutoff_date
+
+    defaults = {
+        'IA1': date(2026, 10, 5),
+        'IA2': date(2026, 11, 15),
+        'Final IA': date(2026, 12, 10)
+    }
+    return defaults.get(component, date(2026, 12, 31))
+
+def calculate_subject_attendance(student_id, subject, assessment_date, course='BCA', semester='Sem V', section='A'):
+    """
+    Calculates qualifying attendance up to the assessment_date cutoff.
+    Rules:
+    - Only finalized, actually conducted sessions (ClassSession.status == 'COMPLETED').
+    - Date <= assessment_date.
+    - Subject attribution: ClassSession.actual_subject == subject (or scheduled_subject fallback).
+    - Class scope: course, semester, section match.
+    - Attended: StudentAttendance.status == 'Present'.
+    - Unheld/cancelled/future classes excluded.
+    - 0 conducted classes -> explicit pending/unavailable status.
+    """
+    if isinstance(assessment_date, datetime):
+        assessment_date = assessment_date.date()
+
+    # Query completed class sessions on or before assessment_date
+    sessions = ClassSession.query.filter(
+        ClassSession.course == course,
+        ClassSession.semester == semester,
+        ClassSession.section == section,
+        ClassSession.status == 'COMPLETED',
+        ClassSession.date <= assessment_date
+    ).all()
+
+    # Filter for attributable subject (actual_subject takes precedence over scheduled_subject)
+    matching_session_ids = [
+        s.id for s in sessions
+        if (s.actual_subject == subject if s.actual_subject else s.scheduled_subject == subject)
+    ]
+
+    conducted_count = len(matching_session_ids)
+    if conducted_count == 0:
+        return {
+            'status': 'PENDING',
+            'percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'is_eligible': None,
+            'message': 'No conducted sessions before assessment cutoff.'
+        }
+
+    # Query attendance records for this student across these sessions
+    attendances = StudentAttendance.query.filter(
+        StudentAttendance.class_session_id.in_(matching_session_ids),
+        StudentAttendance.student_id == student_id
+    ).all()
+
+    # Avoid duplicate counting of sessions: unique session IDs marked Present
+    attended_session_ids = {
+        a.class_session_id for a in attendances
+        if a.status == 'Present'
+    }
+    attended_count = len(attended_session_ids)
+
+    percentage = round((attended_count * 100.0) / conducted_count, 2)
+    is_eligible = (percentage >= 75.0)
+
+    return {
+        'status': 'ELIGIBLE' if is_eligible else 'RESTRICTED',
+        'percentage': percentage,
+        'attended': attended_count,
+        'conducted': conducted_count,
+        'is_eligible': is_eligible,
+        'message': f'{percentage}% ({attended_count}/{conducted_count} sessions)'
+    }
+
+def evaluate_marks_eligibility(student_id, subject, component='IA1', assessment_cycle='2026-27', course='BCA', semester='Sem V', section='A'):
+    """
+    Evaluates student visibility for a specific subject and assessment component.
+    1. Check for active HOD override (component-specific first, then 'ALL')
+    2. If active override exists:
+       - MANUAL_RESTRICT -> can_view=False, decision_source='HOD_MANUAL_RESTRICT'
+       - ALLOW_OVERRIDE -> can_view=True, decision_source='HOD_ALLOW_OVERRIDE'
+    3. If no active override (or revoked):
+       - Evaluate automatic attendance up to assessment cutoff date:
+         - PENDING (0 classes) -> can_view=False, decision_source='AUTOMATIC_PENDING'
+         - < 75% -> can_view=False, decision_source='AUTOMATIC_RESTRICTED'
+         - >= 75% -> can_view=True, decision_source='AUTOMATIC_ELIGIBLE'
+    """
+    cutoff_date = get_assessment_cutoff_date(
+        course=course,
+        semester=semester,
+        section=section,
+        subject=subject,
+        assessment_cycle=assessment_cycle,
+        component=component
+    )
+
+    att_res = calculate_subject_attendance(
+        student_id=student_id,
+        subject=subject,
+        assessment_date=cutoff_date,
+        course=course,
+        semester=semester,
+        section=section
+    )
+
+    override = MarksEligibilityOverride.query.filter(
+        MarksEligibilityOverride.student_id == student_id,
+        MarksEligibilityOverride.subject == subject,
+        MarksEligibilityOverride.course == course,
+        MarksEligibilityOverride.semester == semester,
+        MarksEligibilityOverride.section == section,
+        MarksEligibilityOverride.assessment_cycle == assessment_cycle,
+        MarksEligibilityOverride.component.in_([component, 'ALL']),
+        MarksEligibilityOverride.is_active == True
+    ).order_by(
+        db.case((MarksEligibilityOverride.component == component, 1), else_=2)
+    ).first()
+
+    if override:
+        if override.decision_type == 'MANUAL_RESTRICT':
+            return {
+                'can_view': False,
+                'decision_source': 'HOD_MANUAL_RESTRICT',
+                'status': 'RESTRICTED',
+                'public_message': 'Subject marks viewing restricted by HOD.',
+                'attendance_percentage': att_res['percentage'],
+                'attended': att_res['attended'],
+                'conducted': att_res['conducted'],
+                'cutoff_date': cutoff_date,
+                'override': override
+            }
+        elif override.decision_type == 'ALLOW_OVERRIDE':
+            return {
+                'can_view': True,
+                'decision_source': 'HOD_ALLOW_OVERRIDE',
+                'status': 'AUTHORIZED',
+                'public_message': 'Access authorized by department special dispensation.',
+                'attendance_percentage': att_res['percentage'],
+                'attended': att_res['attended'],
+                'conducted': att_res['conducted'],
+                'cutoff_date': cutoff_date,
+                'override': override
+            }
+
+    if att_res['status'] == 'PENDING':
+        return {
+            'can_view': False,
+            'decision_source': 'AUTOMATIC_PENDING',
+            'status': 'PENDING',
+            'public_message': 'Attendance eligibility could not yet be verified.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'cutoff_date': cutoff_date,
+            'override': None
+        }
+    elif att_res['is_eligible']:
+        return {
+            'can_view': True,
+            'decision_source': 'AUTOMATIC_ELIGIBLE',
+            'status': 'ELIGIBLE',
+            'public_message': f'Attendance verified at {att_res["percentage"]}%.',
+            'attendance_percentage': att_res['percentage'],
+            'attended': att_res['attended'],
+            'conducted': att_res['conducted'],
+            'cutoff_date': cutoff_date,
+            'override': None
+        }
+    else:
+        return {
+            'can_view': False,
+            'decision_source': 'AUTOMATIC_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': f'Attendance is below 75% ({att_res["percentage"]}%). Subject marks view is restricted.',
+            'attendance_percentage': att_res['percentage'],
+            'attended': att_res['attended'],
+            'conducted': att_res['conducted'],
+            'cutoff_date': cutoff_date,
+            'override': None
+        }
+
+
+# ==============================================================================
+# CENTRAL ACADEMIC ACCESS CONTROL & FILE SECURITY SERVICE
+# ==============================================================================
+
+def get_active_hod_access_decision(student, subject, academic_scope, resource_type=None):
+    """
+    Checks for an active HOD decision (ALLOW_OVERRIDE or MANUAL_RESTRICT)
+    for a student, subject, and academic scope.
+    Checks resource-specific component first (e.g. 'ASSIGNMENT', 'STUDY_MATERIAL'), then 'ALL'.
+    """
+    if not student:
+        return None
+
+    course = academic_scope.get('course', 'BCA')
+    semester = academic_scope.get('semester', 'Sem V')
+    section = academic_scope.get('section', 'A')
+    assessment_cycle = academic_scope.get('assessment_cycle', '2026-27')
+
+    components_to_check = [resource_type, 'ALL'] if resource_type else ['ALL']
+    components_to_check = [c for c in components_to_check if c]
+
+    override = MarksEligibilityOverride.query.filter(
+        MarksEligibilityOverride.student_id == student.id,
+        MarksEligibilityOverride.subject == subject,
+        MarksEligibilityOverride.course == course,
+        MarksEligibilityOverride.semester == semester,
+        MarksEligibilityOverride.section == section,
+        MarksEligibilityOverride.assessment_cycle == assessment_cycle,
+        MarksEligibilityOverride.component.in_(components_to_check),
+        MarksEligibilityOverride.is_active == True
+    ).order_by(
+        db.case((MarksEligibilityOverride.component == resource_type, 1), else_=2)
+    ).first()
+
+    return override
+
+
+def get_subject_attendance_eligibility(student, subject, academic_scope, evaluation_date=None):
+    """
+    Evaluates raw subject attendance up to the evaluation_date cutoff.
+    If evaluation_date is None, returns PENDING fail-closed status.
+    """
+    if not student or not evaluation_date:
+        return {
+            'status': 'PENDING',
+            'percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'is_eligible': False,
+            'message': 'No evaluation date specified for attendance calculation.'
+        }
+
+    course = academic_scope.get('course', 'BCA')
+    semester = academic_scope.get('semester', 'Sem V')
+    section = academic_scope.get('section', 'A')
+
+    return calculate_subject_attendance(
+        student_id=student.id,
+        subject=subject,
+        assessment_date=evaluation_date,
+        course=course,
+        semester=semester,
+        section=section
+    )
+
+
+def get_academic_content_access_decision(user, student, subject, academic_scope, resource_type='ASSIGNMENT', evaluation_date=None):
+    """
+    Centralized Access Policy Engine for Assignments and Study Materials.
+    Requirements:
+    1. Active HOD manual restriction denies student access.
+    2. Active HOD allow override permits access below 75%.
+    3. Attendance >= 75.0% satisfies threshold.
+    4. Attendance < 75.0% denies access.
+    5. Missing, unreliable or 0 sessions (PENDING) fails closed (denies access).
+    6. Exactly 75.0% satisfies threshold.
+    7. Staff/Faculty/HOD content management rights are evaluated separately via can_manage_academic_resource().
+    """
+    # If a staff user is requesting on behalf of themselves (e.g. previewing/viewing content),
+    # verify teacher/HOD authorization
+    if user and not student:
+        can_manage = can_manage_academic_resource(user, subject, academic_scope, action='VIEW')
+        return {
+            'can_view': can_manage,
+            'decision_source': 'STAFF_ROLE_CHECK',
+            'status': 'AUTHORIZED' if can_manage else 'FORBIDDEN',
+            'public_message': 'Staff authorization granted.' if can_manage else 'Staff authorization denied.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+
+    if not student:
+        return {
+            'can_view': False,
+            'decision_source': 'UNAUTHENTICATED',
+            'status': 'FORBIDDEN',
+            'public_message': 'Student identity required.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+
+    # Verify student's academic scope matches resource scope
+    req_course = academic_scope.get('course')
+    req_year = academic_scope.get('academic_year')
+    req_sem = academic_scope.get('semester')
+    req_sec = academic_scope.get('section')
+    if req_course and student.course != req_course:
+        return {
+            'can_view': False,
+            'decision_source': 'CROSS_CLASS_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': 'Content does not belong to your enrolled program.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+    if req_year and student.academic_year != req_year:
+        return {
+            'can_view': False,
+            'decision_source': 'CROSS_CLASS_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': 'Content does not belong to your enrolled academic year.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+    if req_sem and student.semester != req_sem:
+        return {
+            'can_view': False,
+            'decision_source': 'CROSS_CLASS_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': 'Content does not belong to your enrolled semester.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+    if req_sec and req_sec != 'ALL' and student.section != req_sec:
+        return {
+            'can_view': False,
+            'decision_source': 'CROSS_CLASS_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': 'Content does not belong to your enrolled section.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+
+    # 1. Check for Active HOD Override
+    override = get_active_hod_access_decision(student, subject, academic_scope, resource_type=resource_type)
+    if override:
+        if override.decision_type == 'MANUAL_RESTRICT':
+            return {
+                'can_view': False,
+                'decision_source': 'HOD_MANUAL_RESTRICT',
+                'status': 'RESTRICTED',
+                'public_message': 'Academic access restricted by Head of Department.',
+                'attendance_percentage': None,
+                'attended': 0,
+                'conducted': 0,
+                'override': override
+            }
+        elif override.decision_type == 'ALLOW_OVERRIDE':
+            return {
+                'can_view': True,
+                'decision_source': 'HOD_ALLOW_OVERRIDE',
+                'status': 'AUTHORIZED',
+                'public_message': 'Access authorized under departmental special dispensation.',
+                'attendance_percentage': None,
+                'attended': 0,
+                'conducted': 0,
+                'override': override
+            }
+
+    # 2. Automatic Attendance Calculation
+    if not evaluation_date:
+        # Without an evaluation date, policy fails closed
+        return {
+            'can_view': False,
+            'decision_source': 'AUTOMATIC_PENDING',
+            'status': 'PENDING',
+            'public_message': 'Attendance eligibility cannot yet be verified for this academic period.',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+
+    att_res = get_subject_attendance_eligibility(student, subject, academic_scope, evaluation_date=evaluation_date)
+
+    if att_res['status'] == 'PENDING':
+        return {
+            'can_view': False,
+            'decision_source': 'AUTOMATIC_PENDING',
+            'status': 'PENDING',
+            'public_message': 'Attendance eligibility cannot yet be verified (no completed sessions recorded).',
+            'attendance_percentage': None,
+            'attended': 0,
+            'conducted': 0,
+            'override': None
+        }
+
+    if att_res['is_eligible']:  # >= 75.0%
+        return {
+            'can_view': True,
+            'decision_source': 'AUTOMATIC_ELIGIBLE',
+            'status': 'ELIGIBLE',
+            'public_message': f'Attendance verified at {att_res["percentage"]}%.',
+            'attendance_percentage': att_res['percentage'],
+            'attended': att_res['attended'],
+            'conducted': att_res['conducted'],
+            'override': None
+        }
+    else:  # < 75.0%
+        return {
+            'can_view': False,
+            'decision_source': 'AUTOMATIC_RESTRICTED',
+            'status': 'RESTRICTED',
+            'public_message': f'Subject attendance is below 75% ({att_res["percentage"]}%). Content is restricted.',
+            'attendance_percentage': att_res['percentage'],
+            'attended': att_res['attended'],
+            'conducted': att_res['conducted'],
+            'override': None
+        }
+
+
+def can_manage_academic_resource(user, subject, academic_scope, action='MANAGE'):
+    """
+    Enforces server-side permissions for managing (create, edit, delete, archive) academic resources.
+    - Principal & admin: Allowed across the institution
+    - HOD: Allowed strictly for the HOD's department (e.g. BCA courses for HOD - BCA Dept)
+    - Faculty: Allowed strictly for subjects and classes they are allocated to teach in Timetable
+    """
+    if not user:
+        return False
+
+    if user.role in ['Principal', 'admin']:
+        return True
+
+    course = academic_scope.get('course', 'BCA')
+    semester = academic_scope.get('semester', 'Sem V')
+    section = academic_scope.get('section', 'A')
+
+    if user.role == 'HOD - BCA Dept':
+        return course == 'BCA'
+
+    if user.role == 'Faculty':
+        # Teacher must be allocated to teach this subject in this class
+        if section and section != 'ALL':
+            match = Timetable.query.filter_by(
+                user_id=user.id,
+                course=course,
+                semester=semester,
+                section=section,
+                subject=subject
+            ).first()
+        else:
+            match = Timetable.query.filter_by(
+                user_id=user.id,
+                course=course,
+                semester=semester,
+                subject=subject
+            ).first()
+        return match is not None
+
+    return False
+
+
+def record_academic_resource_audit(actor_user=None, actor_student=None, action='UPDATE', resource_type='ASSIGNMENT', resource_id=0, before_state=None, after_state=None, reason=None):
+    """
+    Records immutable audit logs for academic resource lifecycle changes.
+    """
+    try:
+        audit = AcademicResourceAudit(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            action=action,
+            actor_id=actor_user.id if actor_user else None,
+            actor_student_id=actor_student.id if actor_student else None,
+            before_state=json.dumps(before_state) if isinstance(before_state, dict) else before_state,
+            after_state=json.dumps(after_state) if isinstance(after_state, dict) else after_state,
+            reason=reason
+        )
+        db.session.add(audit)
+        db.session.commit()
+        return audit
+    except Exception as e:
+        db.session.rollback()
+        print(f"Academic Resource Audit Log Warning: {e}")
+        return None
+
+
+def validate_academic_file(file, max_bytes=None):
+    """
+    Strict server-side validation:
+    - Non-empty filename
+    - Prohibited extension rejection (executable, script, active HTML)
+    - Allowed extension verification
+    - File size check
+    - Magic bytes verification for common types (PDF, JPEG, PNG, ZIP/Office)
+    """
+    if max_bytes is None:
+        max_bytes = app.config.get('MAX_ACADEMIC_UPLOAD_BYTES', 15 * 1024 * 1024)
+
+    if not file or not file.filename:
+        return False, "No file uploaded or filename is empty.", None, None, 0
+
+    clean_orig_name = secure_filename(file.filename)
+    if not clean_orig_name or '.' not in clean_orig_name:
+        return False, "Invalid filename.", None, None, 0
+
+    ext = clean_orig_name.rsplit('.', 1)[1].lower()
+
+    # 1. Prohibited extensions check
+    if ext in app.config.get('PROHIBITED_EXTENSIONS', set()):
+        return False, f"Security Violation: Uploading .{ext} executable/script files is strictly prohibited.", None, None, 0
+
+    # 2. Allowed extensions check
+    if ext not in app.config.get('ALLOWED_ACADEMIC_EXTENSIONS', set()):
+        return False, f"Unsupported file type .{ext}. Allowed formats: PDF, DOCX, DOC, PPTX, PPT, TXT, ZIP, JPG, PNG.", None, None, 0
+
+    # 3. File size check (read into buffer or seek)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+
+    if file_size <= 0:
+        return False, "Uploaded file is empty (0 bytes).", None, None, 0
+
+    if file_size > max_bytes:
+        max_mb = max_bytes / (1024 * 1024)
+        return False, f"File size exceeds maximum permitted limit of {max_mb:.1f} MB.", None, None, file_size
+
+    # 4. Magic header check for known types
+    header = file.read(16)
+    file.seek(0)
+
+    if ext == 'pdf' and not header.startswith(b'%PDF'):
+        return False, "Corrupted or invalid PDF header detected.", None, None, file_size
+    elif ext in ['jpg', 'jpeg'] and not header.startswith(b'\xff\xd8'):
+        return False, "Corrupted or invalid JPEG image header detected.", None, None, file_size
+    elif ext == 'png' and not header.startswith(b'\x89PNG\r\n\x1a\n'):
+        return False, "Corrupted or invalid PNG image header detected.", None, None, file_size
+
+    mimetype = getattr(file, 'mimetype', None) or getattr(file, 'content_type', None) or 'application/octet-stream'
+    return True, None, clean_orig_name, mimetype, file_size
+
+
+def save_academic_file(file, target_folder, original_name):
+    """
+    Saves an uploaded file to a private directory with a randomized UUID storage key.
+    Computes and returns SHA-256 checksum and storage key.
+    """
+    os.makedirs(target_folder, exist_ok=True)
+    ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else 'dat'
+    storage_key = f"{uuid.uuid4().hex}.{ext}"
+    target_path = os.path.join(target_folder, storage_key)
+
+    hasher = hashlib.sha256()
+    file.seek(0)
+    with open(target_path, 'wb') as dest:
+        while True:
+            chunk = file.read(65536)
+            if not chunk:
+                break
+            dest.write(chunk)
+            hasher.update(chunk)
+    file.seek(0)
+
+    return storage_key, hasher.hexdigest(), os.path.getsize(target_path)
+
+
+def remove_academic_file(storage_key, folder):
+    """Safely deletes a private file from storage without raising on missing file."""
+    if not storage_key:
+        return
+    try:
+        path = os.path.join(folder, storage_key)
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception as e:
+        print(f"Warning: Failed to delete storage file {storage_key}: {e}")
+
 
 
 @app.route('/internal-marks', methods=['GET'])
@@ -2321,19 +3421,53 @@ def internal_marks_entry():
     subject = (request.args.get('subject') or '').strip()
     assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
 
-    if not student_id or not course or not semester or not section or not subject:
+    if not student_id or not course or not semester or not section:
         flash('Invalid request parameters.', 'warning')
         return redirect(url_for('internal_marks_dashboard'))
 
-    # Backend authorization check
-    if not is_user_authorized_for_context(user, course, semester, section, subject):
-        flash('Access Denied: You are not authorized to enter marks for this subject.', 'danger')
+    # Check if user is authorized for this student's class scope
+    if not is_user_authorized_for_class(user, course, semester, section):
+        flash('Access Denied: You are not authorized to access students in this class context.', 'danger')
         return redirect(url_for('internal_marks_dashboard')), 403
 
     student = Student.query.get(student_id)
     if not student or not student.is_active or student.course != course or student.semester != semester or student.section != section:
         flash('Selected student does not belong to the specified active class context.', 'danger')
-        return redirect(url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle))
+        return redirect(url_for('internal_marks_dashboard'))
+
+    # Query all subjects in this class to provide the complete multi-subject overview
+    class_tt = Timetable.query.filter_by(
+        course=course,
+        semester=semester,
+        section=section
+    ).all()
+
+    class_subjects_dict = {}
+    for entry in class_tt:
+        if entry.subject not in class_subjects_dict:
+            fac = User.query.get(entry.user_id)
+            fac_name = fac.full_name if fac else 'Assigned Faculty'
+            is_editable = is_user_authorized_for_context(user, course, semester, section, entry.subject)
+            mark_row = InternalMark.query.filter_by(
+                student_id=student.id,
+                subject=entry.subject,
+                semester=semester,
+                section=section,
+                assessment_cycle=assessment_cycle
+            ).first()
+            class_subjects_dict[entry.subject] = {
+                'subject': entry.subject,
+                'faculty_name': fac_name,
+                'is_editable': is_editable,
+                'mark': mark_row
+            }
+
+    all_subject_marks = list(class_subjects_dict.values())
+    if not subject and all_subject_marks:
+        editable_first = [s['subject'] for s in all_subject_marks if s['is_editable']]
+        subject = editable_first[0] if editable_first else all_subject_marks[0]['subject']
+
+    can_edit = is_user_authorized_for_context(user, course, semester, section, subject)
 
     existing_mark = InternalMark.query.filter_by(
         student_id=student.id,
@@ -2355,7 +3489,9 @@ def internal_marks_entry():
         subject=subject,
         assessment_cycle=assessment_cycle,
         existing_mark=existing_mark,
-        maxima=maxima
+        maxima=maxima,
+        can_edit=can_edit,
+        all_subject_marks=all_subject_marks
     )
 
 
@@ -2511,6 +3647,19 @@ def internal_marks_save():
                     db.session.add(audit)
 
         db.session.commit()
+        try:
+            create_notification(
+                recipient_type='STUDENT',
+                recipient_id=student.id,
+                title=f"Internal Marks Recorded: {subject}",
+                message=f"Internal assessment marks for {subject} were recorded/updated by {user.full_name}.",
+                category='marks',
+                action_url=url_for('student_marks'),
+                idempotency_key=f"marks_upd_{student.id}_{subject}_{assessment_cycle}_{int(datetime.utcnow().timestamp() // 60)}",
+                sound=True
+            )
+        except Exception:
+            pass
         flash(f'Internal assessment marks for {student.name} ({student.uucms_id}) saved successfully!', 'success')
 
     except Exception as e:
@@ -2636,6 +3785,3091 @@ def internal_marks_audit(mark_id):
     )
 
 
+# ==============================================================================
+# HOD ATTENDANCE ELIGIBILITY RESTRICTIONS & OVERRIDES
+# ==============================================================================
+
+@app.route('/internal-marks/hod-restrictions', methods=['GET'])
+@login_required
+def internal_marks_hod_restrictions():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized: HOD Restrictions Management is restricted to Department Heads and Executive Administration.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    if user.role == 'HOD - BCA Dept':
+        allowed_courses = ['BCA']
+    else:
+        allowed_courses = [r[0] for r in db.session.query(Timetable.course).distinct().all() if r[0]]
+        if not allowed_courses:
+            allowed_courses = ['BCA']
+
+    course = (request.args.get('course') or allowed_courses[0]).strip()
+    if course not in allowed_courses:
+        flash('Unauthorized course scope for your department.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    semester = (request.args.get('semester') or 'Sem V').strip()
+    section = (request.args.get('section') or 'A').strip()
+    assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
+    component = (request.args.get('component') or 'IA1').strip()
+    search = (request.args.get('search') or '').strip()
+
+    subjects_query = db.session.query(Timetable.subject).filter_by(
+        course=course,
+        semester=semester,
+        section=section
+    ).distinct().order_by(Timetable.subject).all()
+    available_subjects = [s[0] for s in subjects_query]
+
+    selected_subject = (request.args.get('subject') or (available_subjects[0] if available_subjects else '')).strip()
+
+    cutoff_date = get_assessment_cutoff_date(
+        course=course,
+        semester=semester,
+        section=section,
+        subject=selected_subject if selected_subject else None,
+        assessment_cycle=assessment_cycle,
+        component=component
+    )
+
+    student_q = Student.query.filter_by(
+        course=course,
+        semester=semester,
+        section=section,
+        is_active=True
+    )
+    if search:
+        search_pattern = f'%{search}%'
+        student_q = student_q.filter(
+            db.or_(
+                Student.name.ilike(search_pattern),
+                Student.uucms_id.ilike(search_pattern)
+            )
+        )
+    students = student_q.order_by(Student.name.asc()).all()
+
+    roster_data = []
+    for s in students:
+        att = calculate_subject_attendance(
+            student_id=s.id,
+            subject=selected_subject,
+            assessment_date=cutoff_date,
+            course=course,
+            semester=semester,
+            section=section
+        )
+        eligibility = evaluate_marks_eligibility(
+            student_id=s.id,
+            subject=selected_subject,
+            component=component,
+            assessment_cycle=assessment_cycle,
+            course=course,
+            semester=semester,
+            section=section
+        )
+        override = MarksEligibilityOverride.query.filter(
+            MarksEligibilityOverride.student_id == s.id,
+            MarksEligibilityOverride.subject == selected_subject,
+            MarksEligibilityOverride.course == course,
+            MarksEligibilityOverride.semester == semester,
+            MarksEligibilityOverride.section == section,
+            MarksEligibilityOverride.assessment_cycle == assessment_cycle,
+            MarksEligibilityOverride.component.in_([component, 'ALL']),
+            MarksEligibilityOverride.is_active == True
+        ).first()
+
+        roster_data.append({
+            'student': s,
+            'attendance': att,
+            'eligibility': eligibility,
+            'active_override': override
+        })
+
+    recent_audits = MarksEligibilityAudit.query.filter_by(
+        course=course
+    ).order_by(MarksEligibilityAudit.created_at.desc()).limit(15).all()
+
+    return render_template(
+        'internal_marks/hod_restrictions.html',
+        user=user,
+        course=course,
+        semester=semester,
+        section=section,
+        subject=selected_subject,
+        available_subjects=available_subjects,
+        component=component,
+        assessment_cycle=assessment_cycle,
+        cutoff_date=cutoff_date,
+        search=search,
+        roster_data=roster_data,
+        recent_audits=recent_audits,
+        allowed_courses=allowed_courses
+    )
+
+
+@app.route('/internal-marks/hod-restrictions/save', methods=['POST'])
+@login_required
+def internal_marks_hod_restrictions_save():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access: HOD restrictions management requires HOD or Executive authority.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    student_id = request.form.get('student_id', type=int)
+    course = (request.form.get('course') or '').strip()
+    semester = (request.form.get('semester') or '').strip()
+    section = (request.form.get('section') or '').strip()
+    subject = (request.form.get('subject') or '').strip()
+    assessment_cycle = (request.form.get('assessment_cycle') or '2026-27').strip()
+    component = (request.form.get('component') or 'IA1').strip()
+    action = (request.form.get('action') or '').strip()
+    reason = (request.form.get('reason') or '').strip()
+
+    if user.role == 'HOD - BCA Dept' and course != 'BCA':
+        flash('Access Denied: You are only authorized to manage restrictions for BCA Department courses.', 'danger')
+        return redirect(url_for('internal_marks_dashboard')), 403
+
+    if not reason:
+        flash('Submission Rejected: A non-empty justification reason is strictly mandatory for any HOD eligibility action or revocation.', 'danger')
+        return redirect(url_for('internal_marks_hod_restrictions', course=course, semester=semester, section=section, subject=subject, component=component, assessment_cycle=assessment_cycle))
+
+    if action not in ['ALLOW_OVERRIDE', 'MANUAL_RESTRICT', 'REVOKE']:
+        flash('Invalid restriction action requested.', 'danger')
+        return redirect(url_for('internal_marks_hod_restrictions', course=course, semester=semester, section=section, subject=subject, component=component, assessment_cycle=assessment_cycle))
+
+    student = Student.query.get(student_id)
+    if not student or not student.is_active or student.course != course or student.semester != semester or student.section != section:
+        flash('Invalid or inactive student record for this class.', 'danger')
+        return redirect(url_for('internal_marks_hod_restrictions', course=course, semester=semester, section=section, subject=subject, component=component, assessment_cycle=assessment_cycle))
+
+    try:
+        existing_override = MarksEligibilityOverride.query.filter_by(
+            student_id=student.id,
+            subject=subject,
+            course=course,
+            semester=semester,
+            section=section,
+            assessment_cycle=assessment_cycle,
+            component=component
+        ).first()
+
+        previous_decision = 'AUTOMATIC'
+        if existing_override and existing_override.is_active:
+            previous_decision = existing_override.decision_type
+
+        if action == 'REVOKE':
+            if existing_override and existing_override.is_active:
+                existing_override.is_active = False
+                existing_override.updated_by_id = user.id
+                existing_override.version += 1
+
+                audit = MarksEligibilityAudit(
+                    override_id=existing_override.id,
+                    student_id=student.id,
+                    subject=subject,
+                    course=course,
+                    semester=semester,
+                    section=section,
+                    assessment_cycle=assessment_cycle,
+                    component=component,
+                    action='REVOKE',
+                    previous_decision=previous_decision,
+                    new_decision='AUTOMATIC',
+                    reason=reason,
+                    changed_by_id=user.id
+                )
+                db.session.add(audit)
+                db.session.commit()
+                flash(f'Manual decision revoked for {student.name}. Automatic attendance rule restored.', 'info')
+            else:
+                flash(f'No active manual decision found to revoke for {student.name}.', 'warning')
+
+        else:
+            if existing_override:
+                existing_override.decision_type = action
+                existing_override.reason = reason
+                existing_override.is_active = True
+                existing_override.updated_by_id = user.id
+                existing_override.version += 1
+                override_id = existing_override.id
+            else:
+                new_override = MarksEligibilityOverride(
+                    student_id=student.id,
+                    subject=subject,
+                    course=course,
+                    semester=semester,
+                    section=section,
+                    assessment_cycle=assessment_cycle,
+                    component=component,
+                    decision_type=action,
+                    reason=reason,
+                    created_by_id=user.id,
+                    updated_by_id=user.id,
+                    is_active=True,
+                    version=1
+                )
+                db.session.add(new_override)
+                db.session.flush()
+                override_id = new_override.id
+
+            audit = MarksEligibilityAudit(
+                override_id=override_id,
+                student_id=student.id,
+                subject=subject,
+                course=course,
+                semester=semester,
+                section=section,
+                assessment_cycle=assessment_cycle,
+                component=component,
+                action=action,
+                previous_decision=previous_decision,
+                new_decision=action,
+                reason=reason,
+                changed_by_id=user.id
+            )
+            db.session.add(audit)
+            db.session.commit()
+
+            action_label = 'Allow Override' if action == 'ALLOW_OVERRIDE' else 'Manual Restriction'
+            try:
+                notif_msg = f"HOD {user.full_name} granted attendance exemption for {subject} ({component}). Reason: {reason}" if action == 'ALLOW_OVERRIDE' else f"HOD {user.full_name} imposed manual restriction for {subject} ({component}). Reason: {reason}"
+                create_notification(
+                    recipient_type='STUDENT',
+                    recipient_id=student.id,
+                    title=f"HOD Assessment Decision: {subject}",
+                    message=notif_msg,
+                    category='marks',
+                    action_url=url_for('student_marks'),
+                    idempotency_key=f"hod_ovr_{student.id}_{subject}_{component}_{int(datetime.utcnow().timestamp() // 60)}",
+                    sound=True
+                )
+            except Exception:
+                pass
+            flash(f'Successfully applied {action_label} for {student.name} in {subject} ({component}).', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash('Transaction failed while saving eligibility decision. Changes rolled back.', 'danger')
+
+    return redirect(url_for('internal_marks_hod_restrictions', course=course, semester=semester, section=section, subject=subject, component=component, assessment_cycle=assessment_cycle))
+
+
+@app.route('/internal-marks/hod-restrictions/audit', methods=['GET'])
+@login_required
+def internal_marks_hod_restrictions_audit():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    student_id = request.args.get('student_id', type=int)
+    subject = (request.args.get('subject') or '').strip()
+    course = (request.args.get('course') or 'BCA').strip()
+
+    query = MarksEligibilityAudit.query
+    if user.role == 'HOD - BCA Dept':
+        query = query.filter(MarksEligibilityAudit.course == 'BCA')
+    elif course:
+        query = query.filter(MarksEligibilityAudit.course == course)
+
+    if student_id:
+        query = query.filter(MarksEligibilityAudit.student_id == student_id)
+    if subject:
+        query = query.filter(MarksEligibilityAudit.subject == subject)
+
+    audits = query.order_by(MarksEligibilityAudit.created_at.desc()).limit(100).all()
+    student = Student.query.get(student_id) if student_id else None
+
+    return render_template(
+        'internal_marks/hod_restrictions_audit.html',
+        user=user,
+        audits=audits,
+        student=student,
+        subject=subject
+    )
+
+
+# ==============================================================================
+# STUDENT ACADEMIC PORTAL & INTERNAL MARKS VIEW
+# ==============================================================================
+
+@app.route('/student/login', methods=['GET', 'POST'])
+def student_login():
+    if request.method == 'POST':
+        uucms_id = (request.form.get('uucms_id') or '').strip()
+        if not uucms_id:
+            flash('Please enter your official UUCMS ID.', 'warning')
+            return render_template('student_login.html')
+
+        student = Student.query.filter(
+            func.lower(Student.uucms_id) == uucms_id.lower(),
+            Student.is_active == True
+        ).first()
+
+        if not student:
+            flash('Invalid or inactive UUCMS ID. Please verify your registration or contact the department.', 'danger')
+            return render_template('student_login.html')
+
+        session['student_id'] = student.id
+        session['student_uucms_id'] = student.uucms_id
+        session['student_name'] = student.name
+        session['student_course'] = student.course
+        session['student_semester'] = student.semester
+        session['student_section'] = student.section
+
+        flash(f'Welcome, {student.name}! You are signed into the Student Academic Portal.', 'success')
+        return redirect(url_for('student_marks'))
+
+    return render_template('student_login.html')
+
+
+@app.route('/student/logout')
+def student_logout():
+    session.pop('student_id', None)
+    session.pop('student_uucms_id', None)
+    session.pop('student_name', None)
+    session.pop('student_course', None)
+    session.pop('student_semester', None)
+    session.pop('student_section', None)
+    flash('You have been logged out of the Student Portal.', 'info')
+    return redirect(url_for('student_login'))
+
+
+@app.route('/student/marks', methods=['GET'])
+def student_marks():
+    target_student_id = request.args.get('student_id', type=int)
+
+    if 'student_id' in session:
+        logged_student_id = session['student_id']
+        if target_student_id and target_student_id != logged_student_id:
+            flash('Security Violation: You are not authorized to access another student\'s records.', 'danger')
+            return redirect(url_for('student_marks')), 403
+        student = Student.query.get(logged_student_id)
+        is_staff_view = False
+    elif 'user_id' in session:
+        staff_user = User.query.get(session['user_id'])
+        if not staff_user or staff_user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+            flash('Unauthorized access.', 'danger')
+            return redirect(url_for('login')), 403
+        if not target_student_id:
+            flash('Please specify a student to view marks.', 'warning')
+            return redirect(url_for('internal_marks_dashboard'))
+        student = Student.query.get(target_student_id)
+        if not student:
+            flash('Student not found.', 'danger')
+            return redirect(url_for('internal_marks_dashboard')), 404
+        if not is_user_authorized_for_class(staff_user, student.course, student.semester, student.section):
+            flash('Access Denied: You are not authorized to view students in this class.', 'danger')
+            return redirect(url_for('internal_marks_dashboard')), 403
+        is_staff_view = True
+    else:
+        flash('Please sign in with your UUCMS ID to view your internal assessment marks.', 'info')
+        return redirect(url_for('student_login'))
+
+    if not student or not student.is_active:
+        flash('Student record not found or inactive.', 'danger')
+        return redirect(url_for('student_login'))
+
+    assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
+
+    timetable_subjects = db.session.query(
+        Timetable.subject
+    ).filter_by(
+        course=student.course,
+        semester=student.semester,
+        section=student.section
+    ).distinct().order_by(Timetable.subject).all()
+    class_subjects = [s[0] for s in timetable_subjects]
+
+    marks_rows = InternalMark.query.filter_by(
+        student_id=student.id,
+        course=student.course,
+        semester=student.semester,
+        section=student.section,
+        assessment_cycle=assessment_cycle
+    ).all()
+    marks_by_subject = {m.subject: m for m in marks_rows}
+
+    subject_evaluations = []
+    for subj in class_subjects:
+        mark_record = marks_by_subject.get(subj)
+        components_data = {}
+        for comp in ['IA1', 'IA2', 'Final IA']:
+            elig = evaluate_marks_eligibility(
+                student_id=student.id,
+                subject=subj,
+                component=comp,
+                assessment_cycle=assessment_cycle,
+                course=student.course,
+                semester=student.semester,
+                section=student.section
+            )
+            if elig['can_view']:
+                if mark_record:
+                    if comp == 'IA1':
+                        val = mark_record.ia1_marks
+                    elif comp == 'IA2':
+                        val = mark_record.ia2_marks
+                    else:
+                        val = mark_record.final_ia_marks
+                else:
+                    val = None
+                display_mark = val
+            else:
+                display_mark = None
+
+            components_data[comp] = {
+                'eligible': elig['can_view'],
+                'status': elig['status'],
+                'public_message': elig['public_message'],
+                'attendance_pct': elig['attendance_percentage'],
+                'attended': elig['attended'],
+                'conducted': elig['conducted'],
+                'mark': display_mark,
+                'entered': (display_mark is not None) if elig['can_view'] else False
+            }
+
+        subject_evaluations.append({
+            'subject': subj,
+            'components': components_data
+        })
+
+    maxima = get_assessment_maxima()
+
+    return render_template(
+        'student_marks.html',
+        student=student,
+        assessment_cycle=assessment_cycle,
+        subject_evaluations=subject_evaluations,
+        maxima=maxima,
+        is_staff_view=is_staff_view
+    )
+
+
+@app.route('/api/student/marks', methods=['GET'])
+def api_student_marks():
+    target_student_id = request.args.get('student_id', type=int)
+
+    if 'student_id' in session:
+        logged_id = session['student_id']
+        if target_student_id and target_student_id != logged_id:
+            return jsonify({'error': 'Forbidden: Cannot access another student\'s marks'}), 403
+        student = Student.query.get(logged_id)
+    elif 'user_id' in session:
+        staff_user = User.query.get(session['user_id'])
+        if not staff_user or staff_user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        if not target_student_id:
+            return jsonify({'error': 'Missing student_id parameter'}), 400
+        student = Student.query.get(target_student_id)
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        if not is_user_authorized_for_class(staff_user, student.course, student.semester, student.section):
+            return jsonify({'error': 'Forbidden: Class scope unauthorized'}), 403
+    else:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    if not student or not student.is_active:
+        return jsonify({'error': 'Student inactive or not found'}), 404
+
+    assessment_cycle = (request.args.get('assessment_cycle') or '2026-27').strip()
+
+    timetable_subjects = db.session.query(
+        Timetable.subject
+    ).filter_by(
+        course=student.course,
+        semester=student.semester,
+        section=student.section
+    ).distinct().order_by(Timetable.subject).all()
+    class_subjects = [s[0] for s in timetable_subjects]
+
+    marks_rows = InternalMark.query.filter_by(
+        student_id=student.id,
+        course=student.course,
+        semester=student.semester,
+        section=student.section,
+        assessment_cycle=assessment_cycle
+    ).all()
+    marks_by_subject = {m.subject: m for m in marks_rows}
+
+    response_subjects = []
+    for subj in class_subjects:
+        mark_record = marks_by_subject.get(subj)
+        subj_data = {
+            'subject': subj,
+            'components': {}
+        }
+        for comp in ['IA1', 'IA2', 'Final IA']:
+            elig = evaluate_marks_eligibility(
+                student_id=student.id,
+                subject=subj,
+                component=comp,
+                assessment_cycle=assessment_cycle,
+                course=student.course,
+                semester=student.semester,
+                section=student.section
+            )
+            if elig['can_view']:
+                if mark_record:
+                    if comp == 'IA1':
+                        val = mark_record.ia1_marks
+                    elif comp == 'IA2':
+                        val = mark_record.ia2_marks
+                    else:
+                        val = mark_record.final_ia_marks
+                else:
+                    val = None
+                subj_data['components'][comp] = {
+                    'is_restricted': False,
+                    'status': elig['status'],
+                    'message': elig['public_message'],
+                    'marks': val
+                }
+            else:
+                subj_data['components'][comp] = {
+                    'is_restricted': True,
+                    'status': elig['status'],
+                    'message': elig['public_message'],
+                    'marks': None
+                }
+        response_subjects.append(subj_data)
+
+    return jsonify({
+        'student': {
+            'id': student.id,
+            'name': student.name,
+            'uucms_id': student.uucms_id,
+            'course': student.course,
+            'semester': student.semester,
+            'section': student.section
+        },
+        'assessment_cycle': assessment_cycle,
+        'subjects': response_subjects
+    })
+
+
+# ==============================================================================
+# MODULE A: ACADEMIC ASSIGNMENTS & SUBMISSION TRACKING ROUTES
+# ==============================================================================
+
+VALID_STUDY_MATERIAL_CATEGORIES = ['Textbooks', 'Previous Year Papers', 'Question Banks']
+
+def parse_datetime_input(dt_str):
+    if not dt_str:
+        return None
+    for fmt in ('%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            pass
+    return None
+
+def parse_date_input(d_str):
+    if not d_str:
+        return date.today()
+    for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%Y/%m/%d'):
+        try:
+            return datetime.strptime(d_str, fmt).date()
+        except ValueError:
+            pass
+    return date.today()
+
+
+@app.route('/academic/assignments', methods=['GET'])
+@login_required
+def assignments_dashboard():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized: Assignment Management is restricted to faculty members.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    course = (request.args.get('course') or '').strip()
+    semester = (request.args.get('semester') or '').strip()
+    section = (request.args.get('section') or '').strip()
+    subject = (request.args.get('subject') or '').strip()
+    status_filter = (request.args.get('status') or '').strip()
+
+    query = Assignment.query
+
+    if user.role == 'Faculty':
+        authorized_contexts = get_authorized_subject_contexts(user)
+        fac_subjects = list({c['subject'] for c in authorized_contexts})
+        query = query.filter(
+            (Assignment.created_by_id == user.id) | (Assignment.subject.in_(fac_subjects))
+        )
+    elif user.role == 'HOD - BCA Dept':
+        query = query.filter(Assignment.course == 'BCA')
+
+    if course:
+        query = query.filter(Assignment.course == course)
+    if semester:
+        query = query.filter(Assignment.semester == semester)
+    if section:
+        query = query.filter(Assignment.section == section)
+    if subject:
+        query = query.filter(Assignment.subject == subject)
+    if status_filter:
+        query = query.filter(Assignment.status == status_filter)
+
+    assignments = query.order_by(Assignment.created_at.desc()).all()
+
+    # Collect stats for each assignment
+    enriched_assignments = []
+    now = datetime.utcnow()
+    for a in assignments:
+        enrolled_count = Student.query.filter_by(
+            course=a.course,
+            semester=a.semester,
+            section=a.section,
+            is_active=True
+        ).count()
+        submissions = AssignmentSubmission.query.filter_by(assignment_id=a.id).all()
+        submitted_count = sum(1 for s in submissions if s.status in ['Submitted', 'Late'])
+        late_count = sum(1 for s in submissions if s.status == 'Late')
+        not_submitted_count = max(0, enrolled_count - submitted_count)
+
+        enriched_assignments.append({
+            'assignment': a,
+            'enrolled_count': enrolled_count,
+            'submitted_count': submitted_count,
+            'not_submitted_count': not_submitted_count,
+            'late_count': late_count,
+            'is_past_deadline': (now > a.deadline if a.deadline else False),
+            'can_edit': can_manage_academic_resource(user, a.subject, {'course': a.course, 'semester': a.semester, 'section': a.section}, 'EDIT')
+        })
+
+    # Available subjects for filtering
+    if user.role == 'Faculty':
+        filter_subjects = list({c['subject'] for c in get_authorized_subject_contexts(user)})
+    elif user.role == 'HOD - BCA Dept':
+        filter_subjects = [r[0] for r in db.session.query(Timetable.subject).filter_by(course='BCA').distinct().all() if r[0]]
+    else:
+        filter_subjects = [r[0] for r in db.session.query(Timetable.subject).distinct().all() if r[0]]
+
+    return render_template(
+        'academic/assignments/dashboard.html',
+        user=user,
+        assignments=enriched_assignments,
+        filter_subjects=sorted(filter_subjects),
+        selected_course=course,
+        selected_semester=semester,
+        selected_section=section,
+        selected_subject=subject,
+        selected_status=status_filter
+    )
+
+
+@app.route('/academic/assignments/create', methods=['GET', 'POST'])
+@login_required
+def assignment_create():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized: Assignment creation is restricted to authorized faculty.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    authorized_contexts = get_authorized_subject_contexts(user)
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+        course = (request.form.get('course') or '').strip()
+        academic_year = (request.form.get('academic_year') or '').strip()
+        semester = (request.form.get('semester') or '').strip()
+        section = (request.form.get('section') or 'A').strip()
+        subject = (request.form.get('subject') or '').strip()
+        assigned_date_str = (request.form.get('assigned_date') or '').strip()
+        deadline_str = (request.form.get('deadline') or '').strip()
+        max_marks_str = (request.form.get('max_marks') or '').strip()
+        status = (request.form.get('status') or 'Published').strip()
+
+        # 1. Validation of mandatory inputs
+        if not title:
+            flash('Error: Assignment Title is mandatory.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if not description:
+            flash('Error: Assignment Description / Instructions are mandatory.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if not course or not academic_year or not semester or not subject or not deadline_str:
+            flash('Error: Course, Academic Year, Semester, Subject, and Submission Deadline are mandatory.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 2. Scope & Hierarchy Validation
+        if course not in VALID_COURSES:
+            flash(f'Error: Invalid Course/Programme "{course}". Allowed: {", ".join(VALID_COURSES)}.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if academic_year not in VALID_ACADEMIC_YEAR_SEMESTERS:
+            flash(f'Error: Invalid Academic Year "{academic_year}". Allowed: {", ".join(VALID_ACADEMIC_YEARS)}.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        allowed_sems = VALID_ACADEMIC_YEAR_SEMESTERS.get(academic_year, [])
+        if semester not in allowed_sems:
+            flash(f'Error: Invalid Semester "{semester}" for {academic_year}. Valid semesters: {", ".join(allowed_sems)}.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if section not in VALID_SECTIONS:
+            flash(f'Error: Invalid Section "{section}".', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # Teacher authorization
+        scope = {'course': course, 'academic_year': academic_year, 'semester': semester, 'section': section}
+        if not can_manage_academic_resource(user, subject, scope, 'CREATE'):
+            flash(f'Access Denied: You are not authorized to create assignments for {subject} in {course} {semester} Sec {section}.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 403
+
+        # Subject must belong to selected academic scope
+        timetable_match = Timetable.query.filter_by(
+            course=course,
+            semester=semester,
+            subject=subject
+        ).first()
+        if not timetable_match:
+            flash(f'Error: Subject "{subject}" does not belong to {course} {semester}.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 3. Date Validation
+        assigned_date = parse_date_input(assigned_date_str) if assigned_date_str else date.today()
+        deadline = parse_datetime_input(deadline_str)
+        if not deadline:
+            flash('Error: Invalid deadline format.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if deadline.date() < assigned_date:
+            flash('Submission deadline cannot be earlier than the assigned date.', 'danger')
+            return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        max_marks = None
+        if max_marks_str:
+            try:
+                max_marks = float(max_marks_str)
+                if max_marks <= 0:
+                    flash('Maximum marks must be a positive number.', 'danger')
+                    return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+            except ValueError:
+                flash('Maximum marks must be a valid number.', 'danger')
+                return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 4. Attachment handling
+        attachment_filename = None
+        attachment_storage_key = None
+        attachment_mimetype = None
+        attachment_size = None
+
+        if 'attachment' in request.files and request.files['attachment'].filename:
+            file = request.files['attachment']
+            is_valid, err_msg, clean_name, mimetype, fsize = validate_academic_file(file)
+            if not is_valid:
+                flash(f'Attachment Rejected: {err_msg}', 'danger')
+                return render_template('academic/assignments/create.html', user=user, contexts=authorized_contexts, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+            storage_key, checksum, saved_size = save_academic_file(file, app.config['ASSIGNMENTS_STORAGE_FOLDER'], clean_name)
+            attachment_filename = clean_name
+            attachment_storage_key = storage_key
+            attachment_mimetype = mimetype
+            attachment_size = saved_size
+
+        assignment = Assignment(
+            title=title,
+            description=description,
+            course=course,
+            semester=semester,
+            section=section,
+            subject=subject,
+            academic_year=academic_year,
+            assigned_date=assigned_date,
+            deadline=deadline,
+            max_marks=max_marks,
+            status=status,
+            attachment_filename=attachment_filename,
+            attachment_storage_key=attachment_storage_key,
+            attachment_mimetype=attachment_mimetype,
+            attachment_size=attachment_size,
+            created_by_id=user.id,
+            updated_by_id=user.id
+        )
+        db.session.add(assignment)
+        db.session.commit()
+
+        # Audit
+        record_academic_resource_audit(
+            actor_user=user,
+            action='CREATE',
+            resource_type='ASSIGNMENT',
+            resource_id=assignment.id,
+            after_state={
+                'title': title,
+                'subject': subject,
+                'course': course,
+                'academic_year': academic_year,
+                'semester': semester,
+                'section': section,
+                'deadline': str(deadline),
+                'status': status
+            },
+            reason='Initial creation of assignment'
+        )
+
+        # Scoped Notifications to target class
+        if status == 'Published':
+            try:
+                active_students = Student.query.filter_by(
+                    course=course,
+                    academic_year=academic_year,
+                    semester=semester,
+                    is_active=True
+                )
+                if section != 'ALL':
+                    active_students = active_students.filter_by(section=section)
+                for s in active_students.all():
+                    create_notification(
+                        recipient_type='STUDENT',
+                        recipient_id=s.id,
+                        title=f"New Assignment: {subject}",
+                        message=f"Dear {s.name}, a new assignment '{title}' has been published by {user.full_name}. Due: {deadline.strftime('%d %b %Y %I:%M %p')}.",
+                        category='assignments',
+                        action_url=url_for('student_assignments'),
+                        idempotency_key=f"asgn_pub_{assignment.public_id}_{s.id}",
+                        sound=True
+                    )
+            except Exception as notif_e:
+                logger.warning(f"Notification warning on assignment create: {notif_e}")
+
+        flash(f"Assignment '{title}' created successfully for {subject} ({course} {semester} Sec {section}).", 'success')
+        return redirect(url_for('assignments_dashboard'))
+
+    return render_template(
+        'academic/assignments/create.html',
+        user=user,
+        contexts=authorized_contexts,
+        valid_courses=VALID_COURSES,
+        valid_years=VALID_ACADEMIC_YEARS,
+        valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS,
+        valid_sections=VALID_SECTIONS,
+        form_data={}
+    )
+
+
+@app.route('/academic/assignments/<int:assignment_id>', methods=['GET'])
+@login_required
+def assignment_detail(assignment_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+    if not is_user_authorized_for_class(user, assignment.course, assignment.semester, assignment.section):
+        flash('Access Denied: You are not authorized to view assignments for this class.', 'danger')
+        return redirect(url_for('assignments_dashboard')), 403
+
+    enrolled_count = Student.query.filter_by(
+        course=assignment.course,
+        semester=assignment.semester,
+        section=assignment.section,
+        is_active=True
+    ).count()
+
+    submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment.id).all()
+    submitted_count = sum(1 for s in submissions if s.status in ['Submitted', 'Late'])
+    late_count = sum(1 for s in submissions if s.status == 'Late')
+    not_submitted_count = max(0, enrolled_count - submitted_count)
+
+    can_edit = can_manage_academic_resource(user, assignment.subject, scope, 'EDIT') and (
+        user.id == assignment.created_by_id or user.role in ['HOD - BCA Dept', 'Principal', 'admin']
+    )
+
+    audits = AcademicResourceAudit.query.filter_by(
+        resource_type='ASSIGNMENT',
+        resource_id=assignment.id
+    ).order_by(AcademicResourceAudit.created_at.desc()).limit(15).all()
+
+    return render_template(
+        'academic/assignments/detail.html',
+        user=user,
+        assignment=assignment,
+        enrolled_count=enrolled_count,
+        submitted_count=submitted_count,
+        not_submitted_count=not_submitted_count,
+        late_count=late_count,
+        can_edit=can_edit,
+        audits=audits,
+        now=datetime.utcnow()
+    )
+
+
+@app.route('/academic/assignments/<int:assignment_id>/edit', methods=['GET', 'POST'])
+@login_required
+def assignment_edit(assignment_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+
+    can_edit = can_manage_academic_resource(user, assignment.subject, scope, 'EDIT') and (
+        user.id == assignment.created_by_id or user.role in ['HOD - BCA Dept', 'Principal', 'admin']
+    )
+    if not can_edit:
+        flash('Access Denied: You are not authorized to edit this assignment.', 'danger')
+        return redirect(url_for('assignment_detail', assignment_id=assignment.id)), 403
+
+    has_submissions = len(assignment.submissions) > 0
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+        deadline_str = (request.form.get('deadline') or '').strip()
+        max_marks_str = (request.form.get('max_marks') or '').strip()
+        status = (request.form.get('status') or assignment.status).strip()
+        reason = (request.form.get('reason') or 'Teacher update').strip()
+
+        if not title or not description or not deadline_str:
+            flash('Title, Description, and Deadline are required.', 'danger')
+            return render_template('academic/assignments/edit.html', user=user, assignment=assignment, has_submissions=has_submissions)
+
+        new_deadline = parse_datetime_input(deadline_str)
+        if not new_deadline:
+            flash('Invalid deadline format.', 'danger')
+            return render_template('academic/assignments/edit.html', user=user, assignment=assignment, has_submissions=has_submissions)
+
+        if new_deadline.date() < assignment.assigned_date:
+            flash('Submission deadline cannot precede the assigned date.', 'danger')
+            return render_template('academic/assignments/edit.html', user=user, assignment=assignment, has_submissions=has_submissions)
+
+        max_marks = assignment.max_marks
+        if max_marks_str:
+            try:
+                max_marks = float(max_marks_str)
+            except ValueError:
+                pass
+
+        before_state = {
+            'title': assignment.title,
+            'description': assignment.description,
+            'deadline': str(assignment.deadline),
+            'max_marks': assignment.max_marks,
+            'status': assignment.status
+        }
+
+        deadline_changed = (assignment.deadline != new_deadline)
+
+        assignment.title = title
+        assignment.description = description
+        assignment.deadline = new_deadline
+        assignment.max_marks = max_marks
+        assignment.status = status
+        assignment.updated_by_id = user.id
+
+        # File Replacement Handling
+        if 'attachment' in request.files and request.files['attachment'].filename:
+            file = request.files['attachment']
+            is_valid, err_msg, clean_name, mimetype, fsize = validate_academic_file(file)
+            if not is_valid:
+                flash(f'Attachment Rejected: {err_msg}', 'danger')
+                return render_template('academic/assignments/edit.html', user=user, assignment=assignment, has_submissions=has_submissions)
+
+            old_storage_key = assignment.attachment_storage_key
+            storage_key, checksum, saved_size = save_academic_file(file, app.config['ASSIGNMENTS_STORAGE_FOLDER'], clean_name)
+            assignment.attachment_filename = clean_name
+            assignment.attachment_storage_key = storage_key
+            assignment.attachment_mimetype = mimetype
+            assignment.attachment_size = saved_size
+            if old_storage_key:
+                remove_academic_file(old_storage_key, app.config['ASSIGNMENTS_STORAGE_FOLDER'])
+
+        db.session.commit()
+
+        # Audit
+        after_state = {
+            'title': assignment.title,
+            'description': assignment.description,
+            'deadline': str(assignment.deadline),
+            'max_marks': assignment.max_marks,
+            'status': assignment.status
+        }
+        record_academic_resource_audit(
+            actor_user=user,
+            action='UPDATE',
+            resource_type='ASSIGNMENT',
+            resource_id=assignment.id,
+            before_state=before_state,
+            after_state=after_state,
+            reason=reason
+        )
+
+        # Notify students if deadline changed on a published assignment
+        if deadline_changed and assignment.status == 'Published':
+            try:
+                active_students = Student.query.filter_by(
+                    course=assignment.course,
+                    semester=assignment.semester,
+                    section=assignment.section,
+                    is_active=True
+                ).all()
+                for s in active_students:
+                    dispatch_notification(
+                        user=s,
+                        event='assignment_deadline_updated',
+                        context={
+                            'title': assignment.title,
+                            'subject': assignment.subject,
+                            'deadline': assignment.deadline.strftime('%Y-%m-%d %I:%M %p'),
+                            'course': assignment.course,
+                            'semester': assignment.semester,
+                            'section': assignment.section
+                        }
+                    )
+            except Exception as e:
+                print(f"Deadline notification warning: {e}")
+
+        if deadline_changed:
+            notify_class_students(
+                course=assignment.course,
+                semester=assignment.semester,
+                section=assignment.section,
+                title=f"Assignment Deadline Revised: {assignment.subject}",
+                message=f"Deadline for '{assignment.title}' extended to {assignment.deadline.strftime('%d %b %Y %I:%M %p')}.",
+                category='assignments',
+                action_url=url_for('student_assignments'),
+                idempotency_prefix=f"asgn_rev_{assignment.id}_{int(datetime.utcnow().timestamp() // 60)}",
+                sound=True
+            )
+        flash(f"Assignment '{assignment.title}' updated successfully.", 'success')
+        return redirect(url_for('assignment_detail', assignment_id=assignment.id))
+
+    return render_template('academic/assignments/edit.html', user=user, assignment=assignment, has_submissions=has_submissions)
+
+
+@app.route('/academic/assignments/<int:assignment_id>/archive', methods=['POST'])
+@login_required
+def assignment_archive(assignment_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+    if not can_manage_academic_resource(user, assignment.subject, scope, 'ARCHIVE'):
+        flash('Access Denied: You cannot archive this assignment.', 'danger')
+        return redirect(url_for('assignments_dashboard')), 403
+
+    assignment.status = 'Archived'
+    assignment.updated_by_id = user.id
+    db.session.commit()
+
+    record_academic_resource_audit(
+        actor_user=user,
+        action='ARCHIVE',
+        resource_type='ASSIGNMENT',
+        resource_id=assignment.id,
+        reason='Assignment moved to archived status'
+    )
+    flash(f"Assignment '{assignment.title}' has been archived.", 'info')
+    return redirect(url_for('assignments_dashboard'))
+
+
+@app.route('/academic/assignments/<int:assignment_id>/roster', methods=['GET'])
+@login_required
+def assignment_roster(assignment_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+    if not is_user_authorized_for_class(user, assignment.course, assignment.semester, assignment.section):
+        flash('Access Denied.', 'danger')
+        return redirect(url_for('assignments_dashboard')), 403
+
+    status_filter = (request.args.get('status') or '').strip()
+
+    students = Student.query.filter_by(
+        course=assignment.course,
+        semester=assignment.semester,
+        section=assignment.section,
+        is_active=True
+    ).order_by(Student.name.asc()).all()
+
+    existing_subs = {
+        s.student_id: s
+        for s in AssignmentSubmission.query.filter_by(assignment_id=assignment.id).all()
+    }
+
+    now = datetime.utcnow()
+    roster_rows = []
+    for s in students:
+        sub = existing_subs.get(s.id)
+        if sub:
+            final_status = sub.status
+            is_submitted = True
+        else:
+            is_submitted = False
+            if assignment.deadline and now > assignment.deadline:
+                final_status = 'Not submitted'
+            else:
+                final_status = 'Pending'
+
+        if status_filter:
+            if status_filter == 'Submitted' and final_status not in ['Submitted', 'Late']:
+                continue
+            elif status_filter == 'Not submitted' and final_status != 'Not submitted':
+                continue
+            elif status_filter == 'Late' and final_status != 'Late':
+                continue
+
+        roster_rows.append({
+            'student': s,
+            'submission': sub,
+            'status': final_status,
+            'is_submitted': is_submitted,
+            'submitted_at': sub.submitted_at if sub else None,
+            'marks_obtained': sub.marks_obtained if sub else None,
+            'feedback': sub.teacher_feedback if sub else None
+        })
+
+    return render_template(
+        'academic/assignments/roster.html',
+        user=user,
+        assignment=assignment,
+        roster_rows=roster_rows,
+        selected_status=status_filter,
+        now=now
+    )
+
+
+@app.route('/academic/assignments/<int:assignment_id>/submission/record-status', methods=['POST'])
+@login_required
+def record_submission_status(assignment_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    assignment = Assignment.query.get_or_404(assignment_id)
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+    if not can_manage_academic_resource(user, assignment.subject, scope, 'GRADE'):
+        flash('Access Denied: You are not authorized to record submission status for this subject.', 'danger')
+        return redirect(url_for('assignment_roster', assignment_id=assignment.id)), 403
+
+    student_id = request.form.get('student_id', type=int)
+    new_status = (request.form.get('status') or 'Submitted').strip()
+    marks_str = (request.form.get('marks_obtained') or '').strip()
+    feedback = (request.form.get('teacher_feedback') or '').strip()
+
+    student = Student.query.get_or_404(student_id)
+    if student.course != assignment.course or student.semester != assignment.semester or student.section != assignment.section:
+        flash('Student does not belong to this assignment class.', 'danger')
+        return redirect(url_for('assignment_roster', assignment_id=assignment.id)), 400
+
+    marks_val = None
+    if marks_str:
+        try:
+            marks_val = float(marks_str)
+            if marks_val < 0 or (assignment.max_marks and marks_val > assignment.max_marks):
+                flash(f'Marks must be between 0 and {assignment.max_marks or 100}.', 'danger')
+                return redirect(url_for('assignment_roster', assignment_id=assignment.id))
+        except ValueError:
+            flash('Marks must be a valid number.', 'danger')
+            return redirect(url_for('assignment_roster', assignment_id=assignment.id))
+
+    sub = AssignmentSubmission.query.filter_by(
+        assignment_id=assignment.id,
+        student_id=student.id
+    ).first()
+
+    now = datetime.utcnow()
+    if sub:
+        before_status = sub.status
+        sub.status = new_status
+        sub.marks_obtained = marks_val
+        sub.teacher_feedback = feedback
+        sub.graded_by_id = user.id
+        sub.graded_at = now
+        sub.last_status_changed_by_id = user.id
+        sub.last_status_changed_at = now
+        if not sub.submitted_at and new_status in ['Submitted', 'Late']:
+            sub.submitted_at = now
+            sub.status_source = 'TEACHER_RECORDED'
+    else:
+        sub = AssignmentSubmission(
+            assignment_id=assignment.id,
+            student_id=student.id,
+            status=new_status,
+            status_source='TEACHER_RECORDED',
+            submitted_at=now if new_status in ['Submitted', 'Late'] else None,
+            marks_obtained=marks_val,
+            teacher_feedback=feedback,
+            graded_by_id=user.id,
+            graded_at=now,
+            last_status_changed_by_id=user.id,
+            last_status_changed_at=now
+        )
+        db.session.add(sub)
+
+    db.session.commit()
+
+    record_academic_resource_audit(
+        actor_user=user,
+        action='STATUS_CHANGE',
+        resource_type='SUBMISSION',
+        resource_id=sub.id,
+        after_state={'student_id': student.id, 'status': new_status, 'marks': marks_val},
+        reason=f"Teacher recorded status as {new_status}"
+    )
+    create_notification(
+        recipient_type='STUDENT',
+        recipient_id=student.id,
+        title=f"Assignment Evaluated: {assignment.subject}",
+        message=f"Your submission for '{assignment.title}' was reviewed by {user.full_name} (Status: {new_status}).",
+        category='assignments',
+        action_url=url_for('student_assignments'),
+        idempotency_key=f"eval_{sub.id}_{int(datetime.utcnow().timestamp() // 60)}",
+        sound=True
+    )
+
+    flash(f"Submission status updated for {student.name}.", 'success')
+    return redirect(url_for('assignment_roster', assignment_id=assignment.id))
+
+
+@app.route('/academic/assignments/<int:assignment_id>/download', methods=['GET'])
+def download_assignment_attachment(assignment_id):
+    assignment = Assignment.query.get_or_404(assignment_id)
+    if not assignment.attachment_storage_key:
+        flash('This assignment has no attached file.', 'warning')
+        return abort(404)
+
+    if 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if not student or not student.is_active:
+            return abort(403)
+        if assignment.course != student.course or assignment.academic_year != student.academic_year or assignment.semester != student.semester or (assignment.section not in [student.section, 'ALL']):
+            flash('Access Restricted: This assignment is not in your academic cohort.', 'danger')
+            return abort(403)
+        scope = {'course': assignment.course, 'academic_year': assignment.academic_year, 'semester': assignment.semester, 'section': assignment.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=assignment.subject,
+            academic_scope=scope,
+            resource_type='ASSIGNMENT',
+            evaluation_date=assignment.assigned_date
+        )
+        if not decision['can_view']:
+            flash('Access Restricted: Attendance threshold not met for this subject.', 'danger')
+            return abort(403)
+    elif 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if not is_user_authorized_for_class(user, assignment.course, assignment.semester, assignment.section):
+            return abort(403)
+    else:
+        return redirect(url_for('login'))
+
+    file_path = os.path.join(app.config['ASSIGNMENTS_STORAGE_FOLDER'], assignment.attachment_storage_key)
+    if not os.path.exists(file_path):
+        return abort(404)
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=assignment.attachment_filename or 'assignment_attachment.pdf',
+        mimetype=assignment.attachment_mimetype or 'application/octet-stream'
+    )
+
+
+@app.route('/academic/assignments/submission/<int:submission_id>/download', methods=['GET'])
+def download_submission_file(submission_id):
+    submission = AssignmentSubmission.query.get_or_404(submission_id)
+    if not submission.file_storage_key:
+        flash('No file attached to this submission record.', 'warning')
+        return abort(404)
+
+    assignment = submission.assignment
+    if 'student_id' in session:
+        logged_student_id = session['student_id']
+        # Strict isolation: A student can ONLY download their own submission file!
+        if submission.student_id != logged_student_id:
+            flash('Security Violation: You are not authorized to access another student\'s submission.', 'danger')
+            return abort(403)
+    elif 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if not is_user_authorized_for_class(user, assignment.course, assignment.semester, assignment.section):
+            flash('Access Denied: You are not authorized to inspect submissions for this class.', 'danger')
+            return abort(403)
+    else:
+        return redirect(url_for('login'))
+
+    file_path = os.path.join(app.config['SUBMISSIONS_STORAGE_FOLDER'], submission.file_storage_key)
+    if not os.path.exists(file_path):
+        return abort(404)
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=submission.file_filename or 'submission.pdf',
+        mimetype=submission.file_mimetype or 'application/octet-stream'
+    )
+
+
+# ==============================================================================
+# STUDENT ASSIGNMENT PORTAL ROUTES
+# ==============================================================================
+
+@app.route('/student/assignments', methods=['GET'])
+def student_assignments():
+    if 'student_id' not in session:
+        flash('Please login to the Student Academic Portal.', 'info')
+        return redirect(url_for('student_login'))
+
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        session.clear()
+        flash('Invalid session. Please login again.', 'warning')
+        return redirect(url_for('student_login'))
+
+    assignments = Assignment.query.filter(
+        Assignment.course == student.course,
+        Assignment.academic_year == student.academic_year,
+        Assignment.semester == student.semester,
+        Assignment.section.in_([student.section, 'ALL']),
+        Assignment.status == 'Published'
+    ).order_by(Assignment.deadline.asc()).all()
+
+    existing_subs = {
+        s.assignment_id: s
+        for s in AssignmentSubmission.query.filter_by(student_id=student.id).all()
+    }
+
+    cards = []
+    now = datetime.utcnow()
+    for a in assignments:
+        scope = {'course': a.course, 'semester': a.semester, 'section': a.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=a.subject,
+            academic_scope=scope,
+            resource_type='ASSIGNMENT',
+            evaluation_date=a.assigned_date
+        )
+
+        sub = existing_subs.get(a.id)
+
+        cards.append({
+            'assignment': a,
+            'is_accessible': decision['can_view'],
+            'access_decision': decision,
+            'submission': sub,
+            'has_submitted': (sub is not None and sub.status in ['Submitted', 'Late']),
+            'is_past_deadline': (now > a.deadline if a.deadline else False)
+        })
+
+    return render_template(
+        'student_assignments.html',
+        student=student,
+        cards=cards,
+        now=now
+    )
+
+
+@app.route('/student/assignments/<int:assignment_id>', methods=['GET'])
+def student_assignment_detail(assignment_id):
+    if 'student_id' not in session:
+        flash('Please login to the Student Academic Portal.', 'info')
+        return redirect(url_for('student_login'))
+
+    student = Student.query.get(session['student_id'])
+    assignment = Assignment.query.get_or_404(assignment_id)
+
+    # Class Scope Check
+    if assignment.course != student.course or assignment.academic_year != student.academic_year or assignment.semester != student.semester or (assignment.section not in [student.section, 'ALL']):
+        flash('Unauthorized: This assignment is not published for your class.', 'danger')
+        return abort(403)
+
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+    decision = get_academic_content_access_decision(
+        user=None,
+        student=student,
+        subject=assignment.subject,
+        academic_scope=scope,
+        resource_type='ASSIGNMENT',
+        evaluation_date=assignment.assigned_date
+    )
+
+    if not decision['can_view']:
+        flash(f'Viewing Restricted: {decision["public_message"]}', 'danger')
+        return render_template(
+            'student_assignment_restricted.html',
+            student=student,
+            assignment=assignment,
+            decision=decision
+        ), 403
+
+    submission = AssignmentSubmission.query.filter_by(
+        assignment_id=assignment.id,
+        student_id=student.id
+    ).first()
+
+    now = datetime.utcnow()
+    is_past_deadline = (now > assignment.deadline if assignment.deadline else False)
+
+    return render_template(
+        'student_assignment_detail.html',
+        student=student,
+        assignment=assignment,
+        submission=submission,
+        is_past_deadline=is_past_deadline,
+        decision=decision
+    )
+
+
+@app.route('/student/assignments/<int:assignment_id>/submit', methods=['POST'])
+def student_assignment_submit(assignment_id):
+    if 'student_id' not in session:
+        flash('Please login to submit assignments.', 'info')
+        return redirect(url_for('student_login'))
+
+    student = Student.query.get(session['student_id'])
+    assignment = Assignment.query.get_or_404(assignment_id)
+
+    # Policy Check
+    scope = {'course': assignment.course, 'semester': assignment.semester, 'section': assignment.section}
+    decision = get_academic_content_access_decision(
+        user=None,
+        student=student,
+        subject=assignment.subject,
+        academic_scope=scope,
+        resource_type='ASSIGNMENT',
+        evaluation_date=assignment.assigned_date
+    )
+    if not decision['can_view']:
+        flash('Access Denied: Subject attendance restriction in place.', 'danger')
+        return abort(403)
+
+    if assignment.status != 'Published':
+        flash('This assignment is not accepting submissions.', 'danger')
+        return redirect(url_for('student_assignment_detail', assignment_id=assignment.id))
+
+    if 'file' not in request.files or not request.files['file'].filename:
+        flash('Please choose a file to upload.', 'danger')
+        return redirect(url_for('student_assignment_detail', assignment_id=assignment.id))
+
+    file = request.files['file']
+    is_valid, err_msg, clean_name, mimetype, fsize = validate_academic_file(file)
+    if not is_valid:
+        flash(f'Upload Rejected: {err_msg}', 'danger')
+        return redirect(url_for('student_assignment_detail', assignment_id=assignment.id))
+
+    student_comment = (request.form.get('student_comment') or '').strip()
+
+    now = datetime.utcnow()
+    is_late = (assignment.deadline and now > assignment.deadline)
+    submission_status = 'Late' if is_late else 'Submitted'
+
+    storage_key, checksum, saved_size = save_academic_file(file, app.config['SUBMISSIONS_STORAGE_FOLDER'], clean_name)
+
+    submission = AssignmentSubmission.query.filter_by(
+        assignment_id=assignment.id,
+        student_id=student.id
+    ).first()
+
+    if submission:
+        old_key = submission.file_storage_key
+        submission.status = submission_status
+        submission.status_source = 'STUDENT_UPLOAD'
+        submission.submitted_at = now
+        submission.file_filename = clean_name
+        submission.file_storage_key = storage_key
+        submission.file_mimetype = mimetype
+        submission.file_size = saved_size
+        submission.version += 1
+        submission.student_comment = student_comment
+        if old_key:
+            remove_academic_file(old_key, app.config['SUBMISSIONS_STORAGE_FOLDER'])
+    else:
+        submission = AssignmentSubmission(
+            assignment_id=assignment.id,
+            student_id=student.id,
+            status=submission_status,
+            status_source='STUDENT_UPLOAD',
+            submitted_at=now,
+            file_filename=clean_name,
+            file_storage_key=storage_key,
+            file_mimetype=mimetype,
+            file_size=saved_size,
+            version=1,
+            student_comment=student_comment
+        )
+        db.session.add(submission)
+
+    db.session.commit()
+
+    record_academic_resource_audit(
+        actor_student=student,
+        action='SUBMIT',
+        resource_type='SUBMISSION',
+        resource_id=submission.id,
+        after_state={'version': submission.version, 'status': submission_status, 'filename': clean_name},
+        reason='Student uploaded assignment solution'
+    )
+    if assignment.created_by_id:
+        create_notification(
+            recipient_type='USER',
+            recipient_id=assignment.created_by_id,
+            title=f"Assignment Submission: {assignment.subject}",
+            message=f"{student.name} ({student.uucms_id}) submitted '{assignment.title}'.",
+            category='assignments',
+            action_url=url_for('assignment_roster', assignment_id=assignment.id),
+            idempotency_key=f"asgn_sub_{assignment.id}_{student.id}_{submission.version}",
+            sound=True
+        )
+
+    if is_late:
+        flash(f"Assignment submitted successfully (Marked as LATE - Deadline was {assignment.deadline.strftime('%Y-%m-%d %I:%M %p')}).", 'warning')
+    else:
+        flash("Assignment submitted successfully!", 'success')
+
+    return redirect(url_for('student_assignment_detail', assignment_id=assignment.id))
+
+
+# ==============================================================================
+# MODULE B: STUDY MATERIALS LIBRARY ROUTES (STAFF & STUDENT)
+# ==============================================================================
+
+@app.route('/academic/study-materials', methods=['GET'])
+@login_required
+def study_materials_library():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    category = (request.args.get('category') or '').strip()
+    course = (request.args.get('course') or '').strip()
+    semester = (request.args.get('semester') or '').strip()
+    subject = (request.args.get('subject') or '').strip()
+    search = (request.args.get('search') or '').strip()
+
+    query = StudyMaterial.query
+
+    if user.role == 'Faculty':
+        authorized_contexts = get_authorized_subject_contexts(user)
+        fac_subjects = list({c['subject'] for c in authorized_contexts})
+        query = query.filter(
+            (StudyMaterial.created_by_id == user.id) | (StudyMaterial.subject.in_(fac_subjects))
+        )
+    elif user.role == 'HOD - BCA Dept':
+        query = query.filter(StudyMaterial.course == 'BCA')
+
+    if category and category in VALID_STUDY_MATERIAL_CATEGORIES:
+        query = query.filter(StudyMaterial.category == category)
+    if course:
+        query = query.filter(StudyMaterial.course == course)
+    if semester:
+        query = query.filter(StudyMaterial.semester == semester)
+    if subject:
+        query = query.filter(StudyMaterial.subject == subject)
+    if search:
+        search_pat = f"%{search}%"
+        query = query.filter(
+            (StudyMaterial.title.ilike(search_pat)) |
+            (StudyMaterial.description.ilike(search_pat)) |
+            (StudyMaterial.tags.ilike(search_pat))
+        )
+
+    materials = query.order_by(StudyMaterial.created_at.desc()).all()
+
+    # Available subjects for filtering
+    if user.role == 'Faculty':
+        available_subjects = sorted(list({c['subject'] for c in get_authorized_subject_contexts(user)}))
+    elif user.role == 'HOD - BCA Dept':
+        available_subjects = sorted([r[0] for r in db.session.query(Timetable.subject).filter_by(course='BCA').distinct().all() if r[0]])
+    else:
+        available_subjects = sorted([r[0] for r in db.session.query(Timetable.subject).distinct().all() if r[0]])
+
+    return render_template(
+        'academic/study_materials/library.html',
+        user=user,
+        materials=materials,
+        categories=VALID_STUDY_MATERIAL_CATEGORIES,
+        available_subjects=available_subjects,
+        selected_category=category,
+        selected_course=course,
+        selected_semester=semester,
+        selected_subject=subject,
+        search_query=search
+    )
+
+
+@app.route('/academic/study-materials/upload', methods=['GET', 'POST'])
+@login_required
+def study_material_upload():
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    authorized_contexts = get_authorized_subject_contexts(user)
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+        category = (request.form.get('category') or '').strip()
+        course = (request.form.get('course') or '').strip()
+        academic_year = (request.form.get('academic_year') or '').strip()
+        semester = (request.form.get('semester') or '').strip()
+        section = (request.form.get('section') or 'ALL').strip()
+        subject = (request.form.get('subject') or '').strip()
+        unit_or_chapter = (request.form.get('unit_or_chapter') or '').strip()
+        exam_year = (request.form.get('exam_year') or '').strip()
+        tags = (request.form.get('tags') or '').strip()
+        status = (request.form.get('status') or 'Published').strip()
+
+        # 1. Mandatory checks
+        if not title:
+            flash('Error: Material Title is mandatory.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if not category or not course or not academic_year or not semester or not subject:
+            flash('Error: Category, Course, Academic Year, Semester, and Subject are mandatory.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 2. Category check: Exactly the 3 required categories
+        if category not in VALID_STUDY_MATERIAL_CATEGORIES:
+            flash(f'Error: Invalid Category "{category}". Permitted categories: {", ".join(VALID_STUDY_MATERIAL_CATEGORIES)}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 3. Scope validation
+        if course not in VALID_COURSES:
+            flash(f'Error: Invalid Course/Programme "{course}". Allowed: {", ".join(VALID_COURSES)}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        if academic_year not in VALID_ACADEMIC_YEAR_SEMESTERS:
+            flash(f'Error: Invalid Academic Year "{academic_year}". Allowed: {", ".join(VALID_ACADEMIC_YEARS)}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        allowed_sems = VALID_ACADEMIC_YEAR_SEMESTERS.get(academic_year, [])
+        if semester not in allowed_sems:
+            flash(f'Error: Invalid Semester "{semester}" for {academic_year}. Valid: {", ".join(allowed_sems)}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # Teacher authorization
+        scope = {'course': course, 'academic_year': academic_year, 'semester': semester, 'section': section}
+        if not can_manage_academic_resource(user, subject, scope, 'CREATE'):
+            flash(f'Access Denied: You are not authorized to upload materials for {subject} in {course} {semester}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 403
+
+        # Verify subject belongs to scope in timetable
+        timetable_match = Timetable.query.filter_by(
+            course=course,
+            semester=semester,
+            subject=subject
+        ).first()
+        if not timetable_match:
+            flash(f'Error: Subject "{subject}" is not configured for {course} {semester}.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        # 4. File validation
+        if 'file' not in request.files or not request.files['file'].filename:
+            flash('Error: Please select a study material document to upload.', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        file = request.files['file']
+        is_valid, err_msg, clean_name, mimetype, fsize = validate_academic_file(file)
+        if not is_valid:
+            flash(f'File Rejected: {err_msg}', 'danger')
+            return render_template('academic/study_materials/upload.html', user=user, contexts=authorized_contexts, categories=VALID_STUDY_MATERIAL_CATEGORIES, valid_courses=VALID_COURSES, valid_years=VALID_ACADEMIC_YEARS, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS, valid_sections=VALID_SECTIONS, form_data=request.form), 400
+
+        storage_key, checksum, saved_size = save_academic_file(file, app.config['STUDY_MATERIALS_STORAGE_FOLDER'], clean_name)
+
+        material = StudyMaterial(
+            title=title,
+            description=description,
+            category=category,
+            subject=subject,
+            course=course,
+            semester=semester,
+            section=section,
+            academic_year=academic_year,
+            unit_or_chapter=unit_or_chapter,
+            exam_year=exam_year,
+            tags=tags,
+            file_filename=clean_name,
+            file_storage_key=storage_key,
+            file_mimetype=mimetype,
+            file_size=saved_size,
+            file_checksum=checksum,
+            status=status,
+            created_by_id=user.id,
+            updated_by_id=user.id
+        )
+        db.session.add(material)
+        db.session.commit()
+
+        record_academic_resource_audit(
+            actor_user=user,
+            action='CREATE',
+            resource_type='STUDY_MATERIAL',
+            resource_id=material.id,
+            after_state={'title': title, 'category': category, 'subject': subject, 'academic_year': academic_year, 'course': course, 'semester': semester},
+            reason='Initial material upload'
+        )
+        if status == 'Published':
+            try:
+                active_students = Student.query.filter_by(
+                    course=course,
+                    academic_year=academic_year,
+                    semester=semester,
+                    is_active=True
+                )
+                if section != 'ALL':
+                    active_students = active_students.filter_by(section=section)
+                for s in active_students.all():
+                    create_notification(
+                        recipient_type='STUDENT',
+                        recipient_id=s.id,
+                        title=f"New Study Material: {subject}",
+                        message=f"Dear {s.name}, new resource '{title}' ({category}) has been uploaded by {user.full_name}.",
+                        category='study_materials',
+                        action_url=url_for('student_study_materials', category=category),
+                        idempotency_key=f"mat_pub_{material.public_id}_{s.id}",
+                        sound=True
+                    )
+            except Exception as notif_e:
+                print(f"Notification warning on study material upload: {notif_e}")
+
+        flash(f"Material '{title}' ({category}) uploaded successfully.", 'success')
+        return redirect(url_for('study_materials_library', category=category))
+
+    return render_template(
+        'academic/study_materials/upload.html',
+        user=user,
+        contexts=authorized_contexts,
+        categories=VALID_STUDY_MATERIAL_CATEGORIES,
+        valid_courses=VALID_COURSES,
+        valid_years=VALID_ACADEMIC_YEARS,
+        valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS,
+        valid_sections=VALID_SECTIONS,
+        form_data={}
+    )
+
+
+@app.route('/academic/study-materials/<int:material_id>/edit', methods=['GET', 'POST'])
+@login_required
+def study_material_edit(material_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    material = StudyMaterial.query.get_or_404(material_id)
+    scope = {'course': material.course, 'semester': material.semester, 'section': material.section}
+    if not can_manage_academic_resource(user, material.subject, scope, 'EDIT') or (user.id != material.created_by_id and user.role not in ['HOD - BCA Dept', 'Principal', 'admin']):
+        flash('Access Denied: You cannot edit this material.', 'danger')
+        return redirect(url_for('study_materials_library')), 403
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+        unit_or_chapter = (request.form.get('unit_or_chapter') or '').strip()
+        exam_year = (request.form.get('exam_year') or '').strip()
+        tags = (request.form.get('tags') or '').strip()
+        status = (request.form.get('status') or material.status).strip()
+
+        if not title:
+            flash('Title cannot be empty.', 'danger')
+            return render_template('academic/study_materials/edit.html', user=user, material=material, categories=VALID_STUDY_MATERIAL_CATEGORIES)
+
+        before_state = {'title': material.title, 'status': material.status}
+
+        material.title = title
+        material.description = description
+        material.unit_or_chapter = unit_or_chapter
+        material.exam_year = exam_year
+        material.tags = tags
+        material.status = status
+        material.updated_by_id = user.id
+
+        if 'file' in request.files and request.files['file'].filename:
+            file = request.files['file']
+            is_valid, err_msg, clean_name, mimetype, fsize = validate_academic_file(file)
+            if not is_valid:
+                flash(f'File Rejected: {err_msg}', 'danger')
+                return render_template('academic/study_materials/edit.html', user=user, material=material, categories=VALID_STUDY_MATERIAL_CATEGORIES)
+
+            old_key = material.file_storage_key
+            storage_key, checksum, saved_size = save_academic_file(file, app.config['STUDY_MATERIALS_STORAGE_FOLDER'], clean_name)
+            material.file_filename = clean_name
+            material.file_storage_key = storage_key
+            material.file_mimetype = mimetype
+            material.file_size = saved_size
+            material.file_checksum = checksum
+            if old_key:
+                remove_academic_file(old_key, app.config['STUDY_MATERIALS_STORAGE_FOLDER'])
+
+        db.session.commit()
+
+        record_academic_resource_audit(
+            actor_user=user,
+            action='UPDATE',
+            resource_type='STUDY_MATERIAL',
+            resource_id=material.id,
+            before_state=before_state,
+            after_state={'title': material.title, 'status': material.status},
+            reason='Teacher edited material metadata'
+        )
+
+        flash(f"Material '{material.title}' updated successfully.", 'success')
+        return redirect(url_for('study_materials_library', category=material.category))
+
+    return render_template('academic/study_materials/edit.html', user=user, material=material, categories=VALID_STUDY_MATERIAL_CATEGORIES)
+
+
+@app.route('/academic/study-materials/<int:material_id>/archive', methods=['POST'])
+@login_required
+def study_material_archive(material_id):
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    material = StudyMaterial.query.get_or_404(material_id)
+    scope = {'course': material.course, 'semester': material.semester, 'section': material.section}
+    if not can_manage_academic_resource(user, material.subject, scope, 'ARCHIVE'):
+        flash('Access Denied.', 'danger')
+        return redirect(url_for('study_materials_library')), 403
+
+    material.status = 'Archived'
+    material.updated_by_id = user.id
+    db.session.commit()
+
+    record_academic_resource_audit(
+        actor_user=user,
+        action='ARCHIVE',
+        resource_type='STUDY_MATERIAL',
+        resource_id=material.id,
+        reason='Material moved to archived status'
+    )
+    flash(f"Material '{material.title}' has been archived.", 'info')
+    return redirect(url_for('study_materials_library', category=material.category))
+
+
+@app.route('/academic/study-materials/<int:material_id>/download', methods=['GET'])
+def download_study_material(material_id):
+    material = StudyMaterial.query.get_or_404(material_id)
+    if material.status != 'Published' and 'user_id' not in session:
+        return abort(404)
+
+    if 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if not student or not student.is_active:
+            return abort(403)
+        if material.course != student.course or material.academic_year != student.academic_year or material.semester != student.semester or (material.section not in [student.section, 'ALL']):
+            flash('Access Restricted: This study material is not in your academic cohort.', 'danger')
+            return abort(403)
+        scope = {'course': material.course, 'academic_year': material.academic_year, 'semester': material.semester, 'section': material.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=material.subject,
+            academic_scope=scope,
+            resource_type='STUDY_MATERIAL',
+            evaluation_date=material.created_at.date()
+        )
+        if not decision['can_view']:
+            flash('Access Restricted: You are not authorized to download this study material.', 'danger')
+            return abort(403)
+    elif 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        scope = {'course': material.course, 'semester': material.semester, 'section': material.section}
+        if not can_manage_academic_resource(user, material.subject, scope, action='VIEW'):
+            flash('Access Denied: You are not authorized for this study material.', 'danger')
+            return abort(403)
+    else:
+        return redirect(url_for('login'))
+
+    file_path = os.path.join(app.config['STUDY_MATERIALS_STORAGE_FOLDER'], material.file_storage_key)
+    if not os.path.exists(file_path):
+        flash('File not found in storage repository.', 'danger')
+        return abort(404)
+
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=material.file_filename,
+        mimetype=material.file_mimetype
+    )
+
+
+
+# ==============================================================================
+# STUDENT SEMESTER TIMETABLE MODULE (INDEPENDENT FROM TEACHER TIMETABLE)
+# ==============================================================================
+
+VALID_ACADEMIC_YEAR_SEMESTERS = {
+    '1st Year': ['Sem I', 'Sem II'],
+    '2nd Year': ['Sem III', 'Sem IV'],
+    '3rd Year': ['Sem V', 'Sem VI']
+}
+VALID_TIMETABLE_COURSES = ['BCA', 'B.Com', 'BBA']
+VALID_TIMETABLE_SECTIONS = ['A', 'B', 'ALL']
+
+
+@app.route('/academic/student-timetables', methods=['GET'])
+@login_required
+def student_timetables_dashboard():
+    user = User.query.get(session['user_id'])
+    if not user or not (user.role in ['Faculty', 'teacher', 'HOD - BCA Dept', 'Principal', 'admin', 'HR'] or user.username == 'admin'):
+        flash("Access Denied: You are not authorized to manage student semester timetables.", "danger")
+        return redirect(url_for('dashboard')), 403
+
+    selected_course = request.args.get('course', 'all')
+    selected_year = request.args.get('academic_year', 'all')
+    selected_semester = request.args.get('semester', 'all')
+    selected_section = request.args.get('section', 'all')
+    status_filter = request.args.get('status', 'all')
+
+    query = StudentSemesterTimetable.query
+    if selected_course != 'all':
+        query = query.filter_by(course=selected_course)
+    if selected_year != 'all':
+        query = query.filter_by(academic_year=selected_year)
+    if selected_semester != 'all':
+        query = query.filter_by(semester=selected_semester)
+    if selected_section != 'all':
+        query = query.filter_by(section=selected_section)
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+
+    timetables = query.order_by(
+        StudentSemesterTimetable.status.asc(),
+        StudentSemesterTimetable.updated_at.desc()
+    ).all()
+
+    return render_template(
+        'academic/student_timetables/dashboard.html',
+        user=user,
+        timetables=timetables,
+        selected_course=selected_course,
+        selected_year=selected_year,
+        selected_semester=selected_semester,
+        selected_section=selected_section,
+        status_filter=status_filter,
+        valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS
+    )
+
+
+@app.route('/academic/student-timetables/upload', methods=['GET', 'POST'])
+@login_required
+def student_timetables_upload():
+    user = User.query.get(session['user_id'])
+    if not user or not (user.role in ['Faculty', 'teacher', 'HOD - BCA Dept', 'Principal', 'admin', 'HR'] or user.username == 'admin'):
+        flash("Access Denied: You are not authorized to upload student semester timetables.", "danger")
+        return redirect(url_for('dashboard')), 403
+
+    if request.method == 'POST':
+        course = (request.form.get('course') or 'BCA').strip()
+        academic_year = (request.form.get('academic_year') or '').strip()
+        semester = (request.form.get('semester') or '').strip()
+        section = (request.form.get('section') or 'A').strip()
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+
+        # 1. Scope & Field Validation
+        if not title:
+            flash("Error: Timetable Title is mandatory.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        if course not in VALID_TIMETABLE_COURSES:
+            flash(f"Error: Invalid course '{course}'.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        if academic_year not in VALID_ACADEMIC_YEAR_SEMESTERS:
+            flash(f"Error: Invalid Academic Year '{academic_year}'. Must be one of 1st Year, 2nd Year, 3rd Year.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        allowed_sems = VALID_ACADEMIC_YEAR_SEMESTERS.get(academic_year, [])
+        if semester not in allowed_sems:
+            flash(f"Error: Invalid Semester '{semester}' for {academic_year}. Allowed: {', '.join(allowed_sems)}.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        if section not in VALID_TIMETABLE_SECTIONS:
+            flash(f"Error: Invalid section '{section}'.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        # 2. File Upload Validation
+        if 'file' not in request.files or not request.files['file'].filename:
+            flash("Error: Please select a timetable file (PDF, Image, or Spreadsheet) to upload.", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        uploaded_file = request.files['file']
+        is_valid, err_msg, clean_name, mimetype, file_size = validate_academic_file(
+            uploaded_file,
+            max_bytes=10 * 1024 * 1024
+        )
+        if not is_valid:
+            flash(f"File Validation Error: {err_msg}", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 400
+
+        # 3. Save file in private storage
+        try:
+            folder = app.config['STUDENT_TIMETABLES_STORAGE_FOLDER']
+            storage_key, checksum, saved_size = save_academic_file(uploaded_file, folder, clean_name)
+        except Exception as storage_err:
+            flash(f"Storage Error: Failed to save file ({str(storage_err)}).", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 500
+
+        # 4. Atomic Database Update & Scope Archiving
+        try:
+            # Query existing active timetables for this scope
+            active_existing = StudentSemesterTimetable.query.filter_by(
+                course=course,
+                academic_year=academic_year,
+                semester=semester,
+                section=section,
+                status='PUBLISHED'
+            ).all()
+
+            # Calculate next version
+            max_v = db.session.query(db.func.max(StudentSemesterTimetable.version)).filter_by(
+                course=course,
+                academic_year=academic_year,
+                semester=semester,
+                section=section
+            ).scalar() or 0
+            new_version = max_v + 1
+
+            # Archive previous active timetables
+            for old in active_existing:
+                old.status = 'ARCHIVED'
+                old.updated_at = datetime.utcnow()
+
+            # Create new PUBLISHED timetable
+            new_tt = StudentSemesterTimetable(
+                course=course,
+                academic_year=academic_year,
+                semester=semester,
+                section=section,
+                title=title,
+                description=description,
+                file_filename=clean_name,
+                file_storage_key=storage_key,
+                file_mimetype=mimetype,
+                file_size=saved_size,
+                file_checksum=checksum,
+                version=new_version,
+                status='PUBLISHED',
+                uploaded_by_id=user.id,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.session.add(new_tt)
+            db.session.commit()
+
+            # Record in Academic Resource Audit
+            record_academic_resource_audit(
+                actor_user=user,
+                action='CREATE',
+                resource_type='STUDENT_TIMETABLE',
+                resource_id=new_tt.id,
+                after_state={'title': title, 'scope': f"{course} {academic_year} {semester} Sec {section}", 'version': new_version},
+                reason=f"Teacher published semester timetable v{new_version}"
+            )
+
+            # 5. Notify Students of the matching class scope
+            try:
+                notify_class_students(
+                    course=course,
+                    semester=semester,
+                    section=section,
+                    title=f"New Semester Timetable: {semester} ({course})",
+                    message=f"Prof. {user.full_name} has published the semester timetable '{title}' (v{new_version}).",
+                    category='academic',
+                    action_url=url_for('student_timetable_view'),
+                    idempotency_prefix=f"st_tt_pub_{new_tt.id}",
+                    sound=True
+                )
+            except Exception as notif_err:
+                print(f"Notification notice on timetable upload: {notif_err}")
+
+            flash(f"Semester timetable '{title}' (v{new_version}) successfully published for {course} {academic_year} {semester} Sec {section}.", "success")
+            return redirect(url_for('student_timetables_dashboard'))
+
+        except Exception as db_err:
+            db.session.rollback()
+            remove_academic_file(storage_key, app.config['STUDENT_TIMETABLES_STORAGE_FOLDER'])
+            flash(f"Database Error: Failed to publish timetable ({str(db_err)}).", "danger")
+            return render_template('academic/student_timetables/upload.html', user=user, form_data=request.form, valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS), 500
+
+    return render_template(
+        'academic/student_timetables/upload.html',
+        user=user,
+        form_data={},
+        valid_year_semesters=VALID_ACADEMIC_YEAR_SEMESTERS
+    )
+
+
+@app.route('/academic/student-timetables/<int:timetable_id>/archive', methods=['POST'])
+@login_required
+def student_timetables_archive(timetable_id):
+    user = User.query.get(session['user_id'])
+    if not user or not (user.role in ['Faculty', 'teacher', 'HOD - BCA Dept', 'Principal', 'admin', 'HR'] or user.username == 'admin'):
+        flash("Access Denied.", "danger")
+        return redirect(url_for('dashboard')), 403
+
+    timetable = StudentSemesterTimetable.query.get(timetable_id)
+    if not timetable:
+        flash("Timetable not found.", "danger")
+        return redirect(url_for('student_timetables_dashboard')), 404
+
+    timetable.status = 'ARCHIVED'
+    timetable.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    record_academic_resource_audit(
+        actor_user=user,
+        action='ARCHIVE',
+        resource_type='STUDENT_TIMETABLE',
+        resource_id=timetable.id,
+        after_state={'status': 'ARCHIVED'},
+        reason="Teacher archived semester timetable"
+    )
+
+    flash(f"Timetable '{timetable.title}' (v{timetable.version}) archived.", "info")
+    return redirect(url_for('student_timetables_dashboard'))
+
+
+@app.route('/academic/student-timetables/<int:timetable_id>/download', methods=['GET'])
+def download_student_timetable(timetable_id):
+    timetable = StudentSemesterTimetable.query.get(timetable_id)
+    if not timetable:
+        abort(404, description="Timetable document not found.")
+
+    # Authorization verification:
+    is_authorized_staff = False
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user and (user.role in ['Faculty', 'teacher', 'HOD - BCA Dept', 'Principal', 'admin', 'HR'] or user.username == 'admin'):
+            is_authorized_staff = True
+
+    is_authorized_student = False
+    if 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if student:
+            if (student.course == timetable.course and 
+                student.semester == timetable.semester and 
+                (timetable.section in [student.section, 'ALL'])):
+                is_authorized_student = True
+
+    if not is_authorized_staff and not is_authorized_student:
+        flash("Access Denied: You are not authorized to download this semester timetable.", "danger")
+        if 'student_id' in session:
+            return redirect(url_for('student_timetable_view')), 403
+        return redirect(url_for('login')), 403
+
+    folder = app.config['STUDENT_TIMETABLES_STORAGE_FOLDER']
+    file_path = os.path.join(folder, timetable.file_storage_key)
+    if not os.path.exists(file_path):
+        flash("Error: The requested file is missing from secure storage.", "danger")
+        abort(404)
+
+    return send_from_directory(
+        folder,
+        timetable.file_storage_key,
+        as_attachment=True,
+        download_name=timetable.file_filename,
+        mimetype=timetable.file_mimetype
+    )
+
+
+@app.route('/academic/student-timetables/<int:timetable_id>/view', methods=['GET'])
+def view_student_timetable_file(timetable_id):
+    timetable = StudentSemesterTimetable.query.get(timetable_id)
+    if not timetable:
+        abort(404)
+
+    is_authorized = False
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user and (user.role in ['Faculty', 'teacher', 'HOD - BCA Dept', 'Principal', 'admin', 'HR'] or user.username == 'admin'):
+            is_authorized = True
+    elif 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if student and student.course == timetable.course and student.semester == timetable.semester and (timetable.section in [student.section, 'ALL']):
+            is_authorized = True
+
+    if not is_authorized:
+        abort(403)
+
+    folder = app.config['STUDENT_TIMETABLES_STORAGE_FOLDER']
+    return send_from_directory(
+        folder,
+        timetable.file_storage_key,
+        as_attachment=False,
+        mimetype=timetable.file_mimetype
+    )
+
+
+@app.route('/student/timetable', methods=['GET'])
+def student_timetable_view():
+    if 'student_id' not in session:
+        flash("Please log in with your UUCMS ID to view your semester timetable.", "warning")
+        return redirect(url_for('student_login'))
+    
+    student = Student.query.get(session['student_id'])
+    if not student:
+        session.clear()
+        return redirect(url_for('student_login'))
+
+    course = student.course
+    academic_year = student.academic_year
+    semester = student.semester
+    section = student.section or 'A'
+
+    timetable = StudentSemesterTimetable.query.filter(
+        StudentSemesterTimetable.course == course,
+        StudentSemesterTimetable.academic_year == academic_year,
+        StudentSemesterTimetable.semester == semester,
+        StudentSemesterTimetable.section.in_([section, 'ALL']),
+        StudentSemesterTimetable.status == 'PUBLISHED'
+    ).order_by(
+        db.case((StudentSemesterTimetable.section == section, 1), else_=2),
+        StudentSemesterTimetable.version.desc()
+    ).first()
+
+    return render_template(
+        'student_timetable.html',
+        student=student,
+        timetable=timetable,
+        course=course,
+        academic_year=academic_year,
+        semester=semester,
+        section=section
+    )
+
+@app.route('/academic/study-materials/<int:material_id>/preview', methods=['GET'])
+def preview_study_material(material_id):
+    material = StudyMaterial.query.get_or_404(material_id)
+    if material.status != 'Published' and 'user_id' not in session:
+        return abort(404)
+
+    if 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if not student or not student.is_active:
+            return abort(403)
+        if material.course != student.course or material.academic_year != student.academic_year or material.semester != student.semester or (material.section not in [student.section, 'ALL']):
+            return abort(403)
+        scope = {'course': material.course, 'academic_year': material.academic_year, 'semester': material.semester, 'section': material.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=material.subject,
+            academic_scope=scope,
+            resource_type='STUDY_MATERIAL',
+            evaluation_date=material.created_at.date()
+        )
+        if not decision['can_view']:
+            return abort(403)
+    elif 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        scope = {'course': material.course, 'semester': material.semester, 'section': material.section}
+        if not can_manage_academic_resource(user, material.subject, scope, action='VIEW'):
+            return abort(403)
+    else:
+        return redirect(url_for('login'))
+
+    file_path = os.path.join(app.config['STUDY_MATERIALS_STORAGE_FOLDER'], material.file_storage_key)
+    if not os.path.exists(file_path):
+        return abort(404)
+
+    resp = make_response(send_file(
+        file_path,
+        as_attachment=False,
+        download_name=material.file_filename,
+        mimetype=material.file_mimetype
+    ))
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Content-Disposition'] = f'inline; filename="{material.file_filename}"'
+    return resp
+
+
+@app.route('/student/study-materials', methods=['GET'])
+def student_study_materials():
+    if 'student_id' not in session:
+        flash('Please login to the Student Academic Portal.', 'info')
+        return redirect(url_for('student_login'))
+
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        session.clear()
+        return redirect(url_for('student_login'))
+
+    category = (request.args.get('category') or 'Textbooks').strip()
+    if category not in VALID_STUDY_MATERIAL_CATEGORIES:
+        category = 'Textbooks'
+
+    subject = (request.args.get('subject') or '').strip()
+    search = (request.args.get('search') or '').strip()
+
+    query = StudyMaterial.query.filter(
+        StudyMaterial.course == student.course,
+        StudyMaterial.academic_year == student.academic_year,
+        StudyMaterial.semester == student.semester,
+        StudyMaterial.section.in_([student.section, 'ALL']),
+        StudyMaterial.category == category,
+        StudyMaterial.status == 'Published'
+    )
+
+    if subject:
+        query = query.filter(StudyMaterial.subject == subject)
+    if search:
+        search_pat = f"%{search}%"
+        query = query.filter(
+            (StudyMaterial.title.ilike(search_pat)) |
+            (StudyMaterial.description.ilike(search_pat)) |
+            (StudyMaterial.tags.ilike(search_pat))
+        )
+
+    materials = query.order_by(StudyMaterial.created_at.desc()).all()
+
+    # Available subjects for student's class
+    class_subjects = [
+        r[0] for r in db.session.query(Timetable.subject).filter_by(
+            course=student.course,
+            semester=student.semester,
+            section=student.section
+        ).distinct().all() if r[0]
+    ]
+
+    cards = []
+    for m in materials:
+        scope = {'course': m.course, 'semester': m.semester, 'section': m.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=m.subject,
+            academic_scope=scope,
+            resource_type='STUDY_MATERIAL',
+            evaluation_date=m.created_at.date()
+        )
+
+        cards.append({
+            'material': m,
+            'is_accessible': decision['can_view'],
+            'access_decision': decision
+        })
+
+    return render_template(
+        'student_study_materials.html',
+        student=student,
+        cards=cards,
+        categories=VALID_STUDY_MATERIAL_CATEGORIES,
+        class_subjects=sorted(class_subjects),
+        selected_category=category,
+        selected_subject=subject,
+        search_query=search
+    )
+
+# ==============================================================================
+# FEATURE - TEACHER ACADEMIC ANALYTICS DASHBOARD
+# ==============================================================================
+
+DEFAULT_LOW_MARKS_THRESHOLD_PERCENT = 40.0
+
+def get_low_marks_threshold_percent():
+    try:
+        return float(os.getenv('LOW_MARKS_THRESHOLD_PERCENT', str(DEFAULT_LOW_MARKS_THRESHOLD_PERCENT)))
+    except Exception:
+        return DEFAULT_LOW_MARKS_THRESHOLD_PERCENT
+
+def resolve_teacher_academic_scope(user, req_course=None, req_academic_year=None, req_semester=None, req_section=None, req_subject=None):
+    """
+    Resolves, defaults, and validates the academic scope for teacher analytics.
+    Returns:
+        (selected_scope_dict, available_options_dict, is_authorized_bool)
+    """
+    authorized_contexts = get_authorized_subject_contexts(user)
+    if not authorized_contexts:
+        return None, {}, False
+
+    avail_courses = sorted(list({c['course'] for c in authorized_contexts}))
+    if req_course:
+        if req_course not in avail_courses:
+            return None, {}, False
+        selected_course = req_course
+    else:
+        selected_course = avail_courses[0]
+
+    course_contexts = [c for c in authorized_contexts if c['course'] == selected_course]
+    avail_semesters = sorted(list({c['semester'] for c in course_contexts}))
+    if req_semester:
+        if req_semester not in avail_semesters:
+            return None, {}, False
+        selected_semester = req_semester
+    else:
+        selected_semester = avail_semesters[0] if avail_semesters else 'Sem V'
+
+    sem_contexts = [c for c in course_contexts if c['semester'] == selected_semester]
+    avail_sections = sorted(list({c['section'] for c in sem_contexts}))
+    if req_section:
+        if req_section not in avail_sections:
+            return None, {}, False
+        selected_section = req_section
+    else:
+        selected_section = avail_sections[0] if avail_sections else 'A'
+
+    if not is_user_authorized_for_class(user, selected_course, selected_semester, selected_section):
+        return None, {}, False
+
+    avail_years = [
+        r[0] for r in db.session.query(Student.academic_year).filter(
+            Student.course == selected_course,
+            Student.semester == selected_semester,
+            Student.section == selected_section,
+            Student.is_active == True
+        ).distinct().all() if r[0]
+    ]
+    if not avail_years:
+        avail_years = ['3rd Year'] if selected_semester in ['Sem V', 'Sem VI'] else (['2nd Year'] if selected_semester in ['Sem III', 'Sem IV'] else ['1st Year'])
+    selected_year = req_academic_year if (req_academic_year and req_academic_year in avail_years) else avail_years[0]
+
+    tt_subjects = {
+        r[0] for r in db.session.query(Timetable.subject).filter_by(
+            course=selected_course,
+            semester=selected_semester,
+            section=selected_section
+        ).distinct().all() if r[0]
+    }
+    cs_subjects = {
+        (s.actual_subject if s.actual_subject else s.scheduled_subject)
+        for s in ClassSession.query.filter_by(
+            course=selected_course,
+            semester=selected_semester,
+            section=selected_section
+        ).all() if (s.actual_subject or s.scheduled_subject)
+    }
+    avail_subjects = sorted(list(tt_subjects | cs_subjects))
+
+    selected_subject = req_subject if (req_subject and req_subject in avail_subjects) else None
+
+    scope = {
+        'course': selected_course,
+        'academic_year': selected_year,
+        'semester': selected_semester,
+        'section': selected_section,
+        'subject': selected_subject
+    }
+    options = {
+        'courses': avail_courses,
+        'academic_years': avail_years,
+        'semesters': avail_semesters,
+        'sections': avail_sections,
+        'subjects': avail_subjects
+    }
+    return scope, options, True
+
+
+def compute_academic_analytics_data(course, academic_year, semester, section, subject_filter=None, low_marks_threshold_pct=None):
+    """
+    Computes comprehensive attendance and assessment analytics across the selected academic scope.
+    Guarantees:
+    - Aggregate class attendance = total present instances / total student-session instances * 100
+    - Individual attendance calculated independently per student
+    - Missing marks distinguished from recorded zero
+    - Missing attendance distinguished from absence (0 sessions -> PENDING)
+    - Zero N+1 query overhead by bulk querying.
+    """
+    if low_marks_threshold_pct is None:
+        low_marks_threshold_pct = get_low_marks_threshold_percent()
+
+    # 1. Fetch active students in scope
+    students_query = Student.query.filter(
+        Student.course == course,
+        Student.semester == semester,
+        Student.section == section,
+        Student.is_active == True
+    )
+    if academic_year:
+        students_query = students_query.filter(Student.academic_year == academic_year)
+    students = students_query.order_by(Student.name.asc()).all()
+    total_students = len(students)
+    student_ids = [s.id for s in students]
+
+    # 2. Fetch completed class sessions in scope
+    sessions_query = ClassSession.query.filter(
+        ClassSession.course == course,
+        ClassSession.semester == semester,
+        ClassSession.section == section,
+        ClassSession.status == 'COMPLETED'
+    )
+    all_completed_sessions = sessions_query.order_by(ClassSession.date.asc()).all()
+
+    class_subjects = sorted(list({
+        (s.actual_subject if s.actual_subject else s.scheduled_subject)
+        for s in all_completed_sessions if (s.actual_subject or s.scheduled_subject)
+    } | {
+        r[0] for r in db.session.query(Timetable.subject).filter_by(
+            course=course, semester=semester, section=section
+        ).distinct().all() if r[0]
+    }))
+
+    if subject_filter:
+        relevant_sessions = [
+            s for s in all_completed_sessions
+            if (s.actual_subject == subject_filter if s.actual_subject else s.scheduled_subject == subject_filter)
+        ]
+    else:
+        relevant_sessions = all_completed_sessions
+
+    relevant_session_ids = [s.id for s in relevant_sessions]
+    total_conducted_sessions = len(relevant_sessions)
+
+    unfinalized_sessions_count = ClassSession.query.filter(
+        ClassSession.course == course,
+        ClassSession.semester == semester,
+        ClassSession.section == section,
+        ClassSession.status.in_(['IN_PROGRESS', 'SCHEDULED']),
+        ClassSession.date <= date.today()
+    ).count()
+
+    # 3. Bulk fetch attendance records for relevant sessions and students
+    if relevant_session_ids and student_ids:
+        attendance_records = StudentAttendance.query.filter(
+            StudentAttendance.class_session_id.in_(relevant_session_ids),
+            StudentAttendance.student_id.in_(student_ids)
+        ).all()
+    else:
+        attendance_records = []
+
+    student_att_map = {sid: {} for sid in student_ids}
+    total_eligible_student_sessions = len(attendance_records)
+    total_eligible_present_instances = 0
+
+    for att in attendance_records:
+        student_att_map[att.student_id][att.class_session_id] = att.status
+        if att.status == 'Present':
+            total_eligible_present_instances += 1
+
+    if total_eligible_student_sessions > 0:
+        aggregate_attendance_pct = round((total_eligible_present_instances * 100.0) / total_eligible_student_sessions, 2)
+    else:
+        aggregate_attendance_pct = None
+
+    # 4. Subject-wise analytics calculation
+    all_completed_session_ids = [s.id for s in all_completed_sessions]
+    if all_completed_session_ids and student_ids:
+        all_att_records = StudentAttendance.query.filter(
+            StudentAttendance.class_session_id.in_(all_completed_session_ids),
+            StudentAttendance.student_id.in_(student_ids)
+        ).all()
+    else:
+        all_att_records = []
+
+    full_att_map = {(a.student_id, a.class_session_id): a.status for a in all_att_records}
+
+    subject_analytics = []
+    for subj in class_subjects:
+        subj_sessions = [
+            s for s in all_completed_sessions
+            if (s.actual_subject == subj if s.actual_subject else s.scheduled_subject == subj)
+        ]
+        subj_session_count = len(subj_sessions)
+        subj_session_ids = [s.id for s in subj_sessions]
+
+        if subj_session_count > 0 and student_ids:
+            subj_present_count = sum(
+                1 for sid in student_ids for cs_id in subj_session_ids
+                if full_att_map.get((sid, cs_id)) == 'Present'
+            )
+            subj_total_instances = sum(
+                1 for sid in student_ids for cs_id in subj_session_ids
+                if (sid, cs_id) in full_att_map
+            )
+            subj_pct = round((subj_present_count * 100.0) / subj_total_instances, 2) if subj_total_instances > 0 else None
+
+            below_75_count = 0
+            for sid in student_ids:
+                s_attended = sum(1 for cs_id in subj_session_ids if full_att_map.get((sid, cs_id)) == 'Present')
+                s_pct = (s_attended * 100.0) / subj_session_count
+                if s_pct < 75.0:
+                    below_75_count += 1
+        else:
+            subj_pct = None
+            below_75_count = 0
+
+        subject_analytics.append({
+            'subject': subj,
+            'conducted_count': subj_session_count,
+            'attendance_pct': subj_pct,
+            'students_below_75': below_75_count,
+            'is_selected': (subj == subject_filter)
+        })
+
+    # 5. Bulk fetch Internal Marks in scope
+    marks_query = InternalMark.query.filter(
+        InternalMark.student_id.in_(student_ids),
+        InternalMark.course == course,
+        InternalMark.semester == semester,
+        InternalMark.section == section
+    )
+    if subject_filter:
+        marks_query = marks_query.filter(InternalMark.subject == subject_filter)
+    marks_records = marks_query.all()
+
+    student_marks_map = {}
+    for m in marks_records:
+        if m.student_id not in student_marks_map:
+            student_marks_map[m.student_id] = {}
+        student_marks_map[m.student_id][m.subject] = m
+
+    # 6. Bulk fetch active HOD Overrides in scope
+    overrides_query = MarksEligibilityOverride.query.filter(
+        MarksEligibilityOverride.student_id.in_(student_ids),
+        MarksEligibilityOverride.course == course,
+        MarksEligibilityOverride.semester == semester,
+        MarksEligibilityOverride.section == section,
+        MarksEligibilityOverride.is_active == True
+    )
+    if subject_filter:
+        overrides_query = overrides_query.filter(MarksEligibilityOverride.subject == subject_filter)
+    overrides_records = overrides_query.all()
+
+    student_override_map = {}
+    for o in overrides_records:
+        if o.student_id not in student_override_map:
+            student_override_map[o.student_id] = {}
+        student_override_map[o.student_id][o.subject] = o
+
+    # 7. Assessment Metrics
+    maxima = get_assessment_maxima()
+    ia1_threshold = maxima['IA1'] * (low_marks_threshold_pct / 100.0)
+    ia2_threshold = maxima['IA2'] * (low_marks_threshold_pct / 100.0)
+    final_ia_threshold = maxima['Final IA'] * (low_marks_threshold_pct / 100.0)
+
+    all_ia1_vals = [m.ia1_marks for m in marks_records if m.ia1_marks is not None]
+    all_ia2_vals = [m.ia2_marks for m in marks_records if m.ia2_marks is not None]
+    all_final_vals = [m.final_ia_marks for m in marks_records if m.final_ia_marks is not None]
+
+    expected_marks_count = total_students * (1 if subject_filter else max(len(class_subjects), 1))
+
+    ia_metrics = {
+        'maxima': maxima,
+        'low_marks_threshold_pct': low_marks_threshold_pct,
+        'thresholds': {
+            'IA1': ia1_threshold,
+            'IA2': ia2_threshold,
+            'Final IA': final_ia_threshold
+        },
+        'IA1': {
+            'average': round(sum(all_ia1_vals) / len(all_ia1_vals), 2) if all_ia1_vals else None,
+            'highest': max(all_ia1_vals) if all_ia1_vals else None,
+            'lowest': min(all_ia1_vals) if all_ia1_vals else None,
+            'entered_count': len(all_ia1_vals),
+            'pending_count': max(0, expected_marks_count - len(all_ia1_vals))
+        },
+        'IA2': {
+            'average': round(sum(all_ia2_vals) / len(all_ia2_vals), 2) if all_ia2_vals else None,
+            'highest': max(all_ia2_vals) if all_ia2_vals else None,
+            'lowest': min(all_ia2_vals) if all_ia2_vals else None,
+            'entered_count': len(all_ia2_vals),
+            'pending_count': max(0, expected_marks_count - len(all_ia2_vals))
+        },
+        'Final IA': {
+            'average': round(sum(all_final_vals) / len(all_final_vals), 2) if all_final_vals else None,
+            'highest': max(all_final_vals) if all_final_vals else None,
+            'lowest': min(all_final_vals) if all_final_vals else None,
+            'entered_count': len(all_final_vals),
+            'pending_count': max(0, expected_marks_count - len(all_final_vals))
+        }
+    }
+
+    dist_vals = all_final_vals if all_final_vals else (all_ia1_vals if all_ia1_vals else [])
+    dist_max = maxima['Final IA'] if all_final_vals else maxima['IA1']
+    dist_buckets = {'< 40%': 0, '40% - 59%': 0, '60% - 74%': 0, '75% - 89%': 0, '90% - 100%': 0}
+    for v in dist_vals:
+        pct = (v / dist_max) * 100.0 if dist_max > 0 else 0
+        if pct < 40.0:
+            dist_buckets['< 40%'] += 1
+        elif pct < 60.0:
+            dist_buckets['40% - 59%'] += 1
+        elif pct < 75.0:
+            dist_buckets['60% - 74%'] += 1
+        elif pct < 90.0:
+            dist_buckets['75% - 89%'] += 1
+        else:
+            dist_buckets['90% - 100%'] += 1
+    ia_metrics['score_distribution'] = dist_buckets
+
+    # 8. Compile Student Rows
+    student_rows = []
+    students_meeting_threshold = 0
+    students_below_threshold = 0
+    students_pending_attendance = 0
+    student_pct_list = []
+
+    for s in students:
+        s_att_dict = student_att_map.get(s.id, {})
+        if total_conducted_sessions > 0:
+            s_attended = sum(1 for cs_id in relevant_session_ids if s_att_dict.get(cs_id) == 'Present')
+            s_percentage = round((s_attended * 100.0) / total_conducted_sessions, 2)
+            student_pct_list.append(s_percentage)
+            if s_percentage >= 75.0:
+                students_meeting_threshold += 1
+                s_att_status = 'ELIGIBLE'
+            else:
+                students_below_threshold += 1
+                s_att_status = 'RESTRICTED'
+        else:
+            s_attended = 0
+            s_percentage = None
+            s_att_status = 'PENDING'
+            students_pending_attendance += 1
+
+        s_marks = student_marks_map.get(s.id, {})
+        has_low_marks = False
+        has_recorded_mark = False
+        has_pending_mark = False
+        marks_summary = []
+
+        target_subjects = [subject_filter] if subject_filter else class_subjects
+        for subj in target_subjects:
+            m = s_marks.get(subj)
+            if m:
+                for comp, val in [('IA1', m.ia1_marks), ('IA2', m.ia2_marks), ('Final IA', m.final_ia_marks)]:
+                    if val is not None:
+                        has_recorded_mark = True
+                        thresh = ia_metrics['thresholds'][comp]
+                        if val < thresh:
+                            has_low_marks = True
+                        marks_summary.append(f"{comp}: {val:.1f}")
+                    else:
+                        has_pending_mark = True
+            else:
+                has_pending_mark = True
+
+        s_overrides = student_override_map.get(s.id, {})
+        active_manual_restrict = any(o.decision_type == 'MANUAL_RESTRICT' for o in s_overrides.values())
+        active_allow_override = any(o.decision_type == 'ALLOW_OVERRIDE' for o in s_overrides.values())
+
+        labels = []
+        has_attendance_risk = (s_percentage is not None and s_percentage < 75.0)
+
+        if has_attendance_risk:
+            labels.append({'text': 'Attendance Risk', 'type': 'danger'})
+
+        if has_low_marks:
+            labels.append({'text': 'Low Internal Marks', 'type': 'warning'})
+
+        if not has_recorded_mark or has_pending_mark:
+            labels.append({'text': 'Marks Pending', 'type': 'secondary'})
+
+        if s_att_status == 'PENDING':
+            labels.append({'text': 'Attendance Data Pending', 'type': 'info'})
+
+        if active_manual_restrict:
+            labels.append({'text': 'HOD Restricted', 'type': 'purple'})
+        elif active_allow_override:
+            labels.append({'text': 'HOD Allow Override', 'type': 'success'})
+
+        is_red = (has_attendance_risk or has_low_marks)
+
+        student_rows.append({
+            'student': s,
+            'overall_attendance_pct': s_percentage,
+            'attended_count': s_attended,
+            'conducted_count': total_conducted_sessions,
+            'attendance_status': s_att_status,
+            'has_attendance_risk': has_attendance_risk,
+            'has_low_marks': has_low_marks,
+            'has_pending_mark': has_pending_mark,
+            'is_red': is_red,
+            'labels': labels,
+            'marks_summary': ", ".join(marks_summary) if marks_summary else "No marks recorded",
+            'marks_dict': s_marks,
+            'overrides_dict': s_overrides
+        })
+
+    if student_pct_list:
+        avg_student_attendance_rate = round(sum(student_pct_list) / len(student_pct_list), 2)
+    else:
+        avg_student_attendance_rate = None
+
+    pct_below_75 = round((students_below_threshold * 100.0) / total_students, 1) if total_students > 0 else 0.0
+
+    return {
+        'total_students': total_students,
+        'total_conducted_sessions': total_conducted_sessions,
+        'unfinalized_sessions_count': unfinalized_sessions_count,
+        'aggregate_attendance_pct': aggregate_attendance_pct,
+        'avg_student_attendance_rate': avg_student_attendance_rate,
+        'students_meeting_threshold': students_meeting_threshold,
+        'students_below_threshold': students_below_threshold,
+        'students_pending_attendance': students_pending_attendance,
+        'pct_students_below_threshold': pct_below_75,
+        'subject_analytics': subject_analytics,
+        'ia_metrics': ia_metrics,
+        'student_rows': student_rows
+    }
+
+
+def get_student_academic_analytics_profile(student, viewing_user, low_marks_threshold_pct=None):
+    """
+    Computes detailed academic analytics profile for an individual student.
+    Includes subject-wise attendance, marks, and teacher edit-permission resolution.
+    """
+    if low_marks_threshold_pct is None:
+        low_marks_threshold_pct = get_low_marks_threshold_percent()
+
+    maxima = get_assessment_maxima()
+    course = student.course
+    semester = student.semester
+    section = student.section
+
+    completed_sessions = ClassSession.query.filter_by(
+        course=course,
+        semester=semester,
+        section=section,
+        status='COMPLETED'
+    ).order_by(ClassSession.date.desc()).all()
+
+    total_class_sessions = len(completed_sessions)
+
+    session_ids = [cs.id for cs in completed_sessions]
+    if session_ids:
+        attendances = StudentAttendance.query.filter(
+            StudentAttendance.class_session_id.in_(session_ids),
+            StudentAttendance.student_id == student.id
+        ).all()
+    else:
+        attendances = []
+
+    att_by_session = {a.class_session_id: a.status for a in attendances}
+    attended_count = sum(1 for status in att_by_session.values() if status == 'Present')
+
+    if total_class_sessions > 0:
+        overall_attendance_pct = round((attended_count * 100.0) / total_class_sessions, 2)
+        overall_status = 'ELIGIBLE' if overall_attendance_pct >= 75.0 else 'RESTRICTED'
+    else:
+        overall_attendance_pct = None
+        overall_status = 'PENDING'
+
+    class_subjects = sorted(list({
+        (cs.actual_subject if cs.actual_subject else cs.scheduled_subject)
+        for cs in completed_sessions if (cs.actual_subject or cs.scheduled_subject)
+    } | {
+        r[0] for r in db.session.query(Timetable.subject).filter_by(
+            course=course, semester=semester, section=section
+        ).distinct().all() if r[0]
+    }))
+
+    marks_records = InternalMark.query.filter_by(
+        student_id=student.id,
+        course=course,
+        semester=semester,
+        section=section
+    ).all()
+    marks_by_subject = {m.subject: m for m in marks_records}
+
+    overrides = MarksEligibilityOverride.query.filter_by(
+        student_id=student.id,
+        course=course,
+        semester=semester,
+        section=section,
+        is_active=True
+    ).all()
+    overrides_by_subject = {o.subject: o for o in overrides}
+
+    subject_cards = []
+    for subj in class_subjects:
+        subj_sessions = [
+            cs for cs in completed_sessions
+            if (cs.actual_subject == subj if cs.actual_subject else cs.scheduled_subject == subj)
+        ]
+        s_conducted = len(subj_sessions)
+        s_attended = sum(1 for cs in subj_sessions if att_by_session.get(cs.id) == 'Present')
+
+        if s_conducted > 0:
+            s_pct = round((s_attended * 100.0) / s_conducted, 2)
+            s_status = 'ELIGIBLE' if s_pct >= 75.0 else 'RESTRICTED'
+        else:
+            s_pct = None
+            s_status = 'PENDING'
+
+        m = marks_by_subject.get(subj)
+        override = overrides_by_subject.get(subj)
+        can_edit_marks = is_user_authorized_for_context(viewing_user, course, semester, section, subj)
+
+        subject_cards.append({
+            'subject': subj,
+            'attended_count': s_attended,
+            'conducted_count': s_conducted,
+            'attendance_pct': s_pct,
+            'attendance_status': s_status,
+            'override': override,
+            'internal_mark': m,
+            'can_edit_marks': can_edit_marks
+        })
+
+    session_history = []
+    for cs in completed_sessions[:50]:
+        subj = cs.actual_subject if cs.actual_subject else cs.scheduled_subject
+        fac = cs.actual_faculty.full_name if cs.actual_faculty else (cs.scheduled_faculty.full_name if cs.scheduled_faculty else 'Faculty')
+        status = att_by_session.get(cs.id, 'Unrecorded')
+        session_history.append({
+            'date': cs.date,
+            'time_slot': cs.time_slot,
+            'subject': subj,
+            'faculty_name': fac,
+            'room_no': cs.room_no or 'N/A',
+            'status': status
+        })
+
+    return {
+        'student': student,
+        'overall_attendance_pct': overall_attendance_pct,
+        'attended_count': attended_count,
+        'conducted_count': total_class_sessions,
+        'overall_status': overall_status,
+        'subject_cards': subject_cards,
+        'session_history': session_history,
+        'maxima': maxima,
+        'low_marks_threshold_pct': low_marks_threshold_pct
+    }
+
+
+# ==============================================================================
+# ROUTES - TEACHER ACADEMIC ANALYTICS DASHBOARD
+# ==============================================================================
+
+@app.route('/academic/analytics', methods=['GET'])
+def academic_analytics_dashboard():
+    if 'user_id' not in session:
+        flash('Please login to access Academic Analytics.', 'info')
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Access Denied: You do not have permission to view Academic Analytics.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    req_course = request.args.get('course')
+    req_academic_year = request.args.get('academic_year')
+    req_semester = request.args.get('semester')
+    req_section = request.args.get('section')
+    req_subject = request.args.get('subject')
+
+    scope, options, is_auth = resolve_teacher_academic_scope(
+        user=user,
+        req_course=req_course,
+        req_academic_year=req_academic_year,
+        req_semester=req_semester,
+        req_section=req_section,
+        req_subject=req_subject
+    )
+
+    if not is_auth or not scope:
+        flash('Access Denied: You are not authorized to view the requested academic context.', 'danger')
+        return abort(403)
+
+    search_query = (request.args.get('search') or '').strip()
+    filter_status = (request.args.get('filter_status') or 'all').strip()
+    sort_by = (request.args.get('sort_by') or 'uucms_id').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+
+    analytics_data = compute_academic_analytics_data(
+        course=scope['course'],
+        academic_year=scope['academic_year'],
+        semester=scope['semester'],
+        section=scope['section'],
+        subject_filter=scope['subject']
+    )
+
+    all_rows = analytics_data['student_rows']
+    if search_query:
+        sq = search_query.lower()
+        all_rows = [
+            r for r in all_rows
+            if sq in r['student'].name.lower() or sq in r['student'].uucms_id.lower()
+        ]
+
+    if filter_status == 'risk':
+        all_rows = [r for r in all_rows if r['has_attendance_risk']]
+    elif filter_status == 'low_marks':
+        all_rows = [r for r in all_rows if r['has_low_marks']]
+    elif filter_status == 'pending':
+        all_rows = [r for r in all_rows if (r['has_pending_mark'] or r['attendance_status'] == 'PENDING')]
+    elif filter_status == 'threshold_met':
+        all_rows = [r for r in all_rows if r['attendance_status'] == 'ELIGIBLE']
+
+    if sort_by == 'name':
+        all_rows.sort(key=lambda r: r['student'].name.lower())
+    elif sort_by == 'attendance_asc':
+        all_rows.sort(key=lambda r: (r['overall_attendance_pct'] if r['overall_attendance_pct'] is not None else 999.0))
+    elif sort_by == 'attendance_desc':
+        all_rows.sort(key=lambda r: (r['overall_attendance_pct'] if r['overall_attendance_pct'] is not None else -1.0), reverse=True)
+    else:
+        all_rows.sort(key=lambda r: (r['student'].uucms_id or ''))
+
+    total_filtered_count = len(all_rows)
+    total_pages = max(1, math.ceil(total_filtered_count / per_page))
+    page = max(1, min(page, total_pages))
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paged_rows = all_rows[start_idx:end_idx]
+
+    return render_template(
+        'academic/analytics/dashboard.html',
+        user=user,
+        scope=scope,
+        options=options,
+        analytics=analytics_data,
+        student_rows=paged_rows,
+        total_filtered_count=total_filtered_count,
+        current_page=page,
+        total_pages=total_pages,
+        search_query=search_query,
+        filter_status=filter_status,
+        sort_by=sort_by
+    )
+
+
+@app.route('/academic/analytics/student/<int:student_id>', methods=['GET'])
+def student_academic_analytics(student_id):
+    if 'user_id' not in session:
+        flash('Please login to view student academic analytics.', 'info')
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Access Denied: You do not have permission to view Student Analytics.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    student = Student.query.get(student_id)
+    if not student:
+        flash('Student record not found.', 'danger')
+        return abort(404)
+
+    if not is_user_authorized_for_class(user, student.course, student.semester, student.section):
+        flash('Access Denied: You are not authorized to view academic analytics for this student.', 'danger')
+        return abort(403)
+
+    profile_data = get_student_academic_analytics_profile(student, viewing_user=user)
+
+    return render_template(
+        'academic/analytics/student_detail.html',
+        user=user,
+        profile=profile_data,
+        student=student
+    )
+
+
 @app.route('/activity_room')
 def activity_room():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -2711,6 +6945,16 @@ def assign_task():
             )
             db.session.add(new_task)
             db.session.commit()
+            create_notification(
+                recipient_type='USER',
+                recipient_id=int(target_id),
+                title=f"New Task Assigned: {title}",
+                message=f"You have been assigned a task by {sender.full_name}.",
+                category='tasks',
+                action_url=url_for('activity_room'),
+                idempotency_key=f"task_{new_task.id}",
+                sound=True
+            )
 
             # --- EVENT 5: TASK ASSIGNED NOTIFICATION ---
             notify('task_assigned', target_user, context={
@@ -2777,80 +7021,468 @@ def leave_calendar():
                            absent=absent_staff,
                            today=today_date)
     
+from vault_engine import (
+    validate_vault_file,
+    compute_sha256,
+    get_vault_storage_folder,
+    extract_raw_text,
+    parse_extracted_text,
+    classify_and_match_records,
+    apply_approved_proposal
+)
+
+def is_admin_user(user):
+    """
+    Digital Vault is strictly restricted to Admin only (not Accountant, not Faculty, not Principal).
+    Matches user role 'admin' / 'HR' (System Admin account) or username 'admin'.
+    """
+    if not user:
+        return False
+    if user.role and user.role.lower() in ['accountant', 'faculty', 'principal', 'student']:
+        return False
+    return (user.role.lower() == 'admin' or user.username == 'admin' or user.role == 'HR')
+
+def get_vault_models():
+    return {
+        'Student': Student,
+        'User': User,
+        'VaultDocument': VaultDocument,
+        'VaultProposal': VaultProposal,
+        'log_action': log_action
+    }
+
 @app.route('/digital_vault')
 @login_required
 def digital_vault():
     user = User.query.get(session['user_id'])
-    if not user or user.role.lower() not in ['hr', 'accountant', 'admin']:
+    if not user or not is_admin_user(user):
         flash('Access Restricted! Digital Vault is strictly restricted to Admin Department.', 'error')
         return redirect(url_for('dashboard'))
-    return render_template('digital_vault.html')
+
+    is_admin = True
+    pending_proposals = VaultProposal.query.filter_by(status='PENDING_APPROVAL').order_by(VaultProposal.created_at.desc()).all()
+    needs_review_proposals = VaultProposal.query.filter_by(status='NEEDS_REVIEW').order_by(VaultProposal.created_at.desc()).all()
+    my_proposals = VaultProposal.query.filter_by(submitted_by_id=user.id).order_by(VaultProposal.created_at.desc()).limit(20).all()
+    all_proposals = VaultProposal.query.order_by(VaultProposal.created_at.desc()).limit(30).all()
+
+    return render_template(
+        'digital_vault.html',
+        user=user,
+        is_admin=is_admin,
+        pending_proposals=pending_proposals,
+        needs_review_proposals=needs_review_proposals,
+        my_proposals=my_proposals,
+        all_proposals=all_proposals
+    )
+
+@app.route('/vault/scan', methods=['POST'])
+@login_required
+def vault_scan():
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"success": False, "error": "Access Restricted! Digital Vault is strictly restricted to Admin Department."}), 403
+
+    file_obj = request.files.get('doc_file') or request.files.get('doc_image')
+    is_valid, err_msg, file_bytes, mime_type = validate_vault_file(file_obj)
+    if not is_valid:
+        return jsonify({"success": False, "error": err_msg}), 400
+
+    filename = secure_filename(file_obj.filename)
+    file_hash = compute_sha256(file_bytes)
+    storage_folder = get_vault_storage_folder(app)
+    doc_uuid = str(uuid.uuid4())
+    stored_filename = f"{doc_uuid}_{filename}"
+    file_path = os.path.join(storage_folder, stored_filename)
+
+    with open(file_path, 'wb') as f:
+        f.write(file_bytes)
+
+    # Save document record
+    vault_doc = VaultDocument(
+        uuid=doc_uuid,
+        original_filename=filename,
+        stored_filename=stored_filename,
+        file_path=file_path,
+        file_hash=file_hash,
+        file_size=len(file_bytes),
+        mime_type=mime_type,
+        uploaded_by_id=user.id,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(vault_doc)
+    db.session.commit()
+
+    # Extract text
+    test_override = request.form.get('test_ocr_text')
+    raw_text, ocr_avail, ocr_warnings = extract_raw_text(file_bytes, filename, mime_type, test_ocr_override=test_override)
+
+    # Parse text
+    hint = request.form.get('target_type')
+    parsed = parse_extracted_text(raw_text, doc_type_hint=hint)
+    all_warnings = ocr_warnings + parsed['parsing_warnings']
+
+    # Classify & Match against official DB
+    classification_result = classify_and_match_records(
+        parsed['target_type'],
+        parsed['extracted_fields'],
+        file_hash,
+        get_vault_models()
+    )
+    all_warnings.extend(classification_result['warnings'])
+
+    log_action(f"Scanned document '{filename}' in Digital Vault (SHA-256: {file_hash[:8]})", target="Digital Vault")
+
+    return jsonify({
+        "success": True,
+        "document_id": vault_doc.id,
+        "document_uuid": vault_doc.uuid,
+        "filename": filename,
+        "file_hash": file_hash,
+        "raw_text": raw_text,
+        "ocr_available": ocr_avail,
+        "target_type": parsed['target_type'],
+        "extracted_fields": parsed['extracted_fields'],
+        "confidence": parsed['confidence'],
+        "classification": classification_result['classification'],
+        "operation": classification_result['operation'],
+        "target_record_id": classification_result['target_record_id'],
+        "target_identifier": classification_result['target_identifier'],
+        "before_values": classification_result['before_values'],
+        "diff_summary": classification_result['diff_summary'],
+        "warnings": all_warnings
+    })
+
+@app.route('/vault/submit_proposal', methods=['POST'])
+@login_required
+def vault_submit_proposal():
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"success": False, "error": "Access Restricted! Digital Vault is strictly restricted to Admin Department."}), 403
+
+    payload = request.get_json(silent=True) or request.form.to_dict()
+    doc_id = payload.get('document_id')
+    vault_doc = VaultDocument.query.get(doc_id) if doc_id else None
+    if not vault_doc:
+        return jsonify({"success": False, "error": "Associated Vault Document not found."}), 400
+
+    target_type = payload.get('target_type', 'STUDENT').upper()
+    if target_type not in ['STUDENT', 'STAFF']:
+        return jsonify({"success": False, "error": "Invalid target_type. Must be STUDENT or STAFF."}), 400
+
+    proposed_fields = payload.get('fields')
+    if isinstance(proposed_fields, str):
+        try:
+            proposed_fields = json.loads(proposed_fields)
+        except Exception:
+            proposed_fields = {}
+    elif not isinstance(proposed_fields, dict):
+        proposed_fields = {}
+
+    if not proposed_fields:
+        if target_type == 'STUDENT':
+            proposed_fields = {
+                'uucms_id': payload.get('uucms_id', '').strip().upper(),
+                'name': payload.get('name', '').strip(),
+                'email': payload.get('email', '').strip().lower(),
+                'course': payload.get('course', 'BCA').strip(),
+                'academic_year': payload.get('academic_year', '3rd Year').strip(),
+                'semester': payload.get('semester', 'Sem V').strip(),
+                'section': payload.get('section', 'A').strip().upper()
+            }
+        else:
+            proposed_fields = {
+                'full_name': payload.get('full_name', '').strip(),
+                'email': payload.get('email', '').strip().lower(),
+                'phone': payload.get('phone', '').strip(),
+                'department': payload.get('department', '').strip(),
+                'dept_id': payload.get('dept_id', '').strip(),
+                'role': payload.get('role', 'Faculty').strip(),
+                'username': payload.get('username', '').strip().lower()
+            }
+
+    classification_result = classify_and_match_records(
+        target_type,
+        proposed_fields,
+        vault_doc.file_hash,
+        get_vault_models()
+    )
+
+    status = 'PENDING_APPROVAL'
+    if classification_result['classification'] in ['AMBIGUOUS_CONFLICT', 'NEEDS_REVIEW']:
+        status = 'NEEDS_REVIEW'
+
+    proposal = VaultProposal(
+        proposal_id=str(uuid.uuid4()),
+        document_id=vault_doc.id,
+        target_type=target_type,
+        operation=classification_result['operation'],
+        target_record_id=classification_result['target_record_id'],
+        target_identifier=classification_result['target_identifier'],
+        classification=classification_result['classification'],
+        raw_ocr_text=payload.get('raw_ocr_text', ''),
+        extracted_data_json=json.dumps(proposed_fields),
+        proposed_changes_json=json.dumps(proposed_fields),
+        before_values_json=json.dumps(classification_result['before_values']),
+        diff_summary_json=json.dumps(classification_result['diff_summary']),
+        validation_warnings_json=json.dumps(classification_result['warnings']),
+        status=status,
+        submitted_by_id=user.id,
+        submitted_at=datetime.utcnow(),
+        review_notes=payload.get('review_notes')
+    )
+    db.session.add(proposal)
+    db.session.commit()
+
+    log_action(f"Created Vault Proposal #{proposal.proposal_id[:8]} ({target_type} {classification_result['operation']} - {status})", target="Digital Vault")
+    notify_role(
+        role_name='admin',
+        title="Digital Vault: Proposal Pending Approval",
+        message=f"New {target_type} proposal ({classification_result['classification']}) submitted by {user.full_name}.",
+        category='vault',
+        action_url=url_for('digital_vault'),
+        idempotency_prefix=f"vault_sub_{proposal.id}",
+        sound=True
+    )
+
+    return jsonify({
+        "success": True,
+        "proposal_id": proposal.id,
+        "uuid": proposal.proposal_id,
+        "status": proposal.status,
+        "classification": proposal.classification,
+        "operation": proposal.operation,
+        "message": f"Proposal #{proposal.proposal_id[:8]} submitted for administrator review."
+    })
+
+@app.route('/vault/proposals', methods=['GET'])
+@login_required
+def vault_proposals_list():
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"error": "Access Restricted! Digital Vault is strictly restricted to Admin Department."}), 403
+
+    status_filter = request.args.get('status')
+    query = VaultProposal.query
+    if status_filter:
+        query = query.filter_by(status=status_filter.upper())
+
+    if user.role not in ['admin', 'HR', 'Principal']:
+        query = query.filter_by(submitted_by_id=user.id)
+
+    proposals = query.order_by(VaultProposal.created_at.desc()).all()
+    results = []
+    for p in proposals:
+        results.append({
+            "id": p.id,
+            "proposal_id": p.proposal_id,
+            "target_type": p.target_type,
+            "operation": p.operation,
+            "classification": p.classification,
+            "status": p.status,
+            "target_identifier": p.target_identifier,
+            "submitted_by": p.submitter.full_name if p.submitter else "Unknown",
+            "submitted_at": p.submitted_at.strftime('%Y-%m-%d %H:%M') if p.submitted_at else "",
+            "document_filename": p.document.original_filename if p.document else "N/A"
+        })
+    return jsonify({"success": True, "proposals": results})
+
+@app.route('/vault/proposal/<int:proposal_id>', methods=['GET'])
+@login_required
+def vault_proposal_detail(proposal_id):
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"error": "Access Restricted! Digital Vault is strictly restricted to Admin Department."}), 403
+
+    proposal = VaultProposal.query.get(proposal_id)
+    if not proposal:
+        return jsonify({"error": "Proposal not found"}), 404
+
+    if user.role not in ['admin', 'HR', 'Principal'] and proposal.submitted_by_id != user.id:
+        return jsonify({"error": "Unauthorized to view this proposal"}), 403
+
+    can_approve = (user.role in ['admin', 'HR', 'Principal']) and (proposal.submitted_by_id != user.id)
+
+    return jsonify({
+        "success": True,
+        "id": proposal.id,
+        "proposal_id": proposal.proposal_id,
+        "target_type": proposal.target_type,
+        "operation": proposal.operation,
+        "classification": proposal.classification,
+        "status": proposal.status,
+        "target_identifier": proposal.target_identifier,
+        "target_record_id": proposal.target_record_id,
+        "proposed_changes": json.loads(proposal.proposed_changes_json or '{}'),
+        "before_values": json.loads(proposal.before_values_json or '{}'),
+        "diff_summary": json.loads(proposal.diff_summary_json or '[]'),
+        "validation_warnings": json.loads(proposal.validation_warnings_json or '[]'),
+        "submitted_by": proposal.submitter.full_name if proposal.submitter else "Unknown",
+        "submitted_at": proposal.submitted_at.strftime('%Y-%m-%d %H:%M:%S') if proposal.submitted_at else "",
+        "reviewed_by": proposal.reviewer.full_name if proposal.reviewer else None,
+        "reviewed_at": proposal.reviewed_at.strftime('%Y-%m-%d %H:%M:%S') if proposal.reviewed_at else None,
+        "review_notes": proposal.review_notes,
+        "rejection_reason": proposal.rejection_reason,
+        "document_id": proposal.document_id,
+        "document_filename": proposal.document.original_filename if proposal.document else None,
+        "can_approve": can_approve
+    })
+
+@app.route('/vault/proposal/<int:proposal_id>/approve', methods=['POST'])
+@login_required
+def vault_proposal_approve(proposal_id):
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"success": False, "error": "Access Restricted! Proposal approval is strictly restricted to Admin Department."}), 403
+
+    proposal = VaultProposal.query.get(proposal_id)
+    if not proposal:
+        return jsonify({"success": False, "error": "Proposal not found."}), 404
+
+    # Submitter self-approval check
+    if proposal.submitted_by_id == user.id:
+        return jsonify({
+            "success": False,
+            "error": "Independent administrative review is mandatory. Submitter cannot approve their own proposal."
+        }), 403
+
+    if proposal.status == 'APPLIED':
+        return jsonify({"success": False, "error": "Proposal has already been applied."}), 400
+
+    if proposal.status == 'REJECTED':
+        return jsonify({"success": False, "error": "Cannot approve a rejected proposal."}), 400
+
+    proposal.status = 'APPROVED'
+    proposal.reviewed_by_id = user.id
+    proposal.reviewed_at = datetime.utcnow()
+    proposal.review_notes = (request.form.get('review_notes') or (request.get_json(silent=True) or {}).get('review_notes', 'Approved by administrator'))
+
+    success, msg = apply_approved_proposal(proposal, user, db.session, get_vault_models())
+    if not success:
+        return jsonify({"success": False, "error": msg}), 500
+    if proposal.submitted_by_id:
+        create_notification(
+            recipient_type='USER',
+            recipient_id=proposal.submitted_by_id,
+            title="Digital Vault: Proposal Approved",
+            message=f"Your {proposal.target_type} proposal #{proposal.id} was approved by {user.full_name} and synchronized.",
+            category='vault',
+            action_url=url_for('digital_vault'),
+            idempotency_key=f"vault_appr_{proposal.id}",
+            sound=True
+        )
+
+    return jsonify({"success": True, "message": msg, "status": proposal.status})
+
+@app.route('/vault/proposal/<int:proposal_id>/reject', methods=['POST'])
+@login_required
+def vault_proposal_reject(proposal_id):
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        return jsonify({"success": False, "error": "Access Restricted! Proposal rejection is strictly restricted to Admin Department."}), 403
+
+    proposal = VaultProposal.query.get(proposal_id)
+    if not proposal:
+        return jsonify({"success": False, "error": "Proposal not found."}), 404
+
+    payload = request.get_json(silent=True) or request.form.to_dict()
+    reason = payload.get('rejection_reason', '').strip()
+    if not reason:
+        return jsonify({"success": False, "error": "Rejection reason is mandatory."}), 400
+
+    proposal.status = 'REJECTED'
+    proposal.rejection_reason = reason
+    proposal.reviewed_by_id = user.id
+    proposal.reviewed_at = datetime.utcnow()
+    proposal.version += 1
+    db.session.commit()
+
+    log_action(f"Rejected Digital Vault Proposal #{proposal.proposal_id[:8]}: {reason}", target="Digital Vault")
+    if proposal.submitted_by_id:
+        create_notification(
+            recipient_type='USER',
+            recipient_id=proposal.submitted_by_id,
+            title="Digital Vault: Proposal Rejected",
+            message=f"Your {proposal.target_type} proposal #{proposal.id} was rejected. Reason: {reason}",
+            category='vault',
+            action_url=url_for('digital_vault'),
+            idempotency_key=f"vault_rej_{proposal.id}",
+            sound=True
+        )
+
+    return jsonify({
+        "success": True,
+        "message": f"Proposal #{proposal.proposal_id[:8]} was rejected. No changes were made to official records.",
+        "status": "REJECTED"
+    })
+
+@app.route('/vault/document/<int:document_id>/download', methods=['GET'])
+@login_required
+def vault_document_download(document_id):
+    user = User.query.get(session['user_id'])
+    if not user or not is_admin_user(user):
+        flash('Access Restricted! Digital Vault is strictly restricted to Admin Department.', 'error')
+        return redirect(url_for('dashboard')), 403
+
+    vault_doc = VaultDocument.query.get(document_id)
+    if not vault_doc or not os.path.isfile(vault_doc.file_path):
+        flash('Requested document was not found.', 'error')
+        return redirect(url_for('digital_vault')), 404
+
+    return send_file(
+        vault_doc.file_path,
+        as_attachment=True,
+        download_name=vault_doc.original_filename,
+        mimetype=vault_doc.mime_type
+    )
 
 @app.route('/scan_and_import', methods=['POST'])
 @login_required
 def scan_and_import():
     user = User.query.get(session['user_id'])
-    if not user or user.role.lower() not in ['hr', 'accountant', 'admin']:
+    if not user or not is_admin_user(user):
         return jsonify({"success": False, "error": "Access Restricted! Digital Vault is strictly restricted to Admin Department."}), 403
 
-    if 'doc_image' not in request.files:
-        return jsonify({"success": False, "error": "No document image uploaded"}), 400
-
-    file = request.files['doc_image']
+    file = request.files.get('doc_image') or request.files.get('doc_file')
     if not file or file.filename == '':
         return jsonify({"success": False, "error": "Empty file uploaded"}), 400
 
     filename = secure_filename(file.filename)
-    
-    # 1. Resilient AI OCR Extraction Engine
-    extracted_text = ""
-    guessed_name = "Dr. Ramesh Kumar"
-    
-    try:
-        from PIL import Image
-        image = Image.open(file.stream)
-        try:
-            import pytesseract
-            extracted_text = pytesseract.image_to_string(image)
-        except Exception:
-            clean_fname = filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
-            extracted_text = f"BMS COLLEGE OF COMMERCE & MANAGEMENT\nSTAFF IDENTIFICATION CARD\nName: {clean_fname}\nDepartment: Computer Science\nRole: Faculty Member\nPhone: +91 98765 43210"
-    except Exception as e:
-        extracted_text = "BMS College Document\nName: Faculty Member"
+    file_bytes = file.read()
+    if not file_bytes:
+        return jsonify({"success": False, "error": "Empty file uploaded"}), 400
 
-    # Cleanly extract staff full name from text lines
-    lines = [line.strip() for line in extracted_text.split('\n') if line.strip()]
-    if lines:
-        for line in lines:
-            if 'name:' in line.lower() or 'dr' in line.lower() or 'prof' in line.lower():
-                guessed_name = line.split(':', 1)[-1].strip()
-                break
-        else:
-            guessed_name = lines[0]
+    test_override = request.form.get('test_ocr_text') or os.getenv('VAULT_TEST_OCR_TEXT')
+    raw_text, ocr_avail, warnings = extract_raw_text(file_bytes, filename, file.mimetype or 'image/jpeg', test_ocr_override=test_override)
 
-    if not guessed_name or len(guessed_name) < 3:
-        guessed_name = "New Faculty Member"
+    guessed_name = "New Faculty Member"
+    if raw_text:
+        parsed = parse_extracted_text(raw_text)
+        guessed_name = parsed['extracted_fields'].get('name') or parsed['extracted_fields'].get('full_name') or "New Faculty Member"
+    else:
+        clean_fname = filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
+        guessed_name = clean_fname if len(clean_fname) >= 3 else "New Faculty Member"
 
-    # Pre-fill suggested user credentials for instant Add Employee creation
-    clean_username = guessed_name.lower().replace(' ', '_').replace('.', '').replace('-', '')[:12]
+    clean_username = guessed_name.lower().replace('dr.', '').replace('prof.', '').replace(' ', '_').replace('.', '').replace('-', '').strip('_')[:12]
     suggested_email = f"{clean_username}@bmsccm.edu.in"
     suggested_dept = "Computer Science"
     suggested_dept_id = "CS-2026"
     suggested_phone = "+91 98765 43210"
     suggested_salary = 65000
 
-    log_action(f"Scanned staff document via AI OCR: {guessed_name}", target="Digital Vault")
+    log_action(f"Scanned document via AI OCR: {guessed_name}", target="Digital Vault")
 
     return jsonify({
         "success": True,
         "extracted_name": guessed_name,
-        "full_text": extracted_text,
+        "full_text": raw_text or f"BMS Document: {filename}",
         "suggested_username": clean_username,
         "suggested_email": suggested_email,
         "suggested_phone": suggested_phone,
         "suggested_department": suggested_dept,
         "suggested_dept_id": suggested_dept_id,
-        "suggested_salary": suggested_salary
+        "suggested_salary": suggested_salary,
+        "ocr_available": ocr_avail,
+        "warnings": warnings
     })
     
 @app.route('/dashboard')
@@ -3139,15 +7771,245 @@ def assistant_ask_api():
         'raw_data': res.get('raw_data')
     })
     
-@app.route('/api/notifications')
+@app.route('/api/notifications', methods=['GET'])
 def get_notifications():
-    role = session.get('role')
-    if role in ['Principal', 'HR']:
-        all_notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(10).all()
-    elif role == 'Accountant':
-        all_notifs = Notification.query.filter(Notification.message.contains('SALARY')).limit(10).all()
-    else: return jsonify([])
-    return jsonify([{'id': n.id, 'msg': n.message, 'time': n.timestamp.strftime('%I:%M %p')} for n in all_notifs])
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+    else:
+        # Unauthenticated request
+        return jsonify({'unread_count': 0, 'notifications': []}), 200
+
+    limit = request.args.get('limit', 20, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    unread_only = request.args.get('unread_only', 'false').lower() in ['true', '1']
+
+    res = get_notifications_list(recipient_type, recipient_id, limit=limit, offset=offset, unread_only=unread_only)
+    
+    # Backward compatibility for legacy code expecting array of items with {id, msg, time}
+    if request.args.get('legacy') == '1':
+        return jsonify([{'id': n['id'], 'msg': n['message'], 'time': n['time_display']} for n in res['notifications']])
+
+    return jsonify(res)
+
+@app.route('/api/notifications/<int:notif_id>/read', methods=['POST'])
+def api_mark_notification_read(notif_id):
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    success, code = mark_as_read(notif_id, recipient_type, recipient_id)
+    if not success:
+        return jsonify({'error': 'Could not mark notification as read'}), code
+    return jsonify({'status': 'success', 'unread_count': get_unread_count(recipient_type, recipient_id)})
+
+@app.route('/api/notifications/mark_all_read', methods=['POST'])
+def api_mark_all_notifications_read():
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    mark_all_as_read(recipient_type, recipient_id)
+    return jsonify({'status': 'success', 'unread_count': 0})
+
+@app.route('/api/notifications/preferences', methods=['GET', 'POST'])
+def api_notification_preferences():
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        update_preferences(
+            recipient_type=recipient_type,
+            recipient_id=recipient_id,
+            sound_enabled=data.get('sound_enabled'),
+            browser_enabled=data.get('browser_enabled'),
+            email_enabled=data.get('email_enabled'),
+            volume=data.get('volume'),
+            muted_categories=data.get('muted_categories')
+        )
+
+    pref = get_or_create_preferences(recipient_type, recipient_id)
+    return jsonify({
+        'sound_enabled': getattr(pref, 'sound_enabled', True),
+        'browser_enabled': getattr(pref, 'browser_enabled', True),
+        'email_enabled': getattr(pref, 'email_enabled', True),
+        'volume': getattr(pref, 'volume', 0.7),
+        'muted_categories': getattr(pref, 'muted_categories', '')
+    })
+
+@app.route('/api/notifications/test_sound', methods=['POST'])
+def api_test_notification_sound():
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+        room_name = f"user_{recipient_id}"
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+        room_name = f"student_{recipient_id}"
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    unread = get_unread_count(recipient_type, recipient_id)
+    socketio.emit('new_notification', {
+        'id': 0,
+        'title': 'Test Notification Chime',
+        'message': 'Your audio system and notification sound are working cleanly!',
+        'category': 'general',
+        'action_url': None,
+        'timestamp': get_ist_time().strftime('%I:%M %p'),
+        'sound': True,
+        'unread_count': unread,
+        'is_test': True
+    }, room=room_name)
+
+    return jsonify({'status': 'success', 'message': 'Test sound emitted'})
+
+@app.route('/api/push/vapid_public_key', methods=['GET'])
+def api_vapid_public_key():
+    public_key = get_vapid_public_key()
+    if not public_key:
+        return jsonify({'error': 'VAPID keys not configured'}), 500
+    return jsonify({'publicKey': public_key})
+
+@app.route('/api/push/subscribe', methods=['POST'])
+def api_push_subscribe():
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        user_id = session['user_id']
+        student_id = None
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        user_id = None
+        student_id = session['student_id']
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    keys = data.get('keys') or {}
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+
+    if not endpoint or not p256dh or not auth:
+        return jsonify({'error': 'Invalid push subscription payload'}), 400
+
+    try:
+        sub = PushSubscription.query.filter_by(endpoint=endpoint).first()
+        if not sub:
+            sub = PushSubscription(
+                recipient_type=recipient_type,
+                user_id=user_id,
+                student_id=student_id,
+                endpoint=endpoint,
+                p256dh_key=p256dh,
+                auth_key=auth,
+                user_agent=(request.headers.get('User-Agent') or '')[:250],
+                created_at=get_ist_time(),
+                last_seen_at=get_ist_time()
+            )
+            db.session.add(sub)
+        else:
+            sub.recipient_type = recipient_type
+            sub.user_id = user_id
+            sub.student_id = student_id
+            sub.p256dh_key = p256dh
+            sub.auth_key = auth
+            sub.last_seen_at = get_ist_time()
+            sub.user_agent = (request.headers.get('User-Agent') or '')[:250]
+        
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Push subscription saved'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to save push subscription: {str(e)}'}), 500
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+def api_push_unsubscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'error': 'Missing endpoint'}), 400
+
+    try:
+        PushSubscription.query.filter_by(endpoint=endpoint).delete()
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Push subscription removed'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/push/test_push', methods=['POST'])
+def api_push_test():
+    if 'user_id' in session:
+        recipient_type = 'USER'
+        recipient_id = session['user_id']
+        subs = PushSubscription.query.filter_by(recipient_type='USER', user_id=recipient_id).all()
+        user = User.query.get(recipient_id)
+        name = user.full_name if user else 'Faculty'
+    elif 'student_id' in session:
+        recipient_type = 'STUDENT'
+        recipient_id = session['student_id']
+        subs = PushSubscription.query.filter_by(recipient_type='STUDENT', student_id=recipient_id).all()
+        student = Student.query.get(recipient_id)
+        name = student.name if student else 'Student'
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if not subs:
+        return jsonify({
+            'status': 'warning',
+            'message': 'No registered Web Push subscriptions found for this browser/device. Please enable Desktop notifications first.'
+        })
+
+    subs_data = [{
+        'id': s.id,
+        'endpoint': s.endpoint,
+        'p256dh_key': s.p256dh_key,
+        'auth_key': s.auth_key
+    } for s in subs]
+
+    payload = {
+        'id': 0,
+        'title': 'BMS ERP Alert Verification',
+        'message': f'Dear {name}, your background notification delivery and audio alerts are working cleanly even when this window is closed!',
+        'category': 'general',
+        'action_url': '/',
+        'sound': True,
+        'tag': 'bms-erp-test-push'
+    }
+
+    import threading
+    threading.Thread(
+        target=_dispatch_web_push_batch,
+        args=(subs_data, payload),
+        daemon=True
+    ).start()
+
+    return jsonify({
+        'status': 'success',
+        'message': f'Test push notification dispatched to {len(subs)} registered device(s).'
+    })
 
 def create_temp_payslip_pdf(emp, month_str=None):
     try:
@@ -3346,29 +8208,44 @@ def attendance():
     user = User.query.get(session['user_id'])
     
     if request.method == 'POST':
-        # Matching HTML hidden fields 'lat' and 'lon'
-        try:
-            lat = float(request.form.get('lat', 0))
-            lon = float(request.form.get('lon', 0))
-        except ValueError:
-            lat, lon = 0.0, 0.0
-            
+        # Accept form or JSON payloads
+        data = request.get_json(silent=True) or request.form
+        lat_raw = data.get('lat')
+        lon_raw = data.get('lon')
+        accuracy_raw = data.get('accuracy')
+        client_ts_raw = data.get('client_timestamp')
+        client_inside = data.get('is_inside_campus')
+        
         # Enforce On-Site Campus Mode (WFH Disabled)
         mode = 'Office'
         
-        # 1. GEOLOCATION VALIDATION
-        if lat == 0 or lon == 0:
-            flash("GPS Error: Could not verify location. Please enable GPS on your mobile/browser.", "error")
-            return redirect(url_for('attendance'))
-
-        # 2. GEOFENCE CALIBRATION (BMSCCM Basavanagudi Perimeter)
-        distance = calculate_distance(lat, lon, CAMPUS_LAT, CAMPUS_LON)
+        # Authoritative Server-Side Geofence Verification
+        is_valid, reason_code, error_msg, details = verify_campus_presence(
+            lat=lat_raw,
+            lon=lon_raw,
+            accuracy=accuracy_raw,
+            client_timestamp=client_ts_raw,
+            client_is_inside=client_inside
+        )
         
-        if distance > 1000:
-            flash(f"Verification Failed: You are {round(distance)}m away from BMS College of Commerce & Management (Basavanagudi Campus).", "error")
+        if not is_valid:
+            log_action(f"Rejected Staff Attendance: {reason_code} for {user.full_name}", target=user.full_name)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+                return jsonify({
+                    'success': False,
+                    'error': error_msg,
+                    'reason_code': reason_code,
+                    'details': details
+                }), 400
+            flash(error_msg, "error")
             return redirect(url_for('attendance'))
-
-        # 3. ATTENDANCE LOGIC (Check-in / Check-out)
+            
+        val_lat = details.get('lat')
+        val_lon = details.get('lon')
+        val_acc = details.get('accuracy')
+        loc_status = reason_code
+        
+        # Attendance Logic (Check-in / Check-out)
         att = Attendance.query.filter_by(user_id=session['user_id'], date=today).first()
         t_now = get_ist_time().strftime("%I:%M %p")
         
@@ -3379,28 +8256,50 @@ def attendance():
                 date=today, 
                 check_in=t_now, 
                 work_mode=mode, 
-                lat=lat, 
-                lon=lon
+                lat=val_lat, 
+                lon=val_lon,
+                accuracy=val_acc,
+                location_status=loc_status
             )
             db.session.add(new_entry)
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-IN ({mode})"))
+            log_action(f"Staff Clocked-in (Campus Verified): {user.full_name}", target=user.full_name)
         else:
             # Update existing record with Check-out
             att.check_out = t_now
+            att.lat = val_lat
+            att.lon = val_lon
+            att.accuracy = val_acc
+            att.location_status = loc_status
             db.session.add(Notification(message=f"ATTENDANCE: {user.full_name} CLOCKED-OUT"))
+            log_action(f"Staff Clocked-out (Campus Verified): {user.full_name}", target=user.full_name)
             
         db.session.commit()
-        flash("Record Synchronized Successfully.", "success")
+        
+        success_msg = f"Attendance Synchronized Successfully. {error_msg}"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({
+                'success': True,
+                'message': success_msg,
+                'status_code': loc_status,
+                'details': details
+            })
+            
+        flash(success_msg, "success")
         return redirect(url_for('attendance'))
         
     # --- GET REQUEST LOGIC ---
-    # HR sees everything, Staff sees only their own history
+    cfg = get_geofence_config()
+    all_users = []
+    if session.get('role') in ['admin', 'HR', 'Principal']:
+        all_users = User.query.filter(User.status == 'Active').order_by(User.full_name.asc()).all()
+
     if session.get('role') == 'HR':
         history = Attendance.query.order_by(Attendance.date.desc()).all()
     else:
         history = Attendance.query.filter_by(user_id=session['user_id']).order_by(Attendance.date.desc()).all()
         
-    return render_template('attendance.html', history=history)
+    return render_template('attendance.html', history=history, geofence_cfg=cfg, all_users=all_users, now_date=today)
 
 @app.route('/attendance/daily_close', methods=['POST'])
 @login_required
@@ -3514,6 +8413,16 @@ def approve_leave(id, action):
             'reason': leave_req.rejection_reason if leave_req.status == 'Rejected' else '',
             'date': leave_req.date
         })
+        create_notification(
+            recipient_type='USER',
+            recipient_id=leave_req.user_id,
+            title=f"Leave Request {leave_req.status}",
+            message=f"Your leave request for {leave_req.date} was marked {leave_req.status}.",
+            category='tasks',
+            action_url=url_for('leave'),
+            idempotency_key=f"leave_{leave_req.id}_{leave_req.status}",
+            sound=True
+        )
 
     return redirect(url_for('leave'))
 
@@ -3559,6 +8468,16 @@ def approve_expense(id, action):
             'amount': claim.amount,
             'category': claim.category
         })
+        create_notification(
+            recipient_type='USER',
+            recipient_id=claim.user_id,
+            title=f"Expense Claim {claim.status}",
+            message=f"Your expense claim of INR {claim.amount:,} ({claim.category}) has been {claim.status}.",
+            category='payroll',
+            action_url=url_for('expenses'),
+            idempotency_key=f"exp_{claim.id}_{claim.status}",
+            sound=True
+        )
 
     return redirect(url_for('expenses'))
 
@@ -3649,6 +8568,14 @@ def forgot_password():
         if user:
             db.session.add(Notification(message=f"PASSWORD RESET REQUEST: {user.username}"))
             db.session.commit()
+            notify_role(
+                'admin',
+                "Password Reset Requested",
+                f"Password reset requested for {user.full_name} ({user.username}).",
+                category='security',
+                action_url=url_for('staff_master'),
+                sound=True
+            )
             flash('HR notified.', 'success')
         else: flash('Invalid user', 'error')
     return render_template('forgot_password.html')
@@ -3829,7 +8756,7 @@ def submit_report():
     # 3. Add to System Audit/Notification Feed
     # This makes it show up in the "Activity Feed" card on the right
     audit_msg = f"📄 {session['name']} submitted a report to {report_to} regarding {topic}"
-    db.session.add(Notification(msg=audit_msg))
+    db.session.add(Notification(message=audit_msg))
 
     # 4. Save and Redirect
     db.session.commit()
@@ -3856,8 +8783,12 @@ def download_report(rtype):
 
 @app.route('/clear_notifications')
 def clear_notifications():
-    Notification.query.delete(); db.session.commit()
-    return redirect(url_for('dashboard'))
+    if 'user_id' in session:
+        mark_all_as_read('USER', session['user_id'])
+    elif 'student_id' in session:
+        mark_all_as_read('STUDENT', session['student_id'])
+    flash("All notifications marked as read.", "success")
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/api/stats')
 def get_stats():
@@ -4103,6 +9034,18 @@ def complete_task(id):
         task.is_done = True
         task.status = 'Completed'
         db.session.commit()
+        if task.assigned_by:
+            completer = User.query.get(session['user_id'])
+            create_notification(
+                recipient_type='USER',
+                recipient_id=task.assigned_by,
+                title=f"Task Completed: {task.title}",
+                message=f"{completer.full_name if completer else 'Staff'} marked task '{task.title}' completed.",
+                category='tasks',
+                action_url=url_for('activity_room'),
+                idempotency_key=f"task_done_{task.id}",
+                sound=True
+            )
     return redirect(url_for('activity_room'))
     
 @app.route('/delete_meeting/<room_name>')
@@ -4126,14 +9069,39 @@ online_users = {}
 @socketio.on('connect')
 def handle_connect():
     if 'user_id' in session:
-        online_users[session['user_id']] = session.get('name', 'Staff')
+        uid = session['user_id']
+        online_users[uid] = session.get('name', 'Staff')
+        join_room(f"user_{uid}")
+        user = User.query.get(uid)
+        if user:
+            if user.role in ['admin', 'HR']:
+                join_room("role_admin")
+            if 'HOD' in (user.role or ''):
+                join_room("role_hod")
+            if user.role == 'Accountant':
+                join_room("role_accountant")
         emit('update_online_status', list(online_users.values()), broadcast=True)
+    elif 'student_id' in session:
+        sid = session['student_id']
+        join_room(f"student_{sid}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if 'user_id' in session:
-        online_users.pop(session['user_id'], None)
+        uid = session['user_id']
+        online_users.pop(uid, None)
+        leave_room(f"user_{uid}")
         emit('update_online_status', list(online_users.values()), broadcast=True)
+    elif 'student_id' in session:
+        sid = session['student_id']
+        leave_room(f"student_{sid}")
+
+@socketio.on('join_notification_channel')
+def handle_join_notification():
+    if 'user_id' in session:
+        join_room(f"user_{session['user_id']}")
+    elif 'student_id' in session:
+        join_room(f"student_{session['student_id']}")
 
 @socketio.on('typing')
 def handle_typing(data):
@@ -4233,6 +9201,23 @@ def seed_database():
                     except Exception:
                         pass
 
+        # Self-healing column migration for attendance table
+        attendance_cols_to_add = [
+            ('accuracy', "FLOAT"),
+            ('location_status', "VARCHAR(50) DEFAULT 'CAMPUS_VERIFIED'")
+        ]
+        with db.engine.connect() as conn:
+            for col_name, col_type in attendance_cols_to_add:
+                try:
+                    conn.execute(db.text(f'ALTER TABLE attendance ADD COLUMN IF NOT EXISTS {col_name} {col_type};'))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.execute(db.text(f'ALTER TABLE attendance ADD COLUMN {col_name} {col_type};'))
+                        conn.commit()
+                    except Exception:
+                        pass
+
         # Self-healing column migration for academic attendance tables
         academic_cols_to_add = [
             ('student', 'section', "VARCHAR(20) DEFAULT 'A'"),
@@ -4264,10 +9249,43 @@ def seed_database():
                 except Exception:
                     pass
 
+        # Self-healing column migration for notification table
+        notification_cols_to_add = [
+            ('recipient_type', "VARCHAR(20) DEFAULT 'USER'"),
+            ('student_id', "INTEGER"),
+            ('title', "VARCHAR(150)"),
+            ('category', "VARCHAR(50) DEFAULT 'general'"),
+            ('action_url', "VARCHAR(255)"),
+            ('idempotency_key', "VARCHAR(100)")
+        ]
+        with db.engine.connect() as conn:
+            for col_name, col_type in notification_cols_to_add:
+                try:
+                    conn.execute(db.text(f'ALTER TABLE notification ADD COLUMN IF NOT EXISTS {col_name} {col_type};'))
+                    conn.commit()
+                except Exception:
+                    try:
+                        conn.execute(db.text(f'ALTER TABLE notification ADD COLUMN {col_name} {col_type};'))
+                        conn.commit()
+                    except Exception:
+                        pass
+
         # Ensure Internal Assessment Marks tables exist
         try:
             InternalMark.__table__.create(db.engine, checkfirst=True)
             InternalMarkAudit.__table__.create(db.engine, checkfirst=True)
+        except Exception:
+            pass
+
+        # Ensure Academic Assignments and Study Materials tables exist
+        try:
+            Assignment.__table__.create(db.engine, checkfirst=True)
+            AssignmentSubmission.__table__.create(db.engine, checkfirst=True)
+            StudyMaterial.__table__.create(db.engine, checkfirst=True)
+            AcademicResourceAudit.__table__.create(db.engine, checkfirst=True)
+            NotificationPreference.__table__.create(db.engine, checkfirst=True)
+            PushSubscription.__table__.create(db.engine, checkfirst=True)
+            StudentSemesterTimetable.__table__.create(db.engine, checkfirst=True)
         except Exception:
             pass
 
@@ -4351,6 +9369,16 @@ def seed_database():
 
         # Always inject authoritative BCA Sem V student roster
         inject_official_students()
+
+        # Seed initial assessment cutoff dates for BCA Sem V if not present
+        if AssessmentCutoff.query.count() == 0:
+            default_cutoffs = [
+                AssessmentCutoff(course='BCA', semester='Sem V', section='A', subject=None, assessment_cycle='2026-27', component='IA1', cutoff_date=date(2026, 10, 5)),
+                AssessmentCutoff(course='BCA', semester='Sem V', section='A', subject=None, assessment_cycle='2026-27', component='IA2', cutoff_date=date(2026, 11, 15)),
+                AssessmentCutoff(course='BCA', semester='Sem V', section='A', subject=None, assessment_cycle='2026-27', component='Final IA', cutoff_date=date(2026, 12, 10)),
+            ]
+            db.session.add_all(default_cutoffs)
+            db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"Seed Database Warning: {e}")
@@ -4624,25 +9652,53 @@ def attendance_qr():
     today_str = datetime.now().strftime('%d %B %Y')
     return render_template('qr_attendance.html', qr_b64=qr_b64, checkin_url=checkin_url, today_str=today_str, token=token)
 
-@app.route('/attendance/checkin')
+@app.route('/attendance/checkin', methods=['GET', 'POST'])
 @login_required
 def attendance_qr_checkin():
-    token = request.args.get('token', '')
+    token = request.values.get('token', '')
     user_ip = request.remote_addr or '127.0.0.1'
 
-    # 1A. ROTATING QR TOKEN VALIDATION
+    # 1. ROTATING QR TOKEN VALIDATION
     is_valid_token, tok_msg = validate_rotating_qr_token(token)
     if not is_valid_token:
         log_action(f"Rejected QR Check-in: Expired/Invalid Token ({token[:8]}...)", target=current_user.full_name)
-        flash('❌ Verification Failed: QR Token expired or invalid. Please scan the live 30-second rotating QR code on the campus display.')
+        flash('❌ Verification Failed: QR Token expired or invalid. Please scan the live 30-second rotating QR code on the campus display.', 'danger')
         return redirect(url_for('attendance'))
 
-    # 1C. NETWORK CONTEXT CHECK
+    # If GET request and no coordinates provided: show mobile-friendly GPS verification page
+    lat_val = request.values.get('lat')
+    lon_val = request.values.get('lon')
+    if request.method == 'GET' and (lat_val is None or lat_val == ''):
+        cfg = get_geofence_config()
+        return render_template('attendance_qr_verify.html', token=token, geofence_cfg=cfg)
+
+    # Coordinates are provided (either POST from the verify page or direct submission)
+    accuracy_val = request.values.get('accuracy')
+    client_ts_val = request.values.get('client_timestamp')
+    client_inside = request.values.get('is_inside_campus')
+
+    # 2. SERVER-SIDE GEOFENCE ENFORCEMENT
+    is_valid_loc, reason_code, loc_msg, details = verify_campus_presence(
+        lat=lat_val,
+        lon=lon_val,
+        accuracy=accuracy_val,
+        client_timestamp=client_ts_val,
+        client_is_inside=client_inside
+    )
+
+    if not is_valid_loc:
+        log_action(f"Rejected QR Check-in Location: {reason_code} ({loc_msg})", target=current_user.full_name)
+        flash(f'❌ Campus Presence Verification Failed: {loc_msg}', 'danger')
+        if request.is_json:
+            return jsonify({'success': False, 'error': loc_msg, 'reason_code': reason_code, 'details': details}), 400
+        return redirect(url_for('attendance'))
+
+    # 3. NETWORK CONTEXT CHECK
     ip_ok, ip_msg = check_ip_network_context(user_ip)
     if not ip_ok:
         log_action(f"Flagged QR Check-in IP: {user_ip} (Off-Campus Network)", target=current_user.full_name)
 
-    # 1D. DEVICE BINDING
+    # 4. DEVICE BINDING
     device_cookie = request.cookies.get('bms_device_id')
     if not device_cookie:
         import uuid
@@ -4664,24 +9720,31 @@ def attendance_qr_checkin():
         if dev_status == 'Flagged':
             log_action(f"Flagged New Device Check-in: ID {device_cookie[:8]}", target=current_user.full_name)
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
+    today_str = get_ist_time().strftime('%Y-%m-%d')
     existing_att = Attendance.query.filter_by(user_id=current_user.id, date=today_str).first()
+    checkin_time = get_ist_time().strftime('%I:%M %p')
 
-    now = datetime.now()
-    checkin_time = now.strftime('%I:%M %p')
+    val_lat = details.get('lat')
+    val_lon = details.get('lon')
+    val_acc = details.get('accuracy')
+    loc_status = reason_code
 
     if existing_att:
         if not existing_att.check_out:
             existing_att.check_out = checkin_time
+            existing_att.lat = val_lat
+            existing_att.lon = val_lon
+            existing_att.accuracy = val_acc
+            existing_att.location_status = loc_status
             metrics = compute_attendance_metrics(existing_att.check_in, checkin_time)
             db.session.commit()
             
             resp = make_response(redirect(url_for('attendance')))
             resp.set_cookie('bms_device_id', device_cookie, max_age=365*24*3600)
-            flash(f'✅ Clocked Out via QR Code at {checkin_time}! Total Worked: {metrics["total_hours"]} hrs.')
+            flash(f'✅ Clocked Out via QR Code at {checkin_time}! Total Worked: {metrics["total_hours"]} hrs. Campus presence verified.', 'success')
             return resp
         else:
-            flash(f'Already completed check-in & check-out for today ({today_str})!')
+            flash(f'Already completed check-in & check-out for today ({today_str})!', 'info')
             return redirect(url_for('attendance'))
 
     # Create New Check-in
@@ -4690,20 +9753,22 @@ def attendance_qr_checkin():
         date=today_str,
         check_in=checkin_time,
         work_mode='Office',
-        lat=CAMPUS_LAT,
-        lon=CAMPUS_LON
+        lat=val_lat,
+        lon=val_lon,
+        accuracy=val_acc,
+        location_status=loc_status
     )
     db.session.add(new_att)
     
     metrics = compute_attendance_metrics(checkin_time, None)
-    if metrics['is_late']:
+    if metrics.get('is_late'):
         db.session.add(Notification(message=f"LATE ARRIVAL: {current_user.full_name} clocked in {metrics['late_minutes']} mins late."))
     
     db.session.commit()
 
     resp = make_response(redirect(url_for('attendance')))
     resp.set_cookie('bms_device_id', device_cookie, max_age=365*24*3600)
-    flash(f'✅ Successfully checked in via QR Code at {checkin_time} on {today_str}!')
+    flash(f'✅ Successfully checked in via QR Code at {checkin_time} on {today_str}! Campus presence verified.', 'success')
     return resp
 
 @app.route('/attendance/daily_close', methods=['POST'])
@@ -4756,6 +9821,118 @@ def attendance_daily_close():
     log_action(f"Executed Daily Close: Found {len(missing_names)} missing check-outs", target="System")
     flash(f"Daily Close executed successfully! Flagged {len(missing_names)} missing check-outs.")
     return redirect(url_for('attendance'))
+
+@app.route('/attendance/admin/manual-record', methods=['POST'])
+@login_required
+def admin_manual_attendance():
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['admin', 'HR', 'Principal']:
+        flash('Unauthorized: Administrative attendance correction is restricted to HR/Management.', 'danger')
+        return redirect(url_for('attendance')), 403
+
+    target_user_id = request.form.get('user_id')
+    att_date = (request.form.get('date') or '').strip()
+    check_in = (request.form.get('check_in') or '').strip()
+    check_out = (request.form.get('check_out') or '').strip()
+    reason = (request.form.get('reason') or '').strip()
+
+    if not target_user_id or not att_date or not check_in:
+        flash('Missing required fields: Employee, Date, and Check-in time are mandatory.', 'danger')
+        return redirect(url_for('attendance'))
+
+    if not reason:
+        flash('Audit Requirement: A clear institutional justification reason is required for manual attendance entry.', 'danger')
+        return redirect(url_for('attendance'))
+
+    target_user = User.query.get(int(target_user_id))
+    if not target_user:
+        flash('Specified employee record does not exist.', 'danger')
+        return redirect(url_for('attendance'))
+
+    existing_att = Attendance.query.filter_by(user_id=target_user.id, date=att_date).first()
+    if existing_att:
+        existing_att.check_in = check_in
+        if check_out:
+            existing_att.check_out = check_out
+        existing_att.work_mode = 'Manual Correction'
+        existing_att.location_status = 'ADMIN_MANUAL_CORRECTION'
+    else:
+        new_att = Attendance(
+            user_id=target_user.id,
+            date=att_date,
+            check_in=check_in,
+            check_out=check_out or None,
+            work_mode='Manual Correction',
+            location_status='ADMIN_MANUAL_CORRECTION',
+            lat=None,
+            lon=None,
+            accuracy=None
+        )
+        db.session.add(new_att)
+
+    db.session.commit()
+
+    # Immutable Audit Log
+    log_action(
+        f"Admin Manual Attendance Adjustment: {target_user.full_name} on {att_date} (In: {check_in}, Out: {check_out or '--'}). Reason: {reason}",
+        target=target_user.full_name
+    )
+    flash(f"Manual attendance record logged for {target_user.full_name} on {att_date} with audit trail.", 'success')
+    return redirect(url_for('attendance'))
+
+
+@app.route('/admin/geofence/update', methods=['POST'])
+@login_required
+def admin_geofence_update():
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['admin', 'Principal']:
+        flash('Unauthorized: Geofence configuration is restricted to System Administrators.', 'danger')
+        if request.is_json:
+            return jsonify({'error': 'Unauthorized'}), 403
+        return redirect(url_for('dashboard')), 403
+
+    data = request.get_json(silent=True) or request.form.to_dict()
+    updates = {}
+    if 'enabled' in data:
+        updates['enabled'] = str(data['enabled']).lower() in ('true', '1', 'yes')
+    if 'mode' in data and data['mode'] in ('RADIUS', 'POLYGON'):
+        updates['mode'] = data['mode']
+    if 'center_lat' in data:
+        try:
+            updates['center_lat'] = float(data['center_lat'])
+        except ValueError:
+            pass
+    if 'center_lon' in data:
+        try:
+            updates['center_lon'] = float(data['center_lon'])
+        except ValueError:
+            pass
+    if 'radius_meters' in data:
+        try:
+            updates['radius_meters'] = float(data['radius_meters'])
+        except ValueError:
+            pass
+    if 'max_accuracy_meters' in data:
+        try:
+            updates['max_accuracy_meters'] = float(data['max_accuracy_meters'])
+        except ValueError:
+            pass
+    if 'max_age_seconds' in data:
+        try:
+            updates['max_age_seconds'] = int(data['max_age_seconds'])
+        except ValueError:
+            pass
+    if 'polygon' in data and isinstance(data['polygon'], list):
+        updates['polygon'] = data['polygon']
+
+    new_cfg = update_geofence_config(updates)
+    log_action(f"Updated Campus Geofence Configuration: {updates}", target="Geofence Engine")
+
+    if request.is_json:
+        return jsonify({'success': True, 'config': new_cfg})
+    flash('Campus Geofence configuration updated successfully.', 'success')
+    return redirect(url_for('attendance'))
+
 
 @app.route('/admin/devices')
 @login_required

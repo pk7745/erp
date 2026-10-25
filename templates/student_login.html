@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Academic Portal | BMS College of Commerce & Management</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3a8a 0%, #172554 50%, #0f172a 100%);
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .student-auth-container {
+            width: 100%;
+            max-width: 440px;
+            background: #ffffff;
+            border-radius: var(--radius-2xl, 16px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .auth-logo-badge {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 4px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .auth-header h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .auth-header p {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="student-auth-container">
+    <div class="auth-logo-badge">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
+    </div>
+    
+    <div class="auth-header">
+        <h2>Student Academic Portal</h2>
+        <p>BMS College of Commerce & Management</p>
+        <div style="font-size: 0.75rem; color: #4f46e5; font-weight: 700; margin-top: 6px; text-transform: uppercase;">
+            Internal Assessment & Eligibility Verification
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' or category == 'error' else 'primary' }}" style="margin-bottom: 20px; padding: 12px; border-radius: 6px; font-size: 0.88rem; background: {% if category == 'danger' %}#fee2e2{% else %}#e0e7ff{% endif %}; color: {% if category == 'danger' %}#991b1b{% else %}#3730a3{% endif %};">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-info-circle"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('student_login') }}">
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                Official UUCMS ID / Registration Number
+            </label>
+            <div style="position: relative;">
+                <input type="text" name="uucms_id" class="form-control" style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; font-family: monospace; font-weight: 700; text-transform: uppercase; box-sizing: border-box;" placeholder="e.g. U18IN24S0004" required autofocus>
+                <i class="fas fa-id-card" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">
+                Enter the unique student identification number issued by the university.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer;">
+            Access Academic Records <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 18px;">
+        Faculty or Administration? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 700; text-decoration: none;">Executive Portal Login</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Materials Library | BMS College Student Portal</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .student-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 20px 60px 20px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .nav-tab {
+            padding: 12px 18px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .category-pill {
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-muted);
+        }
+
+        .category-pill.active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+        }
+
+        .material-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: box-shadow 0.15s ease;
+        }
+
+        .material-card:hover {
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        }
+
+        .material-restricted {
+            background: #fffafa;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="student-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce &amp; Management</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Student Academic Portal</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="text-align: right;">
+            <div style="font-weight: 700; font-size: 0.9rem;">{{ student.name }}</div>
+            <div style="font-family: monospace; font-size: 0.75rem; color: #64748b;">{{ student.uucms_id }}</div>
+        </div>
+                <!-- Student Notifications Dropdown -->
+        <div class="notifications-wrapper" style="position: relative;">
+            <button class="navbar-icon-button" id="notifications-btn" title="Notifications" aria-label="Notifications" aria-expanded="false" onclick="window.BMSNotifications.toggleDropdown(event)" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; width: 38px; height: 38px; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-bell" style="color: #334155; font-size: 1rem;"></i>
+                <span id="notif-badge" class="notif-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Dropdown Panel -->
+            <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                <div class="notif-header">
+                    <div class="notif-header-title">
+                        <i class="fas fa-bell" style="color: #2563eb;"></i>
+                        <span>Student Alerts</span>
+                        <span id="notif-unread-pill" class="notif-unread-pill">0 unread</span>
+                    </div>
+                    <div class="notif-header-actions">
+                        <button type="button" class="notif-btn-icon" title="Mark all as read" onclick="window.BMSNotifications.markAllRead()">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        <button type="button" class="notif-btn-icon" title="Sound Settings" onclick="window.BMSNotifications.toggleSettings()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="notif-quick-bar">
+                    <button type="button" id="notif-sound-btn" class="notif-pill-btn active" onclick="window.BMSNotifications.toggleSound()">
+                        <i class="fas fa-volume-up"></i> Sound ON
+                    </button>
+                    <button type="button" id="notif-browser-btn" class="notif-pill-btn" onclick="window.BMSNotifications.toggleBrowser()">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                    <button type="button" class="notif-pill-btn" onclick="window.BMSNotifications.testSound()">
+                        <i class="fas fa-play"></i> Test Sound
+                    </button>
+                </div>
+
+                <div id="notif-settings-drawer" class="notif-settings-drawer">
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Sound Volume</span>
+                        <input type="range" id="notif-vol-slider" min="10" max="100" value="70" style="width: 120px;" oninput="window.BMSNotifications.setVolume(this.value)">
+                    </div>
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Audio Engine Status</span>
+                        <span id="notif-audio-status" style="font-size: 0.75rem;">Initializing...</span>
+                    </div>
+                </div>
+
+                <div class="notif-tabs">
+                    <div id="notif-tab-all" class="notif-tab active" onclick="window.BMSNotifications.setTab('all')">All Alerts</div>
+                    <div id="notif-tab-unread" class="notif-tab" onclick="window.BMSNotifications.setTab('unread')">Unread</div>
+                </div>
+
+                <div id="notif-list-container" class="notif-list"></div>
+
+                <div class="notif-footer">
+                    <a href="{{ url_for('clear_notifications') }}" style="color: var(--text-muted); text-decoration: none;">
+                        <i class="fas fa-check"></i> Mark all read
+                    </a>
+                    <span style="color: var(--text-muted); font-size: 0.72rem;">Live Portal Gateway</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('student_logout') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; border-radius: 6px; border: 1px solid #cbd5e1; color: #dc2626;">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Academic Portal Tabs -->
+    <div class="nav-tabs">
+        <a href="{{ url_for('student_marks') }}" class="nav-tab">
+            <i class="fas fa-chart-bar"></i> Internal Marks
+        </a>
+        <a href="{{ url_for('student_assignments') }}" class="nav-tab">
+            <i class="fas fa-tasks"></i> Assignments
+        </a>
+        <a href="{{ url_for('student_study_materials') }}" class="nav-tab active">
+            <i class="fas fa-book"></i> Study Materials Library
+        </a>
+        <a href="{{ url_for('student_timetable_view') }}" class="nav-tab">
+            <i class="fas fa-calendar-alt"></i> Semester Timetable
+        </a>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+        <a href="{{ url_for('student_study_materials', category='Textbooks', subject=selected_subject) }}" class="category-pill {% if selected_category == 'Textbooks' %}active{% endif %}">
+            <i class="fas fa-book"></i> Textbooks
+        </a>
+        <a href="{{ url_for('student_study_materials', category='Previous Year Papers', subject=selected_subject) }}" class="category-pill {% if selected_category == 'Previous Year Papers' %}active{% endif %}">
+            <i class="fas fa-file-alt"></i> Previous Year Papers
+        </a>
+        <a href="{{ url_for('student_study_materials', category='Question Banks', subject=selected_subject) }}" class="category-pill {% if selected_category == 'Question Banks' %}active{% endif %}">
+            <i class="fas fa-question-circle"></i> Question Banks
+        </a>
+    </div>
+
+    <!-- Subject & Search Filter -->
+    <div style="background: #ffffff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 24px;">
+        <form method="GET" action="{{ url_for('student_study_materials') }}" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+            <input type="hidden" name="category" value="{{ selected_category }}">
+
+            <div style="flex: 2; min-width: 200px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Search Material</label>
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Filter by title, keywords, or unit..." class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc;">
+            </div>
+
+            <div style="flex: 1.5; min-width: 180px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Subject</label>
+                <select name="subject" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc;">
+                    <option value="">All Class Subjects</option>
+                    {% for subj in class_subjects %}
+                    <option value="{{ subj }}" {% if selected_subject == subj %}selected{% endif %}>{{ subj }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="padding: 8px 18px; font-weight: 700; border-radius: 6px;">
+                <i class="fas fa-filter"></i> Apply
+            </button>
+        </form>
+    </div>
+
+    <!-- Materials Grid -->
+    {% if cards %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px;">
+        {% for c in cards %}
+        {% set m = c.material %}
+        {% set is_acc = c.is_accessible %}
+
+        {% if is_acc %}
+        <!-- Accessible Material Card -->
+        <div class="material-card">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                        {{ m.subject }}
+                    </span>
+                    <span style="font-size: 0.75rem; color: #64748b; font-family: monospace;">
+                        {{ (m.file_size / (1024 * 1024))|round(2) if m.file_size > 1048576 else (m.file_size / 1024)|round(1) }} {% if m.file_size > 1048576 %}MB{% else %}KB{% endif %}
+                    </span>
+                </div>
+
+                <h3 style="margin: 0 0 8px 0; font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1.3;">
+                    {{ m.title }}
+                </h3>
+
+                {% if m.unit_or_chapter or m.exam_year %}
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.78rem;">
+                    {% if m.unit_or_chapter %}
+                    <span class="badge" style="background: #f1f5f9; color: #334155; padding: 2px 8px;">
+                        {{ m.unit_or_chapter }}
+                    </span>
+                    {% endif %}
+                    {% if m.exam_year %}
+                    <span class="badge" style="background: #fef3c7; color: #92400e; padding: 2px 8px;">
+                        Exam: {{ m.exam_year }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if m.description %}
+                <p style="color: #64748b; font-size: 0.85rem; line-height: 1.45; margin: 0 0 14px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ m.description }}
+                </p>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+                <a href="{{ url_for('preview_study_material', material_id=m.id) }}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 12px; text-decoration: none; border-radius: 4px;">
+                    <i class="fas fa-eye"></i> Preview
+                </a>
+                <a href="{{ url_for('download_study_material', material_id=m.id) }}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; font-weight: 700; text-decoration: none; border-radius: 4px;">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Restricted Material Card (Zero Leakage: No download or preview endpoints emitted) -->
+        <div class="material-card material-restricted">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                        {{ m.subject }}
+                    </span>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #dc2626;">
+                        <i class="fas fa-lock"></i> Restricted
+                    </span>
+                </div>
+
+                <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 800; color: #475569;">
+                    {{ m.title }}
+                </h3>
+
+                <div style="background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px; margin-top: 8px; font-size: 0.8rem; color: #991b1b;">
+                    <strong>Access Restricted:</strong> {{ c.access_decision.public_message }}
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #fee2e2; padding-top: 10px; margin-top: 12px; text-align: right; font-size: 0.75rem; color: #dc2626; font-weight: 600;">
+                <i class="fas fa-ban"></i> File Downloads Disabled
+            </div>
+        </div>
+        {% endif %}
+
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 50px 20px; background: #ffffff; border-radius: 12px; border: 1px dashed var(--border);">
+        <i class="fas fa-book-open" style="font-size: 2.8rem; color: #cbd5e1; margin-bottom: 14px;"></i>
+        <h3 style="margin: 0 0 6px 0; color: #0f172a; font-weight: 800;">No Items in {{ selected_category }}</h3>
+        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">
+            No published study materials match your selected filters.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+</body>
+</html>

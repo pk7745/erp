@@ -26,3 +26,9 @@ scan_secrets.py
 # OS Specific
 .DS_Store
 Thumbs.db
+
+# Private Academic File Storage
+private_storage/
+
+# Push Notification VAPID Private Keys
+vapid_keys.json

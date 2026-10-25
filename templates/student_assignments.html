@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Assignments | BMS College Student Portal</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .student-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 20px 60px 20px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .nav-tab {
+            padding: 12px 18px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .assignment-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 22px 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .assignment-card:hover {
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        }
+
+        .restricted-card {
+            background: #fffafa;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header Navigation -->
+<header class="student-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce &amp; Management</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Student Academic Portal</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div style="text-align: right;">
+            <div style="font-weight: 700; font-size: 0.9rem;">{{ student.name }}</div>
+            <div style="font-family: monospace; font-size: 0.75rem; color: #64748b;">{{ student.uucms_id }}</div>
+        </div>
+                <!-- Student Notifications Dropdown -->
+        <div class="notifications-wrapper" style="position: relative;">
+            <button class="navbar-icon-button" id="notifications-btn" title="Notifications" aria-label="Notifications" aria-expanded="false" onclick="window.BMSNotifications.toggleDropdown(event)" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; width: 38px; height: 38px; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-bell" style="color: #334155; font-size: 1rem;"></i>
+                <span id="notif-badge" class="notif-badge" style="display: none;">0</span>
+            </button>
+
+            <!-- Dropdown Panel -->
+            <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                <div class="notif-header">
+                    <div class="notif-header-title">
+                        <i class="fas fa-bell" style="color: #2563eb;"></i>
+                        <span>Student Alerts</span>
+                        <span id="notif-unread-pill" class="notif-unread-pill">0 unread</span>
+                    </div>
+                    <div class="notif-header-actions">
+                        <button type="button" class="notif-btn-icon" title="Mark all as read" onclick="window.BMSNotifications.markAllRead()">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        <button type="button" class="notif-btn-icon" title="Sound Settings" onclick="window.BMSNotifications.toggleSettings()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="notif-quick-bar">
+                    <button type="button" id="notif-sound-btn" class="notif-pill-btn active" onclick="window.BMSNotifications.toggleSound()">
+                        <i class="fas fa-volume-up"></i> Sound ON
+                    </button>
+                    <button type="button" id="notif-browser-btn" class="notif-pill-btn" onclick="window.BMSNotifications.toggleBrowser()">
+                        <i class="fas fa-desktop"></i> Desktop
+                    </button>
+                    <button type="button" class="notif-pill-btn" onclick="window.BMSNotifications.testSound()">
+                        <i class="fas fa-play"></i> Test Sound
+                    </button>
+                </div>
+
+                <div id="notif-settings-drawer" class="notif-settings-drawer">
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Sound Volume</span>
+                        <input type="range" id="notif-vol-slider" min="10" max="100" value="70" style="width: 120px;" oninput="window.BMSNotifications.setVolume(this.value)">
+                    </div>
+                    <div class="notif-settings-row">
+                        <span style="font-weight: 600;">Audio Engine Status</span>
+                        <span id="notif-audio-status" style="font-size: 0.75rem;">Initializing...</span>
+                    </div>
+                </div>
+
+                <div class="notif-tabs">
+                    <div id="notif-tab-all" class="notif-tab active" onclick="window.BMSNotifications.setTab('all')">All Alerts</div>
+                    <div id="notif-tab-unread" class="notif-tab" onclick="window.BMSNotifications.setTab('unread')">Unread</div>
+                </div>
+
+                <div id="notif-list-container" class="notif-list"></div>
+
+                <div class="notif-footer">
+                    <a href="{{ url_for('clear_notifications') }}" style="color: var(--text-muted); text-decoration: none;">
+                        <i class="fas fa-check"></i> Mark all read
+                    </a>
+                    <span style="color: var(--text-muted); font-size: 0.72rem;">Live Portal Gateway</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ url_for('student_logout') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; border-radius: 6px; border: 1px solid #cbd5e1; color: #dc2626;">
+            <i class="fas fa-sign-out-alt"></i> Sign Out
+        </a>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Academic Portal Tabs -->
+    <div class="nav-tabs">
+        <a href="{{ url_for('student_marks') }}" class="nav-tab">
+            <i class="fas fa-chart-bar"></i> Internal Marks
+        </a>
+        <a href="{{ url_for('student_assignments') }}" class="nav-tab active">
+            <i class="fas fa-tasks"></i> Assignments
+        </a>
+        <a href="{{ url_for('student_study_materials') }}" class="nav-tab">
+            <i class="fas fa-book"></i> Study Materials Library
+        </a>
+        <a href="{{ url_for('student_timetable_view') }}" class="nav-tab">
+            <i class="fas fa-calendar-alt"></i> Semester Timetable
+        </a>
+    </div>
+
+    <!-- Page Title & Enrollment Pill -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a;">
+                My Class Assignments
+            </h2>
+            <p style="margin: 4px 0 0 0; color: #64748b; font-size: 0.88rem;">
+                Official coursework tasks published for {{ student.course }} {{ student.semester }} Sec {{ student.section }}.
+            </p>
+        </div>
+
+        <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 800; font-size: 0.8rem; padding: 6px 14px; border-radius: 20px;">
+            Enrolled: {{ student.course }} {{ student.semester }} • Section {{ student.section }}
+        </span>
+    </div>
+
+    <!-- Assignments List -->
+    {% if cards %}
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+        {% for c in cards %}
+        {% set a = c.assignment %}
+        {% set sub = c.submission %}
+        {% set is_acc = c.is_accessible %}
+
+        {% if is_acc %}
+        <!-- Accessible Assignment Card -->
+        <div class="assignment-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+                <div>
+                    <span class="badge" style="background: #e0e7ff; color: #3730a3; font-weight: 800; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px;">
+                        {{ a.subject }}
+                    </span>
+                    {% if c.has_submitted %}
+                        {% if sub.status == 'Late' %}
+                        <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; margin-left: 6px;">
+                            <i class="fas fa-clock"></i> Submitted (Late)
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background: #dcfce7; color: #166534; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; margin-left: 6px;">
+                            <i class="fas fa-check-circle"></i> Submitted
+                        </span>
+                        {% endif %}
+                    {% else %}
+                        {% if c.is_past_deadline %}
+                        <span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; margin-left: 6px;">
+                            <i class="fas fa-times-circle"></i> Past Deadline
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px; margin-left: 6px;">
+                            <i class="fas fa-hourglass-half"></i> Pending Submission
+                        </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <div style="text-align: right;">
+                    <div style="font-size: 0.8rem; color: #64748b;">Deadline:</div>
+                    <div style="font-size: 0.95rem; font-weight: 800; color: {% if c.is_past_deadline %}#dc2626{% else %}#2563eb{% endif %};">
+                        {{ a.deadline.strftime('%d %b %Y, %I:%M %p') }}
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin: 0 0 8px 0; font-size: 1.25rem; font-weight: 800; color: #0f172a;">
+                <a href="{{ url_for('student_assignment_detail', assignment_id=a.id) }}" style="color: inherit; text-decoration: none;">
+                    {{ a.title }}
+                </a>
+            </h3>
+
+            <p style="color: #64748b; font-size: 0.9rem; line-height: 1.5; margin: 0 0 16px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ a.description }}
+            </p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 14px; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 0.82rem; color: #64748b;">
+                    {% if a.max_marks %}Max Score: <strong>{{ a.max_marks }} Marks</strong> • {% endif %}
+                    Assigned: {{ a.assigned_date.strftime('%d %b %Y') }}
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('student_assignment_detail', assignment_id=a.id) }}" class="btn btn-primary" style="font-size: 0.85rem; padding: 8px 18px; font-weight: 700; text-decoration: none; border-radius: 6px;">
+                        {% if c.has_submitted %}View Submission &amp; Grade{% else %}View &amp; Submit Work &rarr;{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Restricted Assignment Card (Zero Leakage: No instructions or download links) -->
+        <div class="assignment-card restricted-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 0.75rem; padding: 4px 10px; border-radius: 4px;">
+                    {{ a.subject }}
+                </span>
+                <span style="font-size: 0.78rem; font-weight: 700; color: #dc2626;">
+                    <i class="fas fa-lock"></i> Academic Access Restricted
+                </span>
+            </div>
+
+            <h3 style="margin: 0 0 6px 0; font-size: 1.15rem; font-weight: 800; color: #475569;">
+                {{ a.title }}
+            </h3>
+
+            <div style="background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 12px 16px; margin-top: 10px; font-size: 0.85rem; color: #991b1b; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-shield-alt" style="font-size: 1.2rem; color: #ef4444;"></i>
+                <div>
+                    <strong>Viewing Restricted:</strong> {{ c.access_decision.public_message }}
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                        Per institutional regulations, course assignments require an attendance standing of at least 75% in the subject or an authorized departmental dispensation.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 50px 20px; background: #ffffff; border-radius: 12px; border: 1px dashed var(--border);">
+        <i class="fas fa-tasks" style="font-size: 2.8rem; color: #cbd5e1; margin-bottom: 14px;"></i>
+        <h3 style="margin: 0 0 6px 0; color: #0f172a; font-weight: 800;">No Assignments Active</h3>
+        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">
+            No published assignments found for your enrolled class at this time.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+</body>
+</html>

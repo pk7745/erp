@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width: 1200px; margin: 0 auto; padding-bottom: 50px;">
+    <!-- Breadcrumb & Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="badge badge-info" style="margin-bottom: 6px; font-weight: 800; text-transform: uppercase;">
+                <i class="fas fa-file-contract"></i> Regulatory Compliance & Integrity
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; margin: 0; color: var(--text-main);">
+                Eligibility Decisions Audit Trail
+            </h1>
+            <div style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px;">
+                {% if student %}
+                Audit history for: <strong>{{ student.name }}</strong> ({{ student.uucms_id }})
+                {% else %}
+                Department-wide HOD Override & Restriction Event Log
+                {% endif %}
+            </div>
+        </div>
+
+        <a href="{{ url_for('internal_marks_hod_restrictions') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Back to HOD Restrictions
+        </a>
+    </div>
+
+    <!-- Audit Events Card -->
+    <div class="card" style="box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                <i class="fas fa-history" style="color: #4f46e5; margin-right: 8px;"></i>
+                Immutable Audit History ({{ audits|length }} Recorded Events)
+            </h3>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table" style="width: 100%; margin: 0; border-collapse: collapse; font-size: 0.9rem;">
+                <thead style="background: var(--bg-body); border-bottom: 2px solid var(--border);">
+                    <tr>
+                        <th style="padding: 12px 18px; text-align: left;">Timestamp</th>
+                        <th style="padding: 12px 18px; text-align: left;">Student</th>
+                        <th style="padding: 12px 18px; text-align: left;">Subject & Comp</th>
+                        <th style="padding: 12px 18px; text-align: center;">Action</th>
+                        <th style="padding: 12px 18px; text-align: center;">Transition</th>
+                        <th style="padding: 12px 18px; text-align: left;">Authoritative Justification</th>
+                        <th style="padding: 12px 18px; text-align: right;">Authorized Actor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in audits %}
+                    <tr style="border-bottom: 1px solid var(--border); background: {% if loop.index % 2 == 0 %}var(--bg-surface){% else %}var(--bg-body){% endif %};">
+                        <td style="padding: 12px 18px; font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">
+                            {{ a.created_at.strftime('%d %b %Y, %H:%M:%S') }}
+                        </td>
+                        <td style="padding: 12px 18px; font-weight: 700; color: var(--text-main);">
+                            {{ a.student.name if a.student else 'Unknown' }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ a.student.uucms_id if a.student else '' }}</div>
+                        </td>
+                        <td style="padding: 12px 18px;">
+                            <strong>{{ a.subject }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ a.component }} ({{ a.assessment_cycle }})</div>
+                        </td>
+                        <td style="padding: 12px 18px; text-align: center;">
+                            {% if a.action == 'ALLOW_OVERRIDE' %}
+                            <span class="badge" style="background: #3b82f6; color: white; font-size: 0.75rem;">Allow Override</span>
+                            {% elif a.action == 'MANUAL_RESTRICT' %}
+                            <span class="badge" style="background: #7c3aed; color: white; font-size: 0.75rem;">Manual Restrict</span>
+                            {% elif a.action == 'REVOKE' %}
+                            <span class="badge" style="background: #f59e0b; color: white; font-size: 0.75rem;">Revoked</span>
+                            {% else %}
+                            <span class="badge badge-outline">{{ a.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 18px; text-align: center; font-family: monospace; font-size: 0.8rem;">
+                            <code>{{ a.previous_decision or 'AUTO' }}</code> &rarr; <code>{{ a.new_decision }}</code>
+                        </td>
+                        <td style="padding: 12px 18px; color: var(--text-main);">
+                            <em>{{ a.reason }}</em>
+                        </td>
+                        <td style="padding: 12px 18px; text-align: right; font-weight: 600; color: var(--text-muted);">
+                            {{ a.editor.full_name if a.editor else 'System' }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ a.editor.role if a.editor else '' }}</div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                            No eligibility audit events recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

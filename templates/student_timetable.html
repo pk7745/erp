@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semester Timetable | Student Portal | BMS College of Commerce & Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .navbar {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .navbar-brand img {
+            height: 38px;
+            width: auto;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 24px auto;
+            padding: 0 20px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 12px 18px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+        }
+
+        .student-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        .timetable-frame {
+            width: 100%;
+            height: 750px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .timetable-frame {
+                height: 480px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header Navigation -->
+<header class="navbar">
+    <a href="{{ url_for('student_marks') }}" class="navbar-brand">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo">
+        <span>BMS College of Commerce &amp; Management</span>
+    </a>
+
+    <div class="navbar-user">
+        <!-- Notification Dropdown -->
+        <div class="notifications-wrapper" style="position: relative;">
+            <button class="navbar-icon-button" id="notifications-btn" title="Notifications" aria-label="Notifications" onclick="window.BMSNotifications.toggleDropdown(event)">
+                <i class="fas fa-bell"></i>
+                <span class="notifications-badge" id="notif-badge" style="display: none;">0</span>
+            </button>
+            <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                <div class="notif-header">
+                    <span style="font-weight: 800;">Notifications</span>
+                    <button type="button" class="notif-settings-btn" onclick="window.BMSNotifications.toggleSettings()"><i class="fas fa-cog"></i></button>
+                </div>
+                <div id="notif-list-container" class="notif-list"></div>
+                <div class="notif-footer">
+                    <a href="#" onclick="window.BMSNotifications.markAllRead(); return false;" style="color: var(--text-muted); text-decoration: none;">Mark all read</a>
+                </div>
+            </div>
+        </div>
+
+        <span style="font-size: 0.9rem; font-weight: 700; color: var(--text-main);">{{ student.name }}</span>
+        <a href="{{ url_for('student_logout') }}" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.82rem;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</header>
+
+<div class="container">
+    <!-- Academic Portal Tabs -->
+    <div class="nav-tabs">
+        <a href="{{ url_for('student_marks') }}" class="nav-tab">
+            <i class="fas fa-chart-bar"></i> Internal Marks
+        </a>
+        <a href="{{ url_for('student_assignments') }}" class="nav-tab">
+            <i class="fas fa-tasks"></i> Assignments
+        </a>
+        <a href="{{ url_for('student_study_materials') }}" class="nav-tab">
+            <i class="fas fa-book"></i> Study Materials Library
+        </a>
+        <a href="{{ url_for('student_timetable_view') }}" class="nav-tab active">
+            <i class="fas fa-calendar-alt"></i> Semester Timetable
+        </a>
+    </div>
+
+    <!-- Student Profile Scope Banner -->
+    <div class="card student-banner">
+        <div>
+            <span class="badge" style="background: #e0e7ff; color: #3730a3; margin-bottom: 6px;">
+                <i class="fas fa-user-graduate"></i> Verified Academic Scope
+            </span>
+            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
+                {{ student.name }}
+            </h2>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">
+                UUCMS ID: <strong>{{ student.uucms_id }}</strong>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Course</div>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--primary);">{{ course }}</div>
+            </div>
+            <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Year &amp; Semester</div>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--text-main);">{{ academic_year }} &bull; {{ semester }}</div>
+            </div>
+            <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Section</div>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--text-main);">Section {{ section }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Published Timetable Content -->
+    {% if timetable %}
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <!-- Timetable Header Bar -->
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; background: rgba(0,0,0,0.01);">
+            <div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <span class="badge" style="background: #dcfce7; color: #15803d;">
+                        <i class="fas fa-check-circle"></i> Official Published Timetable
+                    </span>
+                    <span class="badge" style="background: #f1f5f9; color: #64748b;">
+                        Version {{ timetable.version }}
+                    </span>
+                </div>
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">
+                    {{ timetable.title }}
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                    Published by <strong>{{ timetable.uploader.full_name if timetable.uploader else 'Department Faculty' }}</strong> on {{ timetable.updated_at.strftime('%d %B %Y, %I:%M %p') }}
+                </div>
+                {% if timetable.description %}
+                <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--text-main); background: #f8fafc; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--primary);">
+                    {{ timetable.description }}
+                </p>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" target="_blank" class="btn btn-outline">
+                    <i class="fas fa-external-link-alt"></i> Open in New Tab
+                </a>
+                <a href="{{ url_for('download_student_timetable', timetable_id=timetable.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download Timetable
+                </a>
+            </div>
+        </div>
+
+        <!-- Embedded Viewer -->
+        <div style="padding: 20px;">
+            {% if timetable.file_filename.endswith('.pdf') %}
+            <iframe src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" class="timetable-frame" title="{{ timetable.title }}"></iframe>
+            {% elif timetable.file_filename.endswith(('.png', '.jpg', '.jpeg')) %}
+            <div style="text-align: center; background: #f1f5f9; padding: 16px; border-radius: 8px;">
+                <img src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" style="max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" alt="{{ timetable.title }}">
+            </div>
+            {% else %}
+            <!-- Spreadsheet or Word Document Card -->
+            <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 8px;">
+                <i class="fas fa-file-excel" style="font-size: 3rem; color: #10b981; margin-bottom: 12px;"></i>
+                <h4 style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 700;">{{ timetable.file_filename }}</h4>
+                <p style="margin: 0 0 16px 0; color: var(--text-muted); font-size: 0.9rem;">
+                    This timetable document is stored in spreadsheet format ({{ (timetable.file_size / 1024)|round(1) }} KB).
+                </p>
+                <a href="{{ url_for('download_student_timetable', timetable_id=timetable.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download {{ timetable.file_filename }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card" style="padding: 60px 24px; text-align: center; border: 1px dashed var(--border);">
+        <div style="font-size: 3.5rem; color: #94a3b8; margin-bottom: 16px;">
+            <i class="fas fa-calendar-times"></i>
+        </div>
+        <h3 style="margin: 0 0 8px 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">
+            No Timetable Published Yet
+        </h3>
+        <p style="margin: 0 0 20px 0; color: var(--text-muted); font-size: 0.92rem; max-width: 520px; margin-left: auto; margin-right: auto;">
+            The academic administration has not yet published an official semester timetable for 
+            <strong>{{ course }} {{ academic_year }} {{ semester }} Section {{ section }}</strong>.
+            Please check back regularly or contact your academic department coordinator.
+        </p>
+        <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); background: var(--bg-body); padding: 8px 16px; border-radius: 20px;">
+            <i class="fas fa-bell"></i> You will be notified in real-time when a timetable is published.
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Notification & Service Worker Scripts -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='notifications.js') }}"></script>
+</body>
+</html>

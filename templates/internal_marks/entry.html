@@ -72,13 +72,24 @@
             <input type="hidden" name="version" value="{{ existing_mark.version }}">
             {% endif %}
 
+            {% if not can_edit %}
+            <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3b82f6; padding: 14px 18px; border-radius: 6px; margin-bottom: 20px;">
+                <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">
+                    <i class="fas fa-eye" style="color: #3b82f6; margin-right: 6px;"></i> View-Only Mode
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                    You are viewing internal assessment marks for <strong>{{ subject }}</strong>. You are not assigned to teach this subject in the official timetable, so modifications are disabled.
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Instructional Hint -->
             <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; font-size: 0.85rem; color: var(--text-muted);">
                 <strong style="color: var(--text-main);"><i class="fas fa-lightbulb" style="color: var(--primary); margin-right: 6px;"></i> Academic Evaluation Policy:</strong>
                 <ul style="margin: 6px 0 0 18px; padding: 0;">
                     <li><strong>Not Yet Entered:</strong> Leave the field blank if an assessment has not yet been conducted.</li>
                     <li><strong>Zero Marks:</strong> Explicitly enter <code>0</code> or <code>0.0</code> if the student scored zero.</li>
-                    <li><strong>Decimal Precision:</strong> Up to 2 decimal places are accepted (e.g. <code>18.5</code> or <code>22.75</code>).</li>
+                    <li><strong>Decimal Precision:</strong> Up to 2 decimal places are accepted (e.g. <code>16.5</code> or <code>19.75</code>).</li>
                     <li><strong>Drafts & Partial Entry:</strong> You can save IA1 now and update IA2 or Final IA later.</li>
                 </ul>
             </div>
@@ -96,8 +107,9 @@
                     <input type="number" step="0.01" min="0" max="{{ maxima['IA1'] }}"
                            name="ia1_marks" id="ia1_marks"
                            value="{{ existing_mark.ia1_marks if existing_mark and existing_mark.ia1_marks is not none else '' }}"
-                           placeholder="e.g. 21.5 (or leave blank)"
+                           placeholder="e.g. 17.5 (or leave blank)"
                            class="form-control"
+                           {% if not can_edit %}disabled readonly{% endif %}
                            style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
                         First Internal Assessment
@@ -115,8 +127,9 @@
                     <input type="number" step="0.01" min="0" max="{{ maxima['IA2'] }}"
                            name="ia2_marks" id="ia2_marks"
                            value="{{ existing_mark.ia2_marks if existing_mark and existing_mark.ia2_marks is not none else '' }}"
-                           placeholder="e.g. 22.0 (or leave blank)"
+                           placeholder="e.g. 18.0 (or leave blank)"
                            class="form-control"
+                           {% if not can_edit %}disabled readonly{% endif %}
                            style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
                         Second Internal Assessment
@@ -134,8 +147,9 @@
                     <input type="number" step="0.01" min="0" max="{{ maxima['Final IA'] }}"
                            name="final_ia_marks" id="final_ia_marks"
                            value="{{ existing_mark.final_ia_marks if existing_mark and existing_mark.final_ia_marks is not none else '' }}"
-                           placeholder="e.g. 23.5 (or leave blank)"
+                           placeholder="e.g. 19.0 (or leave blank)"
                            class="form-control"
+                           {% if not can_edit %}disabled readonly{% endif %}
                            style="width: 100%; padding: 12px; font-size: 1.1rem; font-weight: 700; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
                         Final IA Institutional Score
@@ -144,7 +158,7 @@
             </div>
 
             <!-- Mandatory Reason for Correction (Visible on existing records or when modifying) -->
-            {% if existing_mark %}
+            {% if existing_mark and can_edit %}
             <div style="margin-bottom: 24px; padding: 18px; border-radius: 8px; border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.05);">
                 <label for="reason" style="display: block; font-weight: 700; font-size: 0.9rem; color: #b45309; margin-bottom: 6px;">
                     <i class="fas fa-shield-alt"></i> Reason for Correction (Mandatory for Auditing)
@@ -163,14 +177,92 @@
             <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center; border-top: 1px solid var(--border); padding-top: 20px;">
                 <a href="{{ url_for('internal_marks_students', course=course, semester=semester, section=section, subject=subject, assessment_cycle=assessment_cycle) }}"
                    class="btn btn-outline" style="padding: 10px 20px;">
-                    Cancel
+                    Back to Student Roster
                 </a>
+                {% if can_edit %}
                 <button type="button" onclick="openReviewModal()" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700;">
                     <i class="fas fa-check-circle"></i> Review & Save Marks
                 </button>
+                {% else %}
+                <button type="button" disabled class="btn btn-secondary" style="padding: 10px 20px; opacity: 0.7; cursor: not-allowed;">
+                    <i class="fas fa-lock"></i> Modification Disabled (View Only)
+                </button>
+                {% endif %}
             </div>
         </form>
     </div>
+
+    <!-- Complete Multi-Subject Marks Overview for This Student -->
+    {% if all_subject_marks %}
+    <div class="card" style="margin-top: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 10px;">
+        <div class="card-header" style="background: var(--bg-surface); padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">
+                <i class="fas fa-layer-group" style="color: var(--primary); margin-right: 8px;"></i>
+                Student Academic Scope: All Subjects for {{ student.name }}
+            </h4>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                Class: {{ course }} {{ semester }} Sec {{ section }}
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table" style="width: 100%; margin: 0; font-size: 0.88rem; border-collapse: collapse;">
+                <thead style="background: var(--bg-body); border-bottom: 2px solid var(--border);">
+                    <tr>
+                        <th style="padding: 12px 16px; text-align: left;">Subject</th>
+                        <th style="padding: 12px 16px; text-align: left;">Assigned Teacher</th>
+                        <th style="padding: 12px 16px; text-align: center;">IA1</th>
+                        <th style="padding: 12px 16px; text-align: center;">IA2</th>
+                        <th style="padding: 12px 16px; text-align: center;">Final IA</th>
+                        <th style="padding: 12px 16px; text-align: center;">Your Authority</th>
+                        <th style="padding: 12px 16px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in all_subject_marks %}
+                    <tr style="border-bottom: 1px solid var(--border); {% if s.subject == subject %}background: rgba(99, 102, 241, 0.05);{% endif %}">
+                        <td style="padding: 12px 16px; font-weight: 700; color: var(--text-main);">
+                            {{ s.subject }}
+                            {% if s.subject == subject %}
+                            <span class="badge badge-primary" style="font-size: 0.65rem; margin-left: 6px;">Active</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 16px; color: var(--text-muted);">
+                            {{ s.faculty_name }}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: center; font-weight: 600;">
+                            {{ s.mark.ia1_marks if s.mark and s.mark.ia1_marks is not none else '—' }}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: center; font-weight: 600;">
+                            {{ s.mark.ia2_marks if s.mark and s.mark.ia2_marks is not none else '—' }}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: center; font-weight: 600;">
+                            {{ s.mark.final_ia_marks if s.mark and s.mark.final_ia_marks is not none else '—' }}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: center;">
+                            {% if s.is_editable %}
+                            <span class="badge badge-success" style="font-size: 0.75rem; background: #10b981; color: white; padding: 4px 8px; border-radius: 4px;">
+                                <i class="fas fa-pen"></i> Editable
+                            </span>
+                            {% else %}
+                            <span class="badge badge-secondary" style="font-size: 0.75rem; background: #6b7280; color: white; padding: 4px 8px; border-radius: 4px;">
+                                <i class="fas fa-lock"></i> View-Only
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: right;">
+                            <a href="{{ url_for('internal_marks_entry', student_id=student.id, course=course, semester=semester, section=section, subject=s.subject, assessment_cycle=assessment_cycle) }}"
+                               class="btn btn-sm {% if s.is_editable %}btn-primary{% else %}btn-outline{% endif %}"
+                               style="font-size: 0.75rem; padding: 4px 10px;">
+                                {% if s.is_editable %}Edit Marks{% else %}View Marks{% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Audit History Shortcut for existing records -->
     {% if existing_mark and existing_mark.audits %}

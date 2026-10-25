@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} — Academic Analytics | BMS College ERP{% endblock %}
+
+{% block extra_head %}
+<style>
+    .profile-kpi-box {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+    .att-progress-track {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 6px;
+    }
+    .att-progress-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 1300px; margin: 0 auto;">
+
+    <!-- 1. Top Navigation & Return Link -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <a href="{{ url_for('academic_analytics_dashboard', course=student.course, academic_year=student.academic_year, semester=student.semester, section=student.section) }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
+            <i class="fas fa-arrow-left"></i> Back to Class Analytics
+        </a>
+
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-outline-primary" style="font-size: 0.85rem;">
+                <i class="fas fa-history"></i> Attendance Sessions
+            </a>
+            <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline-primary" style="font-size: 0.85rem;">
+                <i class="fas fa-edit"></i> Marks Management
+            </a>
+        </div>
+    </div>
+
+    <!-- 2. Student Identity Header Card -->
+    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 18px;">
+            <div style="display: flex; gap: 18px; align-items: center;">
+                <div style="width: 64px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800;">
+                    {{ student.name[:1] }}
+                </div>
+                <div>
+                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
+                        {{ student.name }}
+                    </h2>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px;">
+                        <span style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); background: var(--bg-body); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);">
+                            UUCMS: {{ student.uucms_id }}
+                        </span>
+                        <span class="badge badge-primary">
+                            {{ student.course }} {{ student.semester }} Sec {{ student.section }}
+                        </span>
+                        <span class="badge badge-secondary">
+                            {{ student.academic_year }}
+                        </span>
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Attendance Status Pill -->
+            <div style="text-align: right;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                    Overall Attendance
+                </div>
+                <div style="font-size: 2rem; font-weight: 900; color: {% if profile.overall_attendance_pct and profile.overall_attendance_pct >= 75.0 %}#059669{% elif profile.overall_attendance_pct %}#dc2626{% else %}var(--text-muted){% endif %};">
+                    {% if profile.overall_attendance_pct is not none %}
+                        {{ profile.overall_attendance_pct }}%
+                    {% else %}
+                        Pending
+                    {% endif %}
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 600; color: {% if profile.overall_attendance_pct and profile.overall_attendance_pct >= 75.0 %}#059669{% elif profile.overall_attendance_pct %}#dc2626{% else %}var(--text-muted){% endif %};">
+                    {{ profile.attended_count }} / {{ profile.conducted_count }} sessions attended
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Subject-Wise Attendance Breakdown Table -->
+    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
+        <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-clipboard-list" style="color: #6366f1;"></i> Subject-Wise Attendance Surveillance
+        </h3>
+
+        <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">
+                        <th style="padding: 10px 12px;">Subject</th>
+                        <th style="padding: 10px 12px; text-align: center;">Sessions Attended</th>
+                        <th style="padding: 10px 12px; text-align: center;">Total Conducted</th>
+                        <th style="padding: 10px 12px; width: 220px;">Attendance Progress</th>
+                        <th style="padding: 10px 12px; text-align: center;">Eligibility Status</th>
+                        <th style="padding: 10px 12px; text-align: center;">HOD Decision Override</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sc in profile.subject_cards %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        
+                        <!-- Subject Name -->
+                        <td style="padding: 12px; font-weight: 700; color: var(--text-main);">
+                            {{ sc.subject }}
+                        </td>
+
+                        <!-- Attended -->
+                        <td style="padding: 12px; text-align: center; font-weight: 700; color: var(--text-main);">
+                            {{ sc.attended_count }}
+                        </td>
+
+                        <!-- Conducted -->
+                        <td style="padding: 12px; text-align: center; color: var(--text-muted);">
+                            {{ sc.conducted_count }}
+                        </td>
+
+                        <!-- Progress Bar & Pct -->
+                        <td style="padding: 12px;">
+                            {% if sc.attendance_pct is not none %}
+                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: {% if sc.attendance_pct >= 75.0 %}#059669{% else %}#dc2626{% endif %};">
+                                    <span>{{ sc.attendance_pct }}%</span>
+                                    <span style="font-size: 0.72rem; color: var(--text-muted);">Min: 75%</span>
+                                </div>
+                                <div class="att-progress-track">
+                                    <div class="att-progress-fill" style="width: {{ sc.attendance_pct }}%; background: {% if sc.attendance_pct >= 75.0 %}#10b981{% else %}#ef4444{% endif %};"></div>
+                                </div>
+                            {% else %}
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">No sessions held</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Eligibility Status -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.attendance_status == 'ELIGIBLE' %}
+                                <span class="badge badge-success"><i class="fas fa-check"></i> Eligible (&ge;75%)</span>
+                            {% elif sc.attendance_status == 'RESTRICTED' %}
+                                <span class="badge badge-danger"><i class="fas fa-times"></i> Restricted (&lt;75%)</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Pending</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- HOD Override -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.override %}
+                                {% if sc.override.decision_type == 'ALLOW_OVERRIDE' %}
+                                    <span class="badge badge-success" title="Reason: {{ sc.override.reason }}">
+                                        <i class="fas fa-unlock"></i> Allowed by HOD
+                                    </span>
+                                {% elif sc.override.decision_type == 'MANUAL_RESTRICT' %}
+                                    <span class="badge badge-danger" title="Reason: {{ sc.override.reason }}">
+                                        <i class="fas fa-lock"></i> Restricted by HOD
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">Automatic Policy</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. Subject-Wise Internal Assessment Marks Table -->
+    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-award" style="color: #10b981;"></i> Internal Assessment Marks Record
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                Max Marks: IA1 ({{ profile.maxima.IA1 }}), IA2 ({{ profile.maxima.IA2 }}), Final IA ({{ profile.maxima['Final IA'] }})
+            </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">
+                        <th style="padding: 10px 12px;">Subject</th>
+                        <th style="padding: 10px 12px; text-align: center;">IA1</th>
+                        <th style="padding: 10px 12px; text-align: center;">IA2</th>
+                        <th style="padding: 10px 12px; text-align: center;">Final IA</th>
+                        <th style="padding: 10px 12px; text-align: center;">Status</th>
+                        <th style="padding: 10px 12px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sc in profile.subject_cards %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        
+                        <td style="padding: 12px; font-weight: 700; color: var(--text-main);">
+                            {{ sc.subject }}
+                        </td>
+
+                        <!-- IA1 -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.internal_mark and sc.internal_mark.ia1_marks is not none %}
+                                <span style="font-weight: 700; color: {% if sc.internal_mark.ia1_marks < (profile.maxima.IA1 * profile.low_marks_threshold_pct / 100.0) %}#dc2626{% else %}var(--text-main){% endif %};">
+                                    {{ sc.internal_mark.ia1_marks }} / {{ profile.maxima.IA1 }}
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">Pending</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- IA2 -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.internal_mark and sc.internal_mark.ia2_marks is not none %}
+                                <span style="font-weight: 700; color: {% if sc.internal_mark.ia2_marks < (profile.maxima.IA2 * profile.low_marks_threshold_pct / 100.0) %}#dc2626{% else %}var(--text-main){% endif %};">
+                                    {{ sc.internal_mark.ia2_marks }} / {{ profile.maxima.IA2 }}
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">Pending</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Final IA -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.internal_mark and sc.internal_mark.final_ia_marks is not none %}
+                                <span style="font-weight: 700; color: {% if sc.internal_mark.final_ia_marks < (profile.maxima['Final IA'] * profile.low_marks_threshold_pct / 100.0) %}#dc2626{% else %}var(--text-main){% endif %};">
+                                    {{ sc.internal_mark.final_ia_marks }} / {{ profile.maxima['Final IA'] }}
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">Pending</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status -->
+                        <td style="padding: 12px; text-align: center;">
+                            {% if sc.internal_mark %}
+                                {% if sc.internal_mark.completion_status == 'Complete' %}
+                                    <span class="badge badge-success">Complete</span>
+                                {% elif sc.internal_mark.completion_status == 'Partial' %}
+                                    <span class="badge badge-warning">Partial</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">Not Started</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge badge-secondary">Not Started</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action: Edit Marks (ONLY if teacher is authorized to teach this subject) -->
+                        <td style="padding: 12px; text-align: right;">
+                            {% if sc.can_edit_marks %}
+                                <a href="{{ url_for('internal_marks_entry', student_id=student.id, course=student.course, semester=student.semester, section=student.section, subject=sc.subject) }}" class="btn btn-sm btn-primary" style="padding: 5px 12px; font-size: 0.75rem; font-weight: 600;">
+                                    <i class="fas fa-edit"></i> Edit Marks
+                                </a>
+                            {% else %}
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">
+                                    <i class="fas fa-lock"></i> Read Only
+                                </span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 5. Recent Session Attendance History -->
+    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface);">
+        <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-history" style="color: #0ea5e9;"></i> Attendance Session History Log
+        </h3>
+
+        {% if profile.session_history %}
+        <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); position: sticky; top: 0;">
+                        <th style="padding: 10px 12px;">Date</th>
+                        <th style="padding: 10px 12px;">Subject</th>
+                        <th style="padding: 10px 12px;">Time Slot</th>
+                        <th style="padding: 10px 12px;">Room</th>
+                        <th style="padding: 10px 12px;">Faculty</th>
+                        <th style="padding: 10px 12px; text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in profile.session_history %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 10px 12px; font-weight: 600; color: var(--text-main);">
+                            {{ h.date.strftime('%d %b %Y') }}
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-main);">
+                            {{ h.subject }}
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-muted);">
+                            {{ h.time_slot }}
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-muted);">
+                            {{ h.room_no }}
+                        </td>
+                        <td style="padding: 10px 12px; color: var(--text-muted);">
+                            {{ h.faculty_name }}
+                        </td>
+                        <td style="padding: 10px 12px; text-align: center;">
+                            {% if h.status == 'Present' %}
+                                <span class="badge badge-success"><i class="fas fa-check"></i> Present</span>
+                            {% elif h.status == 'Absent' %}
+                                <span class="badge badge-danger"><i class="fas fa-times"></i> Absent</span>
+                            {% else %}
+                                <span class="badge badge-secondary">{{ h.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+            No completed class session records logged for this student.
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

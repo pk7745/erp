@@ -10,92 +10,357 @@
 </div>
 
 <!-- Page Header -->
-<div class="page-header">
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
     <div class="page-title">
         <h1>Digital Document Vault & AI OCR Scanner</h1>
-        <div class="page-subtitle">Restricted to Admin Department • Instant document scanning & staff profile extraction</div>
+        <div class="page-subtitle">Administrative Document Ingestion • Verification & Mandatory Approval Workflow</div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <span class="badge badge-info"><i class="fas fa-user-shield"></i> {{ user.role }}</span>
     </div>
 </div>
 
-<div class="card" style="max-width: 850px; margin: 0 auto;">
-    <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-camera" style="margin-right: 8px; color: var(--primary);"></i> Scan Staff Identification Document</h3>
-        <span class="badge badge-info"><i class="fas fa-user-shield"></i> Admin Department Access</span>
-    </div>
-    <div class="card-body text-center">
-        <div id="drop-zone" style="border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 48px 24px; background: var(--gray-50); cursor: pointer; transition: background-color var(--transition-fast);">
-            <input type="file" id="docUpload" hidden accept="image/*">
-            <label for="docUpload" style="cursor: pointer; display: block;">
-                <div style="font-size: 3.5rem; color: var(--primary); margin-bottom: 12px;"><i class="fas fa-id-card"></i></div>
-                <h3 style="color: var(--primary); font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">Click to Upload Staff ID / Document</h3>
-                <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Supports Institutional ID Card, PAN Card, Aadhar Card, or Certificate Image</p>
-            </label>
+<!-- Nav Tabs -->
+<div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border);">
+    <button type="button" class="btn btn-secondary tab-btn active" id="tab-btn-scan" onclick="switchVaultTab('scan')" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+        <i class="fas fa-camera"></i> Document Scanner
+    </button>
+    {% if is_admin %}
+    <button type="button" class="btn btn-secondary tab-btn" id="tab-btn-queue" onclick="switchVaultTab('queue')" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+        <i class="fas fa-clipboard-check"></i> Approval Queue
+        {% if pending_proposals|length > 0 %}
+        <span class="badge badge-warning" style="margin-left: 6px;">{{ pending_proposals|length }}</span>
+        {% endif %}
+    </button>
+    {% endif %}
+    <button type="button" class="btn btn-secondary tab-btn" id="tab-btn-history" onclick="switchVaultTab('history')" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+        <i class="fas fa-history"></i> Submission History
+    </button>
+</div>
+
+<!-- TAB 1: SCANNER & INGESTION -->
+<div id="vault-tab-scan" class="vault-tab-pane">
+    <div class="card" style="max-width: 900px; margin: 0 auto;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title"><i class="fas fa-camera" style="margin-right: 8px; color: var(--primary);"></i> Scan Institutional Identification Document</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin: 0;">Document Type:</label>
+                <select id="docTypeHint" class="form-control form-control-sm" style="width: auto;">
+                    <option value="">Auto-Detect</option>
+                    <option value="STUDENT">Student ID / Admission</option>
+                    <option value="STAFF">Faculty / Staff ID Card</option>
+                </select>
+            </div>
         </div>
 
-        <div id="loader" style="display: none; padding: 40px 0;">
-            <div class="loading-spinner" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto;"></div>
-            <p style="color: var(--primary); font-weight: 700; margin-top: 16px;">🤖 AI OCR Engine is reading document data... please wait...</p>
-        </div>
-
-        <!-- Result Card after Scanning -->
-        <div id="result-area" style="display: none; flex-direction: column; text-align: left; margin-top: 24px; background: var(--white); border: 2px solid var(--success); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                <h3 style="color: var(--success); margin: 0; font-size: 1.15rem; font-weight: 800;"><i class="fas fa-check-circle"></i> Profile Extracted Successfully!</h3>
-                <span class="badge badge-success">OCR Verified</span>
+        <div class="card-body text-center">
+            <div id="drop-zone" style="border: 2px dashed var(--primary); border-radius: var(--radius-lg); padding: 48px 24px; background: var(--gray-50); cursor: pointer; transition: background-color var(--transition-fast);">
+                <input type="file" id="docUpload" hidden accept="image/png, image/jpeg, image/jpg, application/pdf">
+                <label for="docUpload" style="cursor: pointer; display: block;">
+                    <div style="font-size: 3.5rem; color: var(--primary); margin-bottom: 12px;"><i class="fas fa-id-card"></i></div>
+                    <h3 style="color: var(--primary); font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">Click or Drag to Upload Document</h3>
+                    <p class="text-muted" style="font-size: 0.85rem; margin: 0;">Supports Institutional Student ID, Admission Card, Staff ID, or PDF Certificate (Max 10MB)</p>
+                </label>
             </div>
 
-            <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-muted);">
-                The AI OCR Scanner extracted the following staff credentials from the document:
-            </p>
-
-            <div style="background: var(--gray-100); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.85rem;">
-                <div><strong>Full Name:</strong> <span id="res-name" style="color: var(--primary); font-weight: 700;"></span></div>
-                <div><strong>Suggested Username:</strong> <span id="res-username" style="font-weight: 600;"></span></div>
-                <div><strong>Suggested Email:</strong> <span id="res-email" style="font-weight: 600;"></span></div>
-                <div><strong>Phone Number:</strong> <span id="res-phone" style="font-weight: 600;"></span></div>
-                <div><strong>Department:</strong> <span id="res-dept" style="font-weight: 600;"></span></div>
-                <div><strong>Suggested Salary:</strong> <span id="res-salary" style="color: var(--success); font-weight: 700;"></span></div>
+            <div id="loader" style="display: none; padding: 40px 0;">
+                <div class="loading-spinner" style="width: 44px; height: 44px; border-width: 4px; margin: 0 auto;"></div>
+                <p style="color: var(--primary); font-weight: 700; margin-top: 16px;">🤖 Document Processing Engine is extracting and validating records... please wait...</p>
             </div>
 
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-primary" onclick="openAddEmployeeModal()" style="flex: 1;"><i class="fas fa-user-plus"></i> ➕ Add Employee to Database</button>
-                <a href="{{ url_for('staff_directory') }}" class="btn btn-secondary"><i class="fas fa-list"></i> Staff Directory</a>
-                <button type="button" class="btn btn-secondary" onclick="resetScanner()"><i class="fas fa-redo"></i> Scan Another</button>
+            <!-- RESULT & VERIFICATION PANEL -->
+            <div id="result-area" style="display: none; flex-direction: column; text-align: left; margin-top: 24px; background: var(--white); border: 2px solid var(--primary); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="color: var(--primary); margin: 0; font-size: 1.2rem; font-weight: 800;"><i class="fas fa-file-alt"></i> Document Extracted & Verified</h3>
+                        <span id="res-classification-badge" class="badge badge-info" style="margin-top: 4px; font-size: 0.85rem;"></span>
+                    </div>
+                    <div>
+                        <span id="res-ocr-status" class="badge badge-success">OCR Processed</span>
+                    </div>
+                </div>
+
+                <!-- Warnings alert if any -->
+                <div id="res-warnings-container" style="display: none; margin-bottom: 16px;"></div>
+
+                <div class="alert alert-info" style="font-size: 0.85rem; margin-bottom: 20px;">
+                    <i class="fas fa-shield-alt"></i> <strong>Zero Direct Modification Policy:</strong> Scanning does not alter official student or faculty records. Review and adjust extracted fields below, then submit for administrator approval.
+                </div>
+
+                <!-- STUDENT FIELDS FORM -->
+                <div id="student-fields-box" style="display: none;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--gray-700); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                        <i class="fas fa-user-graduate"></i> Proposed Student Record Fields
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div class="form-group mb-0">
+                            <label class="form-label">UUCMS ID (Authoritative)</label>
+                            <input type="text" id="s_uucms_id" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" id="s_name" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="s_email" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Course</label>
+                            <input type="text" id="s_course" class="form-control" value="BCA" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Semester</label>
+                            <input type="text" id="s_semester" class="form-control" value="Sem V" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Section</label>
+                            <input type="text" id="s_section" class="form-control" value="A" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAFF FIELDS FORM -->
+                <div id="staff-fields-box" style="display: none;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--gray-700); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+                        <i class="fas fa-chalkboard-teacher"></i> Proposed Faculty/Staff Record Fields
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div class="form-group mb-0">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" id="f_full_name" class="form-control" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Staff / Dept ID</label>
+                            <input type="text" id="f_dept_id" class="form-control">
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Department</label>
+                            <input type="text" id="f_department" class="form-control" value="Computer Science" required>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="f_email" class="form-control">
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" id="f_phone" class="form-control">
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">Role</label>
+                            <input type="text" id="f_role" class="form-control" value="Faculty" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIFF COMPARISON TABLE (FOR UPDATES) -->
+                <div id="diff-table-container" style="display: none; margin-top: 20px;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--gray-700); margin-bottom: 8px;">
+                        <i class="fas fa-exchange-alt"></i> Field-by-Field Modification Comparison
+                    </h4>
+                    <table class="table" style="font-size: 0.85rem; width: 100%; border: 1px solid var(--border);">
+                        <thead>
+                            <tr style="background: var(--gray-100);">
+                                <th>Field</th>
+                                <th>Current Database Value</th>
+                                <th>Proposed Extracted Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diff-table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-primary" onclick="submitProposalForApproval()" style="flex: 1; font-weight: 700;">
+                        <i class="fas fa-paper-plane"></i> Submit Proposal for Administrator Approval
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetScanner()"><i class="fas fa-redo"></i> Scan Another Document</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Form for Pre-filled Add Employee -->
-<div id="addEmployeeModal" class="card" style="display: none; max-width: 850px; margin: 24px auto 0 auto; border: 2px solid var(--primary);">
-    <div class="card-header" style="background: var(--primary-bg);">
-        <h3 class="card-title" style="color: var(--primary);"><i class="fas fa-user-plus"></i> Confirm & Save New Personnel</h3>
-        <button class="btn btn-secondary btn-sm" onclick="closeAddEmployeeModal()">✕ Close</button>
+<!-- TAB 2: ADMINISTRATOR APPROVAL QUEUE -->
+{% if is_admin %}
+<div id="vault-tab-queue" class="vault-tab-pane" style="display: none;">
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title"><i class="fas fa-tasks"></i> Pending Administrator Approval Queue</h3>
+            <span class="badge badge-warning">{{ pending_proposals|length }} Pending Review</span>
+        </div>
+        <div class="card-body p-0">
+            {% if pending_proposals|length == 0 and needs_review_proposals|length == 0 %}
+            <div style="padding: 40px; text-align: center;" class="text-muted">
+                <i class="fas fa-check-double" style="font-size: 2.5rem; margin-bottom: 12px; color: var(--success);"></i>
+                <p>No proposals awaiting administrator approval. All submissions are up to date.</p>
+            </div>
+            {% else %}
+            <table class="table" style="width: 100%; margin: 0; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: var(--gray-50);">
+                        <th>Proposal ID</th>
+                        <th>Target</th>
+                        <th>Type</th>
+                        <th>Classification</th>
+                        <th>Target ID / Name</th>
+                        <th>Submitted By</th>
+                        <th>Date</th>
+                        <th>Document</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pending_proposals + needs_review_proposals %}
+                    <tr id="proposal-row-{{ p.id }}">
+                        <td><code>#{{ p.proposal_id[:8] }}</code></td>
+                        <td>
+                            {% if p.target_type == 'STUDENT' %}
+                            <span class="badge badge-info"><i class="fas fa-user-graduate"></i> Student</span>
+                            {% else %}
+                            <span class="badge badge-secondary"><i class="fas fa-chalkboard-teacher"></i> Staff</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge badge-dark">{{ p.operation }}</span></td>
+                        <td>
+                            {% if 'NEW' in p.classification %}
+                            <span class="badge badge-success">{{ p.classification }}</span>
+                            {% elif 'UPDATE' in p.classification %}
+                            <span class="badge badge-primary">{{ p.classification }}</span>
+                            {% elif 'DUPLICATE' in p.classification %}
+                            <span class="badge badge-warning">{{ p.classification }}</span>
+                            {% else %}
+                            <span class="badge badge-danger">{{ p.classification }}</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ p.target_identifier or 'N/A' }}</strong></td>
+                        <td>{{ p.submitter.full_name if p.submitter else 'Unknown' }}</td>
+                        <td>{{ p.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if p.document %}
+                            <a href="{{ url_for('vault_document_download', document_id=p.document.id) }}" class="btn btn-secondary btn-sm" target="_blank" title="Download Document">
+                                <i class="fas fa-download"></i> View
+                            </a>
+                            {% else %}
+                            <span class="text-muted">No File</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if p.submitted_by_id == user.id %}
+                            <span class="text-muted" style="font-size: 0.75rem;" title="Independent review required: You cannot approve your own submission.">
+                                <i class="fas fa-user-lock"></i> Self-Submission
+                            </span>
+                            {% else %}
+                            <button class="btn btn-success btn-sm" onclick="approveProposal({{ p.id }}, '{{ p.proposal_id[:8] }}')">
+                                <i class="fas fa-check"></i> Approve & Apply
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="openRejectModal({{ p.id }}, '{{ p.proposal_id[:8] }}')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- TAB 3: SUBMISSION HISTORY -->
+<div id="vault-tab-history" class="vault-tab-pane" style="display: none;">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-history"></i> My Vault Submissions</h3>
+        </div>
+        <div class="card-body p-0">
+            {% if my_proposals|length == 0 %}
+            <div style="padding: 40px; text-align: center;" class="text-muted">
+                <i class="fas fa-folder-open" style="font-size: 2.5rem; margin-bottom: 12px;"></i>
+                <p>No proposals submitted yet. Use the Document Scanner to upload a record.</p>
+            </div>
+            {% else %}
+            <table class="table" style="width: 100%; margin: 0; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: var(--gray-50);">
+                        <th>Proposal ID</th>
+                        <th>Target</th>
+                        <th>Operation</th>
+                        <th>Classification</th>
+                        <th>Identifier</th>
+                        <th>Status</th>
+                        <th>Submission Date</th>
+                        <th>Decision / Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in my_proposals %}
+                    <tr>
+                        <td><code>#{{ p.proposal_id[:8] }}</code></td>
+                        <td>{{ p.target_type }}</td>
+                        <td>{{ p.operation }}</td>
+                        <td>{{ p.classification }}</td>
+                        <td><strong>{{ p.target_identifier or 'N/A' }}</strong></td>
+                        <td>
+                            {% if p.status == 'APPLIED' %}
+                            <span class="badge badge-success"><i class="fas fa-check-circle"></i> APPLIED</span>
+                            {% elif p.status == 'APPROVED' %}
+                            <span class="badge badge-info"><i class="fas fa-check"></i> APPROVED</span>
+                            {% elif p.status == 'PENDING_APPROVAL' %}
+                            <span class="badge badge-warning"><i class="fas fa-clock"></i> PENDING APPROVAL</span>
+                            {% elif p.status == 'REJECTED' %}
+                            <span class="badge badge-danger"><i class="fas fa-times-circle"></i> REJECTED</span>
+                            {% else %}
+                            <span class="badge badge-secondary">{{ p.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ p.rejection_reason or p.review_notes or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal" class="card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 480px; z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 2px solid var(--danger);">
+    <div class="card-header" style="background: #fee2e2;">
+        <h3 class="card-title" style="color: var(--danger);"><i class="fas fa-times-circle"></i> Reject Proposal <span id="rejectModalPropId"></span></h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeRejectModal()">✕</button>
     </div>
     <div class="card-body">
-        <form action="{{ url_for('add_employee') }}" method="POST" enctype="multipart/form-data" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div class="form-group mb-0"><label class="form-label">Full Name</label><input type="text" id="m_full_name" name="full_name" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Email</label><input type="email" id="m_email" name="email" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Phone</label><input type="text" id="m_phone" name="phone" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Username</label><input type="text" id="m_username" name="username" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Password</label><input type="password" id="m_password" name="password" value="bms2026pass" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Department</label><input type="text" id="m_department" name="department" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Department ID</label><input type="text" id="m_dept_id" name="dept_id" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Religion</label><input type="text" name="religion" value="General" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Caste</label><input type="text" name="caste" value="General" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Date of Birth</label><input type="date" name="dob" value="1992-05-15" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Joining Date</label><input type="date" name="join_date" value="2026-08-01" class="form-control" required></div>
-            <div class="form-group mb-0"><label class="form-label">Basic Salary (₹)</label><input type="number" id="m_salary" name="salary" class="form-control" required></div>
-
-            <div style="grid-column: span 3; margin-top: 12px;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700;"><i class="fas fa-save"></i> Save Scanned Employee to Database</button>
-            </div>
-        </form>
+        <input type="hidden" id="rejectProposalId">
+        <div class="form-group">
+            <label class="form-label" style="font-weight: 700;">Rejection Reason (Mandatory):</label>
+            <textarea id="rejectReasonInput" class="form-control" rows="3" placeholder="Provide clear institutional reason for rejection (e.g. illegible scan, mismatched UUCMS ID, invalid course)..." required></textarea>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmRejectProposal()"><i class="fas fa-times"></i> Confirm Rejection</button>
+        </div>
     </div>
 </div>
+<div id="modalBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9998;" onclick="closeRejectModal()"></div>
 
 <script>
 let scanData = {};
+
+function switchVaultTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.vault-tab-pane').forEach(pane => pane.style.display = 'none');
+
+    const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+    const activePane = document.getElementById(`vault-tab-${tabName}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activePane) activePane.style.display = 'block';
+}
 
 document.getElementById('docUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -105,65 +370,244 @@ document.getElementById('docUpload').addEventListener('change', function(e) {
     document.getElementById('loader').style.display = 'block';
 
     const formData = new FormData();
-    formData.append('doc_image', file);
+    formData.append('doc_file', file);
+    const docTypeHint = document.getElementById('docTypeHint').value;
+    if (docTypeHint) {
+        formData.append('target_type', docTypeHint);
+    }
 
-    fetch('/scan_and_import', {
+    fetch('/vault/scan', {
         method: 'POST',
         body: formData
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
+            return response.json().then(d => { throw new Error(d.error || "HTTP error " + response.status); });
         }
         return response.json();
     })
     .then(data => {
         document.getElementById('loader').style.display = 'none';
-        if(data.success) {
+        if (data.success) {
             scanData = data;
-            document.getElementById('result-area').style.display = 'flex';
-            document.getElementById('res-name').innerText = data.extracted_name;
-            document.getElementById('res-username').innerText = data.suggested_username;
-            document.getElementById('res-email').innerText = data.suggested_email;
-            document.getElementById('res-phone').innerText = data.suggested_phone;
-            document.getElementById('res-dept').innerText = data.suggested_department;
-            document.getElementById('res-salary').innerText = '₹' + data.suggested_salary.toLocaleString('en-IN');
+            renderScanResult(data);
         } else {
-            alert(data.error || "Scanning failed. Please upload a clearer image.");
+            alert(data.error || "Scanning failed. Please upload a clearer document.");
             resetScanner();
         }
     })
     .catch(err => {
         console.error("Scan error:", err);
-        alert("Error connecting to AI Scan Engine. Please try again.");
+        alert("Scan Error: " + err.message);
         resetScanner();
     });
 });
 
-function openAddEmployeeModal() {
-    document.getElementById('addEmployeeModal').style.display = 'block';
-    if(scanData.extracted_name) {
-        document.getElementById('m_full_name').value = scanData.extracted_name;
-        document.getElementById('m_username').value = scanData.suggested_username || 'newstaff';
-        document.getElementById('m_email').value = scanData.suggested_email || 'staff@bms.edu.in';
-        document.getElementById('m_phone').value = scanData.suggested_phone || '+91 9876543210';
-        document.getElementById('m_department').value = scanData.suggested_department || 'Computer Science';
-        document.getElementById('m_dept_id').value = scanData.suggested_dept_id || 'CS-2026';
-        document.getElementById('m_salary').value = scanData.suggested_salary || 65000;
+function renderScanResult(data) {
+    document.getElementById('result-area').style.display = 'flex';
+
+    // Badge classification
+    const badge = document.getElementById('res-classification-badge');
+    badge.innerText = `${data.target_type}: ${data.classification} (${data.operation})`;
+    if (data.classification.includes('NEW')) {
+        badge.className = 'badge badge-success';
+    } else if (data.classification.includes('UPDATE')) {
+        badge.className = 'badge badge-primary';
+    } else if (data.classification.includes('DUPLICATE')) {
+        badge.className = 'badge badge-warning';
+    } else {
+        badge.className = 'badge badge-danger';
     }
-    window.scrollTo({ top: document.getElementById('addEmployeeModal').offsetTop - 20, behavior: 'smooth' });
+
+    // Warnings
+    const wContainer = document.getElementById('res-warnings-container');
+    if (data.warnings && data.warnings.length > 0) {
+        wContainer.innerHTML = '<div class="alert alert-warning" style="font-size: 0.85rem;"><i class="fas fa-exclamation-triangle"></i> ' +
+            data.warnings.join('<br><i class="fas fa-exclamation-triangle"></i> ') + '</div>';
+        wContainer.style.display = 'block';
+    } else {
+        wContainer.style.display = 'none';
+    }
+
+    // Show appropriate fields box
+    const studentBox = document.getElementById('student-fields-box');
+    const staffBox = document.getElementById('staff-fields-box');
+
+    if (data.target_type === 'STUDENT') {
+        studentBox.style.display = 'block';
+        staffBox.style.display = 'none';
+        const f = data.extracted_fields || {};
+        document.getElementById('s_uucms_id').value = f.uucms_id || '';
+        document.getElementById('s_name').value = f.name || '';
+        document.getElementById('s_email').value = f.email || '';
+        document.getElementById('s_course').value = f.course || 'BCA';
+        document.getElementById('s_semester').value = f.semester || 'Sem V';
+        document.getElementById('s_section').value = f.section || 'A';
+    } else {
+        staffBox.style.display = 'block';
+        studentBox.style.display = 'none';
+        const f = data.extracted_fields || {};
+        document.getElementById('f_full_name').value = f.full_name || '';
+        document.getElementById('f_dept_id').value = f.dept_id || '';
+        document.getElementById('f_department').value = f.department || 'Computer Science';
+        document.getElementById('f_email').value = f.email || '';
+        document.getElementById('f_phone').value = f.phone || '';
+        document.getElementById('f_role').value = f.role || 'Faculty';
+    }
+
+    // Diff table
+    const diffContainer = document.getElementById('diff-table-container');
+    const diffBody = document.getElementById('diff-table-body');
+    diffBody.innerHTML = '';
+
+    if (data.operation === 'UPDATE' && data.diff_summary && data.diff_summary.length > 0) {
+        diffContainer.style.display = 'block';
+        data.diff_summary.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${row.field}</strong></td>
+                <td><span style="color: var(--gray-600);">${row.before || '<em>(empty)</em>'}</span></td>
+                <td><span style="font-weight: 700; color: ${row.changed ? 'var(--primary)' : 'inherit'};">${row.after || '<em>(empty)</em>'}</span></td>
+                <td>${row.changed ? '<span class="badge badge-warning">Modified</span>' : '<span class="badge badge-secondary">Unchanged</span>'}</td>
+            `;
+            diffBody.appendChild(tr);
+        });
+    } else {
+        diffContainer.style.display = 'none';
+    }
 }
 
-function closeAddEmployeeModal() {
-    document.getElementById('addEmployeeModal').style.display = 'none';
+function submitProposalForApproval() {
+    if (!scanData || !scanData.document_id) {
+        alert("No active scanned document. Please upload a file first.");
+        return;
+    }
+
+    let fields = {};
+    if (scanData.target_type === 'STUDENT') {
+        fields = {
+            uucms_id: document.getElementById('s_uucms_id').value.trim(),
+            name: document.getElementById('s_name').value.trim(),
+            email: document.getElementById('s_email').value.trim(),
+            course: document.getElementById('s_course').value.trim(),
+            academic_year: '3rd Year',
+            semester: document.getElementById('s_semester').value.trim(),
+            section: document.getElementById('s_section').value.trim()
+        };
+        if (!fields.uucms_id || !fields.name) {
+            alert("UUCMS ID and Name are mandatory for student proposals.");
+            return;
+        }
+    } else {
+        fields = {
+            full_name: document.getElementById('f_full_name').value.trim(),
+            dept_id: document.getElementById('f_dept_id').value.trim(),
+            department: document.getElementById('f_department').value.trim(),
+            email: document.getElementById('f_email').value.trim(),
+            phone: document.getElementById('f_phone').value.trim(),
+            role: document.getElementById('f_role').value.trim()
+        };
+        if (!fields.full_name) {
+            alert("Full Name is mandatory for staff proposals.");
+            return;
+        }
+    }
+
+    const payload = {
+        document_id: scanData.document_id,
+        target_type: scanData.target_type,
+        fields: fields,
+        raw_ocr_text: scanData.raw_text || ''
+    };
+
+    fetch('/vault/submit_proposal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert(`✅ Proposal #${res.uuid.substring(0, 8)} successfully submitted for administrator approval!\n\nStatus: ${res.status}\nZero database changes have been applied yet.`);
+            window.location.reload();
+        } else {
+            alert("Submission error: " + (res.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        alert("Error submitting proposal: " + err.message);
+    });
+}
+
+function approveProposal(id, propUuid) {
+    if (!confirm(`Are you sure you want to APPROVE Proposal #${propUuid} and apply the approved changes directly to the database?`)) {
+        return;
+    }
+
+    fetch(`/vault/proposal/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert("✅ " + res.message);
+            window.location.reload();
+        } else {
+            alert("❌ Approval failed: " + (res.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        alert("Network error: " + err.message);
+    });
+}
+
+function openRejectModal(id, propUuid) {
+    document.getElementById('rejectProposalId').value = id;
+    document.getElementById('rejectModalPropId').innerText = `#${propUuid}`;
+    document.getElementById('rejectReasonInput').value = '';
+    document.getElementById('rejectModal').style.display = 'block';
+    document.getElementById('modalBackdrop').style.display = 'block';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+    document.getElementById('modalBackdrop').style.display = 'none';
+}
+
+function confirmRejectProposal() {
+    const id = document.getElementById('rejectProposalId').value;
+    const reason = document.getElementById('rejectReasonInput').value.trim();
+    if (!reason) {
+        alert("Please provide a rejection reason.");
+        return;
+    }
+
+    fetch(`/vault/proposal/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rejection_reason: reason })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert("Proposal rejected successfully.");
+            window.location.reload();
+        } else {
+            alert("Rejection failed: " + (res.error || "Unknown error"));
+        }
+    })
+    .catch(err => {
+        alert("Error: " + err.message);
+    });
 }
 
 function resetScanner() {
     document.getElementById('result-area').style.display = 'none';
-    document.getElementById('addEmployeeModal').style.display = 'none';
     document.getElementById('loader').style.display = 'none';
     document.getElementById('drop-zone').style.display = 'block';
     document.getElementById('docUpload').value = '';
+    scanData = {};
 }
 </script>
 {% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ material.title }} | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 800px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('study_materials_library') }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Library
+        </a>
+        <h1 style="margin: 10px 0 4px 0; font-size: 1.8rem; font-weight: 800; color: var(--text-main);">
+            Edit Study Material
+        </h1>
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+            Update metadata, unit information, or replace the attached document.
+        </p>
+    </div>
+
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden;">
+        <form method="POST" action="{{ url_for('study_material_edit', material_id=material.id) }}" enctype="multipart/form-data" style="padding: 28px;">
+            
+            <div style="background: var(--bg-body); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; border: 1px solid var(--border); display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem;">
+                <div>Category: <strong style="color: var(--text-main);">{{ material.category }}</strong></div>
+                <div>Subject: <strong style="color: var(--text-main);">{{ material.subject }}</strong></div>
+                <div>Class: <strong style="color: var(--text-main);">{{ material.course }} {{ material.semester }}</strong></div>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Material Title <span style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" name="title" value="{{ material.title }}" required class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 700;">
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Description / Syllabus Notes
+                </label>
+                <textarea name="description" rows="3" class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-family: inherit;">{{ material.description or '' }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Unit / Chapter
+                    </label>
+                    <input type="text" name="unit_or_chapter" value="{{ material.unit_or_chapter or '' }}" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Exam Year
+                    </label>
+                    <input type="text" name="exam_year" value="{{ material.exam_year or '' }}" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Publication Status
+                    </label>
+                    <select name="status" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                        <option value="Published" {% if material.status == 'Published' %}selected{% endif %}>Published</option>
+                        <option value="Archived" {% if material.status == 'Archived' %}selected{% endif %}>Archived</option>
+                        <option value="Draft" {% if material.status == 'Draft' %}selected{% endif %}>Draft</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Tags (Comma-separated)
+                </label>
+                <input type="text" name="tags" value="{{ material.tags or '' }}" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+            </div>
+
+            <div style="margin-bottom: 28px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Replace Uploaded File (Optional)
+                </label>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">
+                    Current: <strong>{{ material.file_filename }}</strong> ({{ (material.file_size / 1024)|round(1) }} KB)
+                </div>
+                <input type="file" name="file" class="form-control" style="max-width: 400px;">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <form method="POST" action="{{ url_for('study_material_archive', material_id=material.id) }}" style="display: inline;" onsubmit="return confirm('Archive this study material?');">
+                    <button type="submit" class="btn btn-outline" style="color: #dc2626; border-color: #fca5a5;">
+                        <i class="fas fa-archive"></i> Archive Material
+                    </button>
+                </form>
+
+                <div style="display: flex; gap: 12px;">
+                    <a href="{{ url_for('study_materials_library') }}" class="btn btn-outline" style="padding: 10px 20px;">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 28px; font-weight: 700;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

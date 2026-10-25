@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Smart Attendance & Working Hours Intelligence - BMS College ERP{% endblock %}
+{% block title %}Smart Attendance & Campus Geofence — BMS College ERP{% endblock %}
 
 {% block content %}
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
@@ -8,17 +8,20 @@
 <div class="breadcrumb">
     <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
     <span class="breadcrumb-separator">›</span>
-    <span>Smart Attendance & Working Hours</span>
+    <span>Smart Attendance & Campus Geofence</span>
 </div>
 
 <!-- Page Header -->
 <div class="page-header">
     <div class="page-title">
-        <h1>Smart Attendance & Working Hours Intelligence</h1>
-        <div class="page-subtitle">BMS College of Commerce and Management (Basavanagudi Campus, Bengaluru 560004)</div>
+        <h1>Smart Attendance & Working Hours</h1>
+        <div class="page-subtitle">BMS College of Commerce and Management (BMSCCM, No. 97, Kavi Lakshmisha Rd, V.V. Puram, Bengaluru 560004)</div>
     </div>
-    <div class="page-actions" style="display: flex; gap: 8px;">
+    <div class="page-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
         {% if session.get('role') in ['admin', 'HR', 'Principal'] %}
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('manualCorrectionModal').style.display='flex'">
+                <i class="fas fa-user-edit"></i> Admin Manual Entry
+            </button>
             <form action="{{ url_for('attendance_daily_close') }}" method="POST" style="display: inline;" onsubmit="return confirm('Execute Daily Close? This scans for missing check-outs and notifies HR.');">
                 <button type="submit" class="btn btn-warning"><i class="fas fa-moon"></i> Execute Daily Close</button>
             </form>
@@ -45,9 +48,22 @@
     </div>
 
     <div class="stat-card" style="border-top: 3px solid var(--success);">
-        <div class="stat-card-label">Session Status</div>
-        <div class="stat-card-value" style="font-size: 1.4rem; color: var(--success);">Active Session</div>
-        <span class="badge badge-success"><i class="fas fa-shield-alt"></i> Anti-Spoofing GPS & HMAC Active</span>
+        <div class="stat-card-label">Campus Geofence Status</div>
+        <div class="stat-card-value" style="font-size: 1.4rem; color: var(--success);">
+            {% if geofence_cfg and not geofence_cfg.enabled %}
+                <span style="color: var(--warning); font-size: 1.1rem;">Configuration Mode</span>
+            {% else %}
+                Active Geofence
+            {% endif %}
+        </div>
+        <span class="badge {% if geofence_cfg and not geofence_cfg.enabled %}badge-warning{% else %}badge-success{% endif %}">
+            <i class="fas fa-satellite"></i> 
+            {% if geofence_cfg and not geofence_cfg.enabled %}
+                Enforcement Inactive (Pending Review)
+            {% else %}
+                BMSCCM {{ geofence_cfg.radius_meters if geofence_cfg else 150 }}m Boundary Enforced
+            {% endif %}
+        </span>
     </div>
 </div>
 
@@ -61,28 +77,34 @@
         <div class="card-body">
             <div style="background: var(--gray-100); border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
                 <strong style="display: block; font-size: 0.85rem; color: var(--primary);"><i class="fas fa-university"></i> BMSCCM Campus Location:</strong>
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">No-97, Kavi Lakshmisha Rd, Opp to Jain College, Parvathipuram, Basavanagudi, Bengaluru 560004</span>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">No-97, Kavi Lakshmisha Rd, Opp to Jain College, Parvathipuram, V.V. Puram, Bengaluru 560004</span>
             </div>
 
             <p id="location-indicator" style="font-size: var(--font-size-sm); font-weight: 600; color: var(--warning); margin-bottom: 20px;">
-                <i class="fas fa-crosshairs"></i> Geofence Radius: 1000 Meters from BMSCCM Campus
+                <i class="fas fa-crosshairs"></i> Geofence Boundary: {{ geofence_cfg.radius_meters if geofence_cfg else 150 }} Meters from BMSCCM Campus Center
             </p>
 
             <form id="attendanceForm" method="POST" class="form">
                 <input type="hidden" name="lat" id="lat">
                 <input type="hidden" name="lon" id="lon">
+                <input type="hidden" name="accuracy" id="accuracy">
+                <input type="hidden" name="client_timestamp" id="client_timestamp">
                 <input type="hidden" name="work_mode" id="work_mode" value="Office">
                 
                 <div class="form-group">
                     <label class="form-label">Work Mode:</label>
                     <div style="padding: 10px 14px; background: var(--success-bg); color: var(--success); font-weight: 700; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px; border: 1px solid var(--success);">
-                        <i class="fas fa-building"></i> 🏢 ON-SITE CAMPUS ATTENDANCE (Mandatory)
+                        <i class="fas fa-building"></i> 🏢 ON-SITE CAMPUS ATTENDANCE (Mandatory Physical Presence)
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; margin-top: 16px;">
-                    <button type="button" onclick="getLocation()" class="btn btn-secondary" style="flex: 1;"><i class="fas fa-satellite"></i> 1. Verify GPS Location</button>
-                    <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled><i class="fas fa-clock"></i> 2. Clock Session</button>
+                    <button type="button" id="scanBtn" onclick="getLocation()" class="btn btn-secondary" style="flex: 1;">
+                        <i class="fas fa-satellite"></i> 1. Verify GPS Location
+                    </button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled>
+                        <i class="fas fa-clock"></i> 2. Clock Session
+                    </button>
                 </div>
             </form>
         </div>
@@ -112,29 +134,37 @@
                         <th>Date</th>
                         <th>Employee</th>
                         <th>Clock Time</th>
+                        <th>Verification Status</th>
                         <th>Hours Worked</th>
-                        <th>Punctuality Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in history %}
                     <tr>
                         <td style="font-weight: 600;">{{ row.date }}</td>
-                        <td>{{ row.user.full_name }}</td>
+                        <td>{{ row.user.full_name if row.user else 'Unknown' }}</td>
                         <td>
                             <span style="color: var(--success); font-weight: 600;">{{ row.check_in }}</span>
                             <span style="margin: 0 4px; color: var(--text-muted);">→</span>
                             <span style="color: var(--danger); font-weight: 600;">{{ row.check_out or '--:--' }}</span>
                         </td>
                         <td>
-                            {% if row.check_in and row.check_out %}
-                                <span class="badge badge-info"><i class="fas fa-user-clock"></i> Worked</span>
+                            {% if row.location_status == 'CAMPUS_VERIFIED' %}
+                                <span class="badge badge-success"><i class="fas fa-check-shield"></i> Campus Verified</span>
+                            {% elif row.location_status == 'ADMIN_MANUAL_CORRECTION' %}
+                                <span class="badge badge-warning"><i class="fas fa-user-shield"></i> Admin Override</span>
+                            {% elif row.location_status == 'GEOFENCE_UNENFORCED' %}
+                                <span class="badge badge-secondary"><i class="fas fa-info-circle"></i> Unenforced</span>
                             {% else %}
-                                <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Pending Check-out</span>
+                                <span class="badge badge-info"><i class="fas fa-check"></i> {{ row.work_mode or 'On-Site' }}</span>
                             {% endif %}
                         </td>
                         <td>
-                            <span class="badge badge-success"><i class="fas fa-check"></i> On-Time</span>
+                            {% if row.check_in and row.check_out %}
+                                <span class="badge badge-info"><i class="fas fa-user-clock"></i> Recorded</span>
+                            {% else %}
+                                <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Pending Check-out</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
@@ -158,57 +188,138 @@
     </div>
 </div>
 
+<!-- Admin Manual Correction Modal -->
+{% if session.get('role') in ['admin', 'HR', 'Principal'] %}
+<div id="manualCorrectionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 520px; margin: 20px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title"><i class="fas fa-user-shield" style="margin-right: 6px;"></i> Log Manual Attendance (Admin)</h3>
+            <button type="button" class="btn btn-outline" style="padding: 4px 8px;" onclick="document.getElementById('manualCorrectionModal').style.display='none'">&times;</button>
+        </div>
+        <div class="card-body">
+            <div style="background: var(--warning-bg); border-left: 3px solid var(--warning); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; margin-bottom: 16px; color: var(--text-primary);">
+                <i class="fas fa-exclamation-triangle"></i> <strong>Audit Notice:</strong> Manual attendance entries bypass GPS checks but are permanently recorded in the institutional audit log with your user identity and reason.
+            </div>
+
+            <form method="POST" action="{{ url_for('admin_manual_attendance') }}">
+                <div class="form-group mb-2">
+                    <label class="form-label">Employee / Faculty:</label>
+                    <select name="user_id" class="form-control" required>
+                        <option value="">-- Select Employee --</option>
+                        {% for u in all_users %}
+                            <option value="{{ u.id }}">{{ u.full_name }} ({{ u.role }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label class="form-label">Attendance Date:</label>
+                    <input type="date" name="date" class="form-control" value="{{ now_date if now_date else '' }}" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Check-in Time:</label>
+                        <input type="text" name="check_in" class="form-control" placeholder="09:00 AM" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Check-out Time (Optional):</label>
+                        <input type="text" name="check_out" class="form-control" placeholder="05:00 PM">
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label">Mandatory Reason / Justification:</label>
+                    <textarea name="reason" class="form-control" rows="2" placeholder="e.g. Official duty at Bangalore City University, biometric outage, etc." required></textarea>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('manualCorrectionModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Manual Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// BMS College of Commerce and Management, Basavanagudi, Bengaluru 560004
-const CAMPUS_LAT = 12.9515;
-const CAMPUS_LON = 77.5762;
-const MAX_RADIUS = 1000; // 1000 meters perimeter
+// Server-calibrated parameters for BMS College of Commerce and Management (BMSCCM)
+const CAMPUS_LAT = {{ geofence_cfg.center_lat if geofence_cfg else 12.9515 }};
+const CAMPUS_LON = {{ geofence_cfg.center_lon if geofence_cfg else 77.5762 }};
+const MAX_RADIUS = {{ geofence_cfg.radius_meters if geofence_cfg else 150.0 }};
+const MAX_ACCURACY = {{ geofence_cfg.max_accuracy_meters if geofence_cfg else 50.0 }};
+const GEOFENCE_ENABLED = {{ 'true' if (geofence_cfg and geofence_cfg.enabled) else 'false' }};
 
 function calcDistance(lat1, lon1, lat2, lon2) {
     const R = 6371e3; 
-    const p1 = lat1 * Math.PI/180;
-    const p2 = lat2 * Math.PI/180;
-    const dp = (lat2-lat1) * Math.PI/180;
-    const dl = (lon2-lon1) * Math.PI/180;
+    const p1 = lat1 * Math.PI / 180;
+    const p2 = lat2 * Math.PI / 180;
+    const dp = (lat2 - lat1) * Math.PI / 180;
+    const dl = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
 }
 
 function getLocation() {
     const indicator = document.getElementById('location-indicator');
     const btn = document.getElementById('submitBtn');
+    const scanBtn = document.getElementById('scanBtn');
     
     if (navigator.geolocation) {
-        indicator.innerText = "🛰️ Scanning GPS Location Radius...";
+        indicator.innerHTML = '<i class="fas fa-satellite-dish fa-spin"></i> Scanning High-Accuracy GPS...';
         indicator.style.color = "var(--info)";
+        scanBtn.disabled = true;
         
         navigator.geolocation.getCurrentPosition((pos) => {
+            scanBtn.disabled = false;
             const userLat = pos.coords.latitude;
             const userLon = pos.coords.longitude;
-            const dist = calcDistance(userLat, userLon, CAMPUS_LAT, CAMPUS_LON);
+            const userAccuracy = pos.coords.accuracy;
+            const userTs = pos.timestamp || Date.now();
             
             document.getElementById('lat').value = userLat;
             document.getElementById('lon').value = userLon;
+            document.getElementById('accuracy').value = userAccuracy;
+            document.getElementById('client_timestamp').value = userTs;
 
-            if (dist > MAX_RADIUS) {
-                indicator.innerText = `❌ Outside Campus Radius (${Math.round(dist)}m Away from BMSCCM Basavanagudi)`;
+            const dist = calcDistance(userLat, userLon, CAMPUS_LAT, CAMPUS_LON);
+            
+            if (userAccuracy > MAX_ACCURACY) {
+                indicator.innerHTML = `⚠️ GPS Accuracy Insufficient (±${Math.round(userAccuracy)}m, required < ${MAX_ACCURACY}m). Please move near a window or outdoors and retry.`;
+                indicator.style.color = "var(--warning)";
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
+            } else if (dist > MAX_RADIUS) {
+                indicator.innerHTML = `❌ Outside Campus Boundary (${Math.round(dist)}m Away from BMSCCM, V.V. Puram; allowed: ${MAX_RADIUS}m)`;
                 indicator.style.color = "var(--danger)";
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
             } else {
-                indicator.innerText = "✅ Within BMSCCM Basavanagudi Campus GPS Radius";
+                indicator.innerHTML = `✅ Inside BMSCCM Campus Grounds (${Math.round(dist)}m from center, ±${Math.round(userAccuracy)}m accuracy)`;
                 indicator.style.color = "var(--success)";
                 btn.disabled = false;
                 btn.style.opacity = "1";
                 btn.style.cursor = "pointer";
             }
         }, (err) => {
-            indicator.innerText = "❌ GPS Error: " + err.message;
+            scanBtn.disabled = false;
+            let errMsg = err.message || "Unknown error";
+            if (err.code === 1) errMsg = "Location permission denied. Please enable browser location permissions.";
+            else if (err.code === 2) errMsg = "Position unavailable. Please ensure GPS is enabled on your device.";
+            else if (err.code === 3) errMsg = "GPS acquisition timed out. Please retry.";
+            
+            indicator.innerHTML = `❌ GPS Error: ${errMsg}`;
             indicator.style.color = "var(--danger)";
-        }, { enableHighAccuracy: true });
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+            btn.style.cursor = "not-allowed";
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
     } else {
-        indicator.innerText = "❌ Geolocation is not supported by your browser.";
+        indicator.innerHTML = "❌ Geolocation is not supported by your browser.";
         indicator.style.color = "var(--danger)";
     }
 }
@@ -244,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isPresent && info.date.getDay() !== 0 && info.date.getDay() !== 6 && cellDate < today) {
                 if (info.date.getMonth() === new Date().getMonth()) {
                     let counter = document.getElementById('abs-count-display');
-                    counter.innerText = parseInt(counter.innerText) + 1;
+                    if (counter) counter.innerText = parseInt(counter.innerText) + 1;
                 }
             }
         },

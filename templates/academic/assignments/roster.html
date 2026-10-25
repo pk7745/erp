@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Submission Roster — {{ assignment.title }} | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px;">
+    <!-- Breadcrumb & Top Bar -->
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Assignment Detail
+        </a>
+    </div>
+
+    <!-- Header Summary Card -->
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <span class="badge" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                        {{ assignment.course }} {{ assignment.semester }} • Sec {{ assignment.section }}
+                    </span>
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                        {{ assignment.subject }}
+                    </span>
+                </div>
+                <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-main);">
+                    Submission Roster: {{ assignment.title }}
+                </h1>
+                <div style="margin-top: 6px; font-size: 0.85rem; color: var(--text-muted);">
+                    Deadline: <strong>{{ assignment.deadline.strftime('%d %b %Y, %I:%M %p') }}</strong> • Max Marks: <strong>{{ assignment.max_marks or 'N/A' }}</strong>
+                </div>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id) }}" class="btn {% if not selected_status %}btn-primary{% else %}btn-outline{% endif %}" style="font-size: 0.82rem; padding: 6px 14px;">
+                    All ({{ roster_rows|length }})
+                </a>
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id, status='Submitted') }}" class="btn {% if selected_status == 'Submitted' %}btn-primary{% else %}btn-outline{% endif %}" style="font-size: 0.82rem; padding: 6px 14px;">
+                    Submitted
+                </a>
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id, status='Late') }}" class="btn {% if selected_status == 'Late' %}btn-primary{% else %}btn-outline{% endif %}" style="font-size: 0.82rem; padding: 6px 14px;">
+                    Late
+                </a>
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id, status='Not submitted') }}" class="btn {% if selected_status == 'Not submitted' %}btn-primary{% else %}btn-outline{% endif %}" style="font-size: 0.82rem; padding: 6px 14px;">
+                    Not Submitted
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Roster Table -->
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: var(--bg-body); border-bottom: 2px solid var(--border); text-align: left; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                        <th style="padding: 14px 18px;">Student Details</th>
+                        <th style="padding: 14px 18px;">Submission Status</th>
+                        <th style="padding: 14px 18px;">Submitted Timestamp</th>
+                        <th style="padding: 14px 18px;">Uploaded Work</th>
+                        <th style="padding: 14px 18px;">Score / Feedback</th>
+                        <th style="padding: 14px 18px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in roster_rows %}
+                    {% set s = row.student %}
+                    {% set sub = row.submission %}
+                    <tr style="border-bottom: 1px solid var(--border); {% if row.status == 'Late' %}background: rgba(234, 88, 12, 0.02);{% endif %}">
+                        <!-- Student Info -->
+                        <td style="padding: 14px 18px;">
+                            <div style="font-weight: 700; color: var(--text-main);">{{ s.name }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">{{ s.uucms_id }}</div>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td style="padding: 14px 18px;">
+                            {% if row.status == 'Submitted' %}
+                            <span class="badge" style="background: #dcfce7; color: #166534; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-check-circle"></i> Submitted
+                            </span>
+                            {% elif row.status == 'Late' %}
+                            <span class="badge" style="background: #ffedd5; color: #c2410c; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-exclamation-circle"></i> Late
+                            </span>
+                            {% elif row.status == 'Not submitted' %}
+                            <span class="badge" style="background: #fee2e2; color: #991b1b; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-times-circle"></i> Not Submitted
+                            </span>
+                            {% else %}
+                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-hourglass-half"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Submission Timestamp -->
+                        <td style="padding: 14px 18px; color: var(--text-muted); font-size: 0.85rem;">
+                            {% if sub and sub.submitted_at %}
+                            <span style="font-weight: 600; color: var(--text-main);">{{ sub.submitted_at.strftime('%d %b %Y, %I:%M %p') }}</span>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">
+                                Source: {{ sub.status_source.replace('_', ' ').title() }} (v{{ sub.version }})
+                            </div>
+                            {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Uploaded File -->
+                        <td style="padding: 14px 18px;">
+                            {% if sub and sub.file_storage_key %}
+                            <a href="{{ url_for('download_submission_file', submission_id=sub.id) }}" class="btn btn-outline" style="font-size: 0.78rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-file-download"></i> {{ sub.file_filename[:20] }}...
+                            </a>
+                            {% else %}
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">No file attached</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Marks & Feedback -->
+                        <td style="padding: 14px 18px;">
+                            {% if sub and sub.marks_obtained is not none %}
+                            <div style="font-weight: 800; color: #047857; font-size: 0.95rem;">
+                                {{ sub.marks_obtained }} / {{ assignment.max_marks or 100 }}
+                            </div>
+                            {% if sub.teacher_feedback %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ sub.teacher_feedback }}
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <span style="color: var(--text-muted);">&mdash;</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action Button (Modal trigger) -->
+                        <td style="padding: 14px 18px; text-align: right;">
+                            <button type="button" onclick="openGradeModal({{ s.id }}, '{{ s.name|escape }}', '{{ row.status }}', '{{ sub.marks_obtained if sub and sub.marks_obtained is not none else '' }}', '{{ sub.teacher_feedback|escape if sub and sub.teacher_feedback else '' }}')" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 12px; font-weight: 700;">
+                                <i class="fas fa-edit"></i> Record Status
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Recording Status / Marks -->
+<div id="gradeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
+    <div class="card" style="max-width: 500px; width: 100%; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; background: var(--bg-surface);">
+        <div class="card-header" style="background: var(--primary); color: white; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">
+                Record Submission Status
+            </h3>
+            <button type="button" onclick="closeGradeModal()" style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('record_submission_status', assignment_id=assignment.id) }}" style="padding: 24px;">
+            <input type="hidden" name="student_id" id="modal_student_id">
+
+            <div style="background: var(--bg-body); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; border: 1px solid var(--border);">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">STUDENT</div>
+                <div id="modal_student_name" style="font-size: 1.05rem; font-weight: 800; color: var(--text-main);"></div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Submission Status <span style="color: #dc2626;">*</span>
+                </label>
+                <select name="status" id="modal_status" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 600;">
+                    <option value="Submitted">Submitted (Accepted)</option>
+                    <option value="Late">Late (Submitted Past Deadline)</option>
+                    <option value="Not submitted">Not Submitted (Absent)</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Marks Awarded (Max {{ assignment.max_marks or 100 }})
+                </label>
+                <input type="number" step="0.5" min="0" max="{{ assignment.max_marks or 100 }}" name="marks_obtained" id="modal_marks" placeholder="Leave blank if ungraded" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Teacher Feedback / Notes
+                </label>
+                <textarea name="teacher_feedback" id="modal_feedback" rows="3" placeholder="e.g. Good implementation of CSRF token verification; add error boundaries." class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-family: inherit; font-size: 0.9rem;"></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" onclick="closeGradeModal()" class="btn btn-outline" style="padding: 8px 18px;">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" style="padding: 8px 22px; font-weight: 700;">
+                    Save Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openGradeModal(studentId, studentName, currentStatus, currentMarks, currentFeedback) {
+        document.getElementById('modal_student_id').value = studentId;
+        document.getElementById('modal_student_name').innerText = studentName;
+        document.getElementById('modal_status').value = (currentStatus === 'Late' || currentStatus === 'Not submitted') ? currentStatus : 'Submitted';
+        document.getElementById('modal_marks').value = currentMarks || '';
+        document.getElementById('modal_feedback').value = currentFeedback || '';
+        document.getElementById('gradeModal').style.display = 'flex';
+    }
+
+    function closeGradeModal() {
+        document.getElementById('gradeModal').style.display = 'none';
+    }
+
+    // Close on backdrop click
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('gradeModal');
+        if (e.target === modal) {
+            closeGradeModal();
+        }
+    });
+</script>
+{% endblock %}

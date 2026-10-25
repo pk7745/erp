@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Access Restricted | BMS College Student Portal</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .student-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 32px 28px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.06);
+        }
+    </style>
+</head>
+<body>
+
+<header class="student-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce &amp; Management</div>
+            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Student Academic Portal</div>
+        </div>
+    </div>
+
+    <div>
+        <a href="{{ url_for('student_assignments') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; border-radius: 6px;">
+            &larr; Back to Assignments
+        </a>
+    </div>
+</header>
+
+<div class="container">
+    <div class="card">
+        <div style="width: 64px; height: 64px; background: #fee2e2; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 18px auto;">
+            <i class="fas fa-lock" style="font-size: 1.8rem; color: #dc2626;"></i>
+        </div>
+
+        <h2 style="margin: 0 0 10px 0; font-size: 1.45rem; font-weight: 800; color: #991b1b;">
+            Academic Access Restricted
+        </h2>
+
+        <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin: 0 0 20px 0;">
+            Viewing instructions, problem descriptions, and attachment files for <strong>{{ assignment.subject }}</strong> is restricted.
+        </p>
+
+        <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px; text-align: left; font-size: 0.88rem;">
+            <div style="font-weight: 700; color: #991b1b; margin-bottom: 4px;">
+                <i class="fas fa-info-circle"></i> Policy Reason:
+            </div>
+            <div style="color: #7f1d1d;">
+                {{ decision.public_message }}
+            </div>
+            <div style="font-size: 0.78rem; color: #64748b; margin-top: 8px; border-top: 1px solid #fee2e2; padding-top: 6px;">
+                Per autonomous university policy, assignment tasks are restricted when subject attendance is below 75% up to the assigned date unless an authorized Head of Department dispensation has been approved.
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 12px;">
+            <a href="{{ url_for('student_assignments') }}" class="btn btn-primary" style="padding: 10px 22px; font-weight: 700; text-decoration: none; border-radius: 6px;">
+                Return to My Assignments
+            </a>
+            <a href="{{ url_for('student_marks') }}" class="btn btn-outline" style="padding: 10px 18px; text-decoration: none; border-radius: 6px;">
+                Check Attendance Standing
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

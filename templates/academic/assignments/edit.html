@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ assignment.title }} | BMS College ERP{% endblock %}
+
+{% block content %}
+<div class="page-container" style="padding: 24px; max-width: 850px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fas fa-arrow-left"></i> Back to Detail
+        </a>
+        <h1 style="margin: 10px 0 4px 0; font-size: 1.8rem; font-weight: 800; color: var(--text-main);">
+            Edit Assignment
+        </h1>
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+            Update title, instructions, deadlines, or replace attachments without deleting student submissions.
+        </p>
+    </div>
+
+    {% if has_submissions %}
+    <div style="background: rgba(245, 158, 11, 0.08); border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
+        <div style="font-weight: 800; color: #b45309; font-size: 0.95rem;">
+            <i class="fas fa-exclamation-triangle"></i> Submissions Exist
+        </div>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #78350f;">
+            Students have already submitted responses to this assignment. Extending the deadline or modifying guidelines will not erase existing student work or upload records.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden;">
+        <form method="POST" action="{{ url_for('assignment_edit', assignment_id=assignment.id) }}" enctype="multipart/form-data" style="padding: 28px;">
+            
+            <!-- Academic Scope Details (Immutable) -->
+            <div style="background: var(--bg-body); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; border: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.88rem;">
+                <div><span style="color: var(--text-muted);">Subject:</span> <strong style="color: var(--text-main);">{{ assignment.subject }}</strong></div>
+                <div><span style="color: var(--text-muted);">Scope:</span> <strong style="color: var(--text-main);">{{ assignment.course }} {{ assignment.academic_year }} {{ assignment.semester }} Sec {{ assignment.section }}</strong></div>
+                <div><span style="color: var(--text-muted);">Assigned Date:</span> <strong style="color: var(--text-main);">{{ assignment.assigned_date.strftime('%d %b %Y') if assignment.assigned_date else 'N/A' }}</strong></div>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Assignment Title <span style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" name="title" value="{{ assignment.title }}" required class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-weight: 700; font-size: 1rem;">
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Instructions / Problem Description <span style="color: #dc2626;">*</span>
+                </label>
+                <textarea name="description" rows="6" required class="form-control" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); line-height: 1.5; font-family: inherit;">{{ assignment.description }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Submission Deadline <span style="color: #dc2626;">*</span>
+                    </label>
+                    <input type="datetime-local" name="deadline" value="{{ assignment.deadline.strftime('%Y-%m-%dT%H:%M') }}" required class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Maximum Marks
+                    </label>
+                    <input type="number" step="0.5" min="0" max="100" name="max_marks" value="{{ assignment.max_marks or '' }}" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                        Status
+                    </label>
+                    <select name="status" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
+                        <option value="Published" {% if assignment.status == 'Published' %}selected{% endif %}>Published</option>
+                        <option value="Draft" {% if assignment.status == 'Draft' %}selected{% endif %}>Draft</option>
+                        <option value="Archived" {% if assignment.status == 'Archived' %}selected{% endif %}>Archived</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">
+                    Replace Attachment (Optional)
+                </label>
+                {% if assignment.attachment_filename %}
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+                    Current file: <strong>{{ assignment.attachment_filename }}</strong>
+                </div>
+                {% endif %}
+                <input type="file" name="attachment" class="form-control" style="max-width: 400px;">
+            </div>
+
+            <div style="margin-bottom: 24px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 16px;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+                    Reason for Revision / Audit Note <span style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" name="reason" required placeholder="e.g. Extended submission deadline by 3 days per student requests" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-main);">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+                <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" class="btn btn-outline" style="padding: 10px 20px;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="padding: 10px 28px; font-weight: 700;">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

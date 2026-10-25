@@ -10,6 +10,7 @@
     
     <!-- Professional Office Portal CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='professional-office-portal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -35,10 +36,86 @@
             
             <!-- Header Actions -->
             <div class="navbar-actions">
-                <!-- Notifications Button -->
-                <button class="navbar-icon-button has-notification" id="notifications-btn" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                </button>
+                <!-- Notifications Dropdown System -->
+                <div class="notifications-wrapper">
+                    <button class="navbar-icon-button" id="notifications-btn" title="Notifications" aria-label="Notifications" aria-expanded="false" onclick="window.BMSNotifications.toggleDropdown(event)">
+                        <i class="fas fa-bell"></i>
+                        <span id="notif-badge" class="notif-badge" style="display: none;">0</span>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div id="notifications-dropdown" class="notifications-dropdown" style="display: none;">
+                        <!-- Header -->
+                        <div class="notif-header">
+                            <div class="notif-header-title">
+                                <i class="fas fa-bell" style="color: #2563eb;"></i>
+                                <span>Notifications</span>
+                                <span id="notif-unread-pill" class="notif-unread-pill">0 unread</span>
+                            </div>
+                            <div class="notif-header-actions">
+                                <button type="button" class="notif-btn-icon" title="Mark all as read" onclick="window.BMSNotifications.markAllRead()">
+                                    <i class="fas fa-check-double"></i>
+                                </button>
+                                <button type="button" class="notif-btn-icon" title="Notification Settings" onclick="window.BMSNotifications.toggleSettings()">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Controls Bar -->
+                        <div class="notif-quick-bar">
+                            <button type="button" id="notif-sound-btn" class="notif-pill-btn active" onclick="window.BMSNotifications.toggleSound()">
+                                <i class="fas fa-volume-up"></i> Sound ON
+                            </button>
+                            <button type="button" id="notif-browser-btn" class="notif-pill-btn" onclick="window.BMSNotifications.toggleBrowser()">
+                                <i class="fas fa-desktop"></i> Desktop
+                            </button>
+                            <button type="button" class="notif-pill-btn" onclick="window.BMSNotifications.testSound()">
+                                <i class="fas fa-play"></i> Test Sound
+                            </button>
+                        </div>
+
+                        <!-- Settings Drawer -->
+                        <div id="notif-settings-drawer" class="notif-settings-drawer">
+                            <div class="notif-settings-row">
+                                <span style="font-weight: 600;">Sound Volume</span>
+                                <input type="range" id="notif-vol-slider" min="10" max="100" value="70" style="width: 120px;" oninput="window.BMSNotifications.setVolume(this.value)">
+                            </div>
+                            <div class="notif-settings-row">
+                                <span style="font-weight: 600;">Audio Engine</span>
+                                <span id="notif-audio-status" style="font-size: 0.75rem;">Initializing...</span>
+                            </div>
+                            <div class="notif-settings-row">
+                                <span style="font-weight: 600;">Closed-Window Push</span>
+                                <span id="notif-push-status" style="font-size: 0.75rem;">Checking...</span>
+                            </div>
+                            <div class="notif-settings-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                                <button type="button" class="notif-pill-btn" style="width: 100%; justify-content: center; background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;" onclick="window.BMSNotifications.testBackgroundPush()">
+                                    <i class="fas fa-paper-plane"></i> Test Background Alert (Window Closed)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter Tabs -->
+                        <div class="notif-tabs">
+                            <div id="notif-tab-all" class="notif-tab active" onclick="window.BMSNotifications.setTab('all')">All Notifications</div>
+                            <div id="notif-tab-unread" class="notif-tab" onclick="window.BMSNotifications.setTab('unread')">Unread Only</div>
+                        </div>
+
+                        <!-- Scrollable Notification List -->
+                        <div id="notif-list-container" class="notif-list">
+                            <!-- Populated dynamically via notifications.js -->
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="notif-footer">
+                            <a href="{{ url_for('clear_notifications') }}" style="color: var(--text-muted); text-decoration: none;">
+                                <i class="fas fa-check"></i> Mark all read
+                            </a>
+                            <span style="color: var(--text-muted); font-size: 0.72rem;">Live Web Push & WebSocket Active</span>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Theme Toggle Button -->
                 <button class="navbar-icon-button" id="theme-toggle-btn" title="Toggle Dark/Light Mode">
@@ -136,6 +213,22 @@
                         <i class="fas fa-edit sidebar-icon"></i>
                         <span class="sidebar-label">Internal Marks</span>
                     </a>
+                    <a href="{{ url_for('assignments_dashboard') }}" class="sidebar-link {% if request.endpoint in ['assignments_dashboard', 'assignment_create', 'assignment_detail', 'assignment_edit', 'assignment_roster'] %}active{% endif %}">
+                        <i class="fas fa-tasks sidebar-icon"></i>
+                        <span class="sidebar-label">Assignments</span>
+                    </a>
+                    <a href="{{ url_for('study_materials_library') }}" class="sidebar-link {% if request.endpoint in ['study_materials_library', 'study_material_upload', 'study_material_edit'] %}active{% endif %}">
+                        <i class="fas fa-book-reader sidebar-icon"></i>
+                        <span class="sidebar-label">Study Materials</span>
+                    </a>
+                    <a href="{{ url_for('academic_analytics_dashboard') }}" class="sidebar-link {% if request.endpoint in ['academic_analytics_dashboard', 'student_academic_analytics'] %}active{% endif %}">
+                        <i class="fas fa-chart-line sidebar-icon"></i>
+                        <span class="sidebar-label">Academic Analytics</span>
+                    </a>
+                    <a href="{{ url_for('student_timetables_dashboard') }}" class="sidebar-link {% if request.endpoint in ['student_timetables_dashboard', 'student_timetables_upload'] %}active{% endif %}">
+                        <i class="fas fa-calendar-check sidebar-icon"></i>
+                        <span class="sidebar-label">Student Timetables</span>
+                    </a>
                     {% endif %}
                     <a href="{{ url_for('assistant_ui') }}" class="sidebar-link {% if request.endpoint == 'assistant_ui' %}active{% endif %}">
                         <i class="fas fa-robot sidebar-icon" style="color: #6366f1;"></i>
@@ -173,11 +266,13 @@
                         {% if counts and counts.to_approve > 0 %}<span class="badge badge-warning" style="margin-left: auto;">{{ counts.to_approve }}</span>{% endif %}
                     </a>
                     {% endif %}
-                    {% if session.get('role') in ['HR', 'Accountant', 'admin'] %}
+                    {% if session.get('role') in ['admin', 'HR'] or session.get('username') == 'admin' %}
                     <a href="{{ url_for('digital_vault') }}" class="sidebar-link {% if request.endpoint == 'digital_vault' %}active{% endif %}">
                         <i class="fas fa-folder-open sidebar-icon"></i>
                         <span class="sidebar-label">Digital Vault</span>
                     </a>
+                    {% endif %}
+                    {% if session.get('role') in ['HR', 'Accountant', 'admin'] %}
                     <a href="{{ url_for('admin_staff_master') }}" class="sidebar-link {% if request.endpoint == 'admin_staff_master' %}active{% endif %}">
                         <i class="fas fa-users-cog sidebar-icon"></i>
                         <span class="sidebar-label">Master Workforce Directory</span>
@@ -310,6 +405,10 @@
         });
     </script>
     
+    <!-- Socket.IO & BMS Centralized Notification Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='notifications.js') }}"></script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
