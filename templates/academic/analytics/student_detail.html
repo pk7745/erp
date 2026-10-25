@@ -1,42 +1,113 @@
 {% extends "base.html" %}
 
-{% block title %}{{ student.name }} — Academic Analytics | BMS College ERP{% endblock %}
+{% block title %}{{ student.name }} — Individual Attendance Analytics & Recovery | BMS College ERP{% endblock %}
 
-{% block extra_head %}
+{% block extra_css %}
 <style>
-    .profile-kpi-box {
+    .analytics-kpi-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .analytics-kpi-value {
+        font-size: 1.65rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-top: 4px;
+        margin-bottom: 4px;
+    }
+    .analytics-kpi-subtext {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .att-progress-track {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 6px;
+        position: relative;
+    }
+    .att-progress-fill {
+        height: 100%;
+        border-radius: 5px;
+        transition: width 0.3s ease;
+    }
+    .att-target-marker {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 75%;
+        width: 2px;
+        background: #0f172a;
+        z-index: 2;
+    }
+    .badge-on-track {
+        background-color: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+    .badge-needs-attention {
+        background-color: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+    .badge-high-risk {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    .badge-insufficient {
+        background-color: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
+    .badge-proj-unavailable {
+        background-color: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+    .chart-container-card {
         background: var(--bg-surface);
         border: 1px solid var(--border);
         border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
-    .att-progress-track {
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 6px;
-    }
-    .att-progress-fill {
-        height: 100%;
-        border-radius: 4px;
+    @media (max-width: 768px) {
+        .page-container {
+            padding: 12px !important;
+        }
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
     }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="page-container" style="padding: 24px; max-width: 1300px; margin: 0 auto;">
+<div class="page-container" style="padding: 24px; max-width: 1350px; margin: 0 auto;">
 
-    <!-- 1. Top Navigation & Return Link -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <!-- 1. Top Navigation & Context Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;" class="header-actions">
         <a href="{{ url_for('academic_analytics_dashboard', course=student.course, academic_year=student.academic_year, semester=student.semester, section=student.section) }}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
             <i class="fas fa-arrow-left"></i> Back to Class Analytics
         </a>
 
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); background: var(--bg-surface); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <i class="fas fa-clock" style="margin-right: 4px; color: #6366f1;"></i> Authoritative: {{ profile.calculation_timestamp }}
+            </span>
             <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-outline-primary" style="font-size: 0.85rem;">
-                <i class="fas fa-history"></i> Attendance Sessions
+                <i class="fas fa-history"></i> Sessions Log
             </a>
             <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline-primary" style="font-size: 0.85rem;">
                 <i class="fas fa-edit"></i> Marks Management
@@ -46,15 +117,26 @@
 
     <!-- 2. Student Identity Header Card -->
     <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
             <div style="display: flex; gap: 18px; align-items: center;">
-                <div style="width: 64px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800;">
+                <div style="width: 64px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 800; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);">
                     {{ student.name[:1] }}
                 </div>
                 <div>
-                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
-                        {{ student.name }}
-                    </h2>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
+                            {{ student.name }}
+                        </h2>
+                        {% if profile.overall_attendance_pct is not none %}
+                            {% if profile.overall_attendance_pct >= 75.0 %}
+                                <span class="badge badge-success"><i class="fas fa-check-circle"></i> Eligible (&ge;75%)</span>
+                            {% else %}
+                                <span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Attendance Risk (&lt;75%)</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge badge-secondary"><i class="fas fa-hourglass-half"></i> Pending</span>
+                        {% endif %}
+                    </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px;">
                         <span style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: var(--text-muted); background: var(--bg-body); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);">
                             UUCMS: {{ student.uucms_id }}
@@ -65,46 +147,208 @@
                         <span class="badge badge-secondary">
                             {{ student.academic_year }}
                         </span>
-                        
                     </div>
                 </div>
             </div>
 
-            <!-- Overall Attendance Status Pill -->
-            <div style="text-align: right;">
-                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+            <!-- Overall Percentage Block -->
+            <div style="text-align: right; min-width: 180px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
                     Overall Attendance
                 </div>
-                <div style="font-size: 2rem; font-weight: 900; color: {% if profile.overall_attendance_pct and profile.overall_attendance_pct >= 75.0 %}#059669{% elif profile.overall_attendance_pct %}#dc2626{% else %}var(--text-muted){% endif %};">
+                <div style="font-size: 2.25rem; font-weight: 900; line-height: 1.1; margin: 4px 0; color: {% if profile.overall_attendance_pct and profile.overall_attendance_pct >= 75.0 %}#059669{% elif profile.overall_attendance_pct %}#dc2626{% else %}var(--text-muted){% endif %};">
                     {% if profile.overall_attendance_pct is not none %}
                         {{ profile.overall_attendance_pct }}%
                     {% else %}
                         Pending
                     {% endif %}
                 </div>
-                <span style="font-size: 0.8rem; font-weight: 600; color: {% if profile.overall_attendance_pct and profile.overall_attendance_pct >= 75.0 %}#059669{% elif profile.overall_attendance_pct %}#dc2626{% else %}var(--text-muted){% endif %};">
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">
                     {{ profile.attended_count }} / {{ profile.conducted_count }} sessions attended
-                </span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. Subject-Wise Attendance Breakdown Table -->
-    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
+    <!-- 3. Student Attendance KPI Overview Cards (Section 2 A) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        
+        <!-- KPI 1: Sessions Breakdown -->
+        <div class="analytics-kpi-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Class Sessions</span>
+                <i class="fas fa-calendar-check" style="color: #6366f1;"></i>
+            </div>
+            <div class="analytics-kpi-value" style="color: var(--text-main);">
+                {{ profile.conducted_count }} <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">conducted</span>
+            </div>
+            <div class="analytics-kpi-subtext">
+                <span style="color: #059669; font-weight: 700;">{{ profile.attended_count }} Present</span> &bull; 
+                <span style="color: #dc2626; font-weight: 700;">{{ profile.total_missed }} Absent</span>
+            </div>
+        </div>
+
+        <!-- KPI 2: Threshold Standing -->
+        <div class="analytics-kpi-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">75% Threshold Status</span>
+                <i class="fas fa-chart-pie" style="color: #0ea5e9;"></i>
+            </div>
+            <div class="analytics-kpi-value">
+                <span style="color: #059669;">{{ profile.subjects_at_or_above_75_count }}</span>
+                <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">/</span>
+                <span style="color: #dc2626;">{{ profile.subjects_below_75_count }}</span>
+            </div>
+            <div class="analytics-kpi-subtext">
+                {{ profile.subjects_at_or_above_75_count }} at/above 75% &bull; {{ profile.subjects_below_75_count }} below 75%
+            </div>
+        </div>
+
+        <!-- KPI 3: Consecutive Recovery Predictor -->
+        <div class="analytics-kpi-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Overall Recovery</span>
+                <i class="fas fa-calculator" style="color: #f59e0b;"></i>
+            </div>
+            <div class="analytics-kpi-value" style="color: {% if profile.overall_classes_needed > 0 %}#d97706{% else %}#059669{% endif %};">
+                {% if profile.overall_classes_needed > 0 %}
+                    {{ profile.overall_classes_needed }} <span style="font-size: 0.95rem; font-weight: 600;">classes</span>
+                {% elif profile.conducted_count > 0 %}
+                    0 <span style="font-size: 0.95rem; font-weight: 600;">(Met)</span>
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+            <div class="analytics-kpi-subtext">
+                {% if profile.overall_classes_needed > 0 %}
+                    Minimum consecutive classes at 100% to reach 75%
+                {% elif profile.conducted_count > 0 %}
+                    Currently meets overall 75% requirement
+                {% else %}
+                    Awaiting attendance records
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- KPI 4: Mathematical Feasibility -->
+        <div class="analytics-kpi-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Projection Feasibility</span>
+                <i class="fas fa-bullseye" style="color: #8b5cf6;"></i>
+            </div>
+            <div class="analytics-kpi-value" style="font-size: 1.35rem;">
+                {% if profile.subjects_impossible_count > 0 %}
+                    <span style="color: #dc2626;">{{ profile.subjects_impossible_count }} Impossible</span>
+                {% elif profile.subjects_below_75_count > 0 and profile.subjects_recoverable_count > 0 %}
+                    <span style="color: #059669;">{{ profile.subjects_recoverable_count }} Recoverable</span>
+                {% elif profile.subjects_below_75_count > 0 %}
+                    <span style="color: #0284c7;">Unconfirmed</span>
+                {% else %}
+                    <span style="color: #059669;">All On Track</span>
+                {% endif %}
+            </div>
+            <div class="analytics-kpi-subtext">
+                {% if profile.subjects_impossible_count > 0 %}
+                    {{ profile.subjects_impossible_count }} subject(s) mathematically cannot reach 75%
+                {% elif profile.subjects_projection_unavailable_count > 0 %}
+                    {{ profile.subjects_projection_unavailable_count }} below-target subject(s) with schedules unconfirmed
+                {% else %}
+                    Projections aligned with academic targets
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Institutional Disclaimer Alert -->
+    <div class="alert alert-info" style="border-radius: 10px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-size: 0.85rem; padding: 12px 18px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;">
+        <i class="fas fa-info-circle" style="font-size: 1.1rem; color: #16a34a;"></i>
+        <div>
+            <strong>Institutional Academic Notice:</strong> 
+            Attendance recovery calculations determine the minimum consecutive eligible classes a student must attend assuming 100% future attendance with zero additional absences. Projections are mathematical planning aids and do not constitute an official exemption or guarantee of examination eligibility.
+        </div>
+    </div>
+
+    <!-- 4. Visual Analytics Section — Chart.js (Section 2 C) -->
+    <div style="margin-bottom: 24px;">
         <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-            <i class="fas fa-clipboard-list" style="color: #6366f1;"></i> Subject-Wise Attendance Surveillance
+            <i class="fas fa-chart-line" style="color: #4f46e5;"></i> Attendance Analytics & Visual Projections
         </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px;">
+            
+            <!-- Chart 1: Subject Attendance vs 75% Benchmark -->
+            <div class="chart-container-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 0.9rem; color: var(--text-main);">Subject Attendance vs 75% Threshold</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Benchmark: 75%</span>
+                </div>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="chartSubjectAttendance"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Attended vs Missed Sessions -->
+            <div class="chart-container-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 0.9rem; color: var(--text-main);">Attendance Distribution (Present vs Absent)</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">By Subject</span>
+                </div>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="chartAttendanceDist"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: 75% Recovery Predictor (Classes Needed) -->
+            <div class="chart-container-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 0.9rem; color: var(--text-main);">75% Recovery Predictor (Classes Needed)</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Consecutive Sessions</span>
+                </div>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="chartRecoveryPredictor"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Attendance Trend Over Time -->
+            <div class="chart-container-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong style="font-size: 0.9rem; color: var(--text-main);">Cumulative Attendance Trend Over Time</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Historical Sessions</span>
+                </div>
+                <div style="height: 240px; position: relative;">
+                    <canvas id="chartAttendanceTrend"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. Subject-Wise Attendance Analytics & Recovery Table (Section 2 B) -->
+    <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-clipboard-list" style="color: #4f46e5;"></i> Subject-Wise Attendance Surveillance & Recovery Projections
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                Institutional Benchmark: <strong>75%</strong> minimum attendance
+            </span>
+        </div>
 
         <div style="overflow-x: auto;">
             <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
                 <thead>
                     <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">
-                        <th style="padding: 10px 12px;">Subject</th>
-                        <th style="padding: 10px 12px; text-align: center;">Sessions Attended</th>
-                        <th style="padding: 10px 12px; text-align: center;">Total Conducted</th>
-                        <th style="padding: 10px 12px; width: 220px;">Attendance Progress</th>
-                        <th style="padding: 10px 12px; text-align: center;">Eligibility Status</th>
-                        <th style="padding: 10px 12px; text-align: center;">HOD Decision Override</th>
+                        <th style="padding: 12px 14px;">Subject</th>
+                        <th style="padding: 12px 14px;">Faculty</th>
+                        <th style="padding: 12px 14px; text-align: center;">Conducted</th>
+                        <th style="padding: 12px 14px; text-align: center;">Present</th>
+                        <th style="padding: 12px 14px; text-align: center;">Absent</th>
+                        <th style="padding: 12px 14px; width: 170px;">Attendance %</th>
+                        <th style="padding: 12px 14px; text-align: center;">Classes Needed</th>
+                        <th style="padding: 12px 14px; text-align: center;">Projected Status</th>
+                        <th style="padding: 12px 14px; text-align: center;">Last Updated</th>
+                        <th style="padding: 12px 14px; text-align: right;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -112,62 +356,108 @@
                     <tr style="border-bottom: 1px solid var(--border);">
                         
                         <!-- Subject Name -->
-                        <td style="padding: 12px; font-weight: 700; color: var(--text-main);">
+                        <td style="padding: 12px 14px; font-weight: 700; color: var(--text-main);">
                             {{ sc.subject }}
                         </td>
 
-                        <!-- Attended -->
-                        <td style="padding: 12px; text-align: center; font-weight: 700; color: var(--text-main);">
-                            {{ sc.attended_count }}
+                        <!-- Faculty Name -->
+                        <td style="padding: 12px 14px; color: var(--text-muted); font-size: 0.82rem;">
+                            {{ sc.faculty_name }}
                         </td>
 
-                        <!-- Conducted -->
-                        <td style="padding: 12px; text-align: center; color: var(--text-muted);">
+                        <!-- Conducted Count -->
+                        <td style="padding: 12px 14px; text-align: center; color: var(--text-main); font-weight: 600;">
                             {{ sc.conducted_count }}
                         </td>
 
+                        <!-- Present Count -->
+                        <td style="padding: 12px 14px; text-align: center; font-weight: 700; color: #059669;">
+                            {{ sc.attended_count }}
+                        </td>
+
+                        <!-- Absent Count -->
+                        <td style="padding: 12px 14px; text-align: center; font-weight: 700; color: #dc2626;">
+                            {{ sc.absent_count }}
+                        </td>
+
                         <!-- Progress Bar & Pct -->
-                        <td style="padding: 12px;">
+                        <td style="padding: 12px 14px;">
                             {% if sc.attendance_pct is not none %}
                                 <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: {% if sc.attendance_pct >= 75.0 %}#059669{% else %}#dc2626{% endif %};">
                                     <span>{{ sc.attendance_pct }}%</span>
-                                    <span style="font-size: 0.72rem; color: var(--text-muted);">Min: 75%</span>
+                                    <span style="font-size: 0.7rem; color: var(--text-muted);">Target: 75%</span>
                                 </div>
                                 <div class="att-progress-track">
+                                    <div class="att-target-marker" title="75% Required Threshold"></div>
                                     <div class="att-progress-fill" style="width: {{ sc.attendance_pct }}%; background: {% if sc.attendance_pct >= 75.0 %}#10b981{% else %}#ef4444{% endif %};"></div>
                                 </div>
                             {% else %}
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">No sessions held</span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+                                    No attendance data yet
+                                </span>
                             {% endif %}
                         </td>
 
-                        <!-- Eligibility Status -->
-                        <td style="padding: 12px; text-align: center;">
-                            {% if sc.attendance_status == 'ELIGIBLE' %}
-                                <span class="badge badge-success"><i class="fas fa-check"></i> Eligible (&ge;75%)</span>
-                            {% elif sc.attendance_status == 'RESTRICTED' %}
-                                <span class="badge badge-danger"><i class="fas fa-times"></i> Restricted (&lt;75%)</span>
-                            {% else %}
-                                <span class="badge badge-secondary">Pending</span>
-                            {% endif %}
-                        </td>
-
-                        <!-- HOD Override -->
-                        <td style="padding: 12px; text-align: center;">
-                            {% if sc.override %}
-                                {% if sc.override.decision_type == 'ALLOW_OVERRIDE' %}
-                                    <span class="badge badge-success" title="Reason: {{ sc.override.reason }}">
-                                        <i class="fas fa-unlock"></i> Allowed by HOD
+                        <!-- Classes Needed (Recovery Predictor) -->
+                        <td style="padding: 12px 14px; text-align: center;">
+                            {% if sc.attendance_pct is not none %}
+                                {% if sc.classes_needed > 0 %}
+                                    <span style="font-size: 0.95rem; font-weight: 800; color: #dc2626;" title="{{ sc.recovery_explanation }}">
+                                        {{ sc.classes_needed }}
                                     </span>
-                                {% elif sc.override.decision_type == 'MANUAL_RESTRICT' %}
-                                    <span class="badge badge-danger" title="Reason: {{ sc.override.reason }}">
-                                        <i class="fas fa-lock"></i> Restricted by HOD
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); line-height: 1.1; margin-top: 2px;">
+                                        consecutive
+                                    </div>
+                                {% else %}
+                                    <span style="font-size: 0.85rem; font-weight: 700; color: #059669;">
+                                        <i class="fas fa-check"></i> 0 (Met)
                                     </span>
                                 {% endif %}
                             {% else %}
-                                <span style="color: var(--text-muted); font-size: 0.8rem;">Automatic Policy</span>
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
                             {% endif %}
                         </td>
+
+                        <!-- Projected Status & Risk Label -->
+                        <td style="padding: 12px 14px; text-align: center;">
+                            {% if sc.status_code == 'ON_TRACK' %}
+                                <span class="badge badge-on-track" title="{{ sc.feasibility_message }}">
+                                    <i class="fas fa-check-circle"></i> On Track
+                                </span>
+                            {% elif sc.status_code == 'NEEDS_ATTENTION' %}
+                                <span class="badge badge-needs-attention" title="{{ sc.feasibility_message }}">
+                                    <i class="fas fa-exclamation-circle"></i> Needs Attention
+                                </span>
+                            {% elif sc.status_code == 'HIGH_RISK' %}
+                                <span class="badge badge-high-risk" title="{{ sc.feasibility_message }}">
+                                    <i class="fas fa-times-circle"></i> High Risk
+                                </span>
+                            {% elif sc.status_code == 'PROJECTION_UNAVAILABLE' %}
+                                <span class="badge badge-proj-unavailable" title="{{ sc.feasibility_message }}">
+                                    <i class="fas fa-question-circle"></i> Projection Unavailable
+                                </span>
+                            {% else %}
+                                <span class="badge badge-insufficient">
+                                    <i class="fas fa-minus-circle"></i> Insufficient Data
+                                </span>
+                            {% endif %}
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 3px; max-width: 190px; margin-left: auto; margin-right: auto; line-height: 1.2;">
+                                {{ sc.feasibility_message }}
+                            </div>
+                        </td>
+
+                        <!-- Last Updated -->
+                        <td style="padding: 12px 14px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+                            {{ sc.last_updated }}
+                        </td>
+
+                        <!-- Action: Subject Drill-Down Modal Toggle -->
+                        <td style="padding: 12px 14px; text-align: right;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openSubjectModal('{{ loop.index0 }}')" style="font-size: 0.75rem; padding: 4px 10px; font-weight: 600;">
+                                <i class="fas fa-search-plus"></i> History
+                            </button>
+                        </td>
+
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -175,7 +465,7 @@
         </div>
     </div>
 
-    <!-- 4. Subject-Wise Internal Assessment Marks Table -->
+    <!-- 6. Subject-Wise Internal Assessment Marks Record (Preserved) -->
     <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface); margin-bottom: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
@@ -254,7 +544,7 @@
                             {% endif %}
                         </td>
 
-                        <!-- Action: Edit Marks (ONLY if teacher is authorized to teach this subject) -->
+                        <!-- Action: Edit Marks -->
                         <td style="padding: 12px; text-align: right;">
                             {% if sc.can_edit_marks %}
                                 <a href="{{ url_for('internal_marks_entry', student_id=student.id, course=student.course, semester=student.semester, section=student.section, subject=sc.subject) }}" class="btn btn-sm btn-primary" style="padding: 5px 12px; font-size: 0.75rem; font-weight: 600;">
@@ -274,17 +564,22 @@
         </div>
     </div>
 
-    <!-- 5. Recent Session Attendance History -->
+    <!-- 7. Recent Session Attendance History (All Subjects) -->
     <div class="card" style="padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg-surface);">
-        <h3 style="margin: 0 0 16px 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-            <i class="fas fa-history" style="color: #0ea5e9;"></i> Attendance Session History Log
-        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-history" style="color: #0ea5e9;"></i> Attendance Session History Log
+            </h3>
+            <div>
+                <input type="text" id="sessionSearchInput" placeholder="Filter session history..." onkeyup="filterSessionsTable()" style="padding: 6px 12px; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-body); color: var(--text-main);">
+            </div>
+        </div>
 
         {% if profile.session_history %}
-        <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
-            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <div style="overflow-x: auto; max-height: 420px; overflow-y: auto;">
+            <table class="table" id="allSessionsTable" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); position: sticky; top: 0;">
+                    <tr style="border-bottom: 2px solid var(--border); text-align: left; background: var(--bg-body); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); position: sticky; top: 0; z-index: 5;">
                         <th style="padding: 10px 12px;">Date</th>
                         <th style="padding: 10px 12px;">Subject</th>
                         <th style="padding: 10px 12px;">Time Slot</th>
@@ -299,7 +594,7 @@
                         <td style="padding: 10px 12px; font-weight: 600; color: var(--text-main);">
                             {{ h.date.strftime('%d %b %Y') }}
                         </td>
-                        <td style="padding: 10px 12px; color: var(--text-main);">
+                        <td style="padding: 10px 12px; color: var(--text-main); font-weight: 600;">
                             {{ h.subject }}
                         </td>
                         <td style="padding: 10px 12px; color: var(--text-muted);">
@@ -326,11 +621,275 @@
             </table>
         </div>
         {% else %}
-        <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+        <div style="text-align: center; padding: 32px; color: var(--text-muted);">
+            <i class="fas fa-info-circle" style="font-size: 1.5rem; margin-bottom: 8px; display: block;"></i>
             No completed class session records logged for this student.
         </div>
         {% endif %}
     </div>
 
 </div>
+
+<!-- Subject Drill-Down Modal -->
+<div id="subjectDrilldownModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--bg-surface); border-radius: 14px; width: 100%; max-width: 720px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+        <div style="padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+            <h4 id="modalSubjectTitle" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">
+                Subject Attendance Drill-Down
+            </h4>
+            <button type="button" onclick="closeSubjectModal()" style="background: none; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="modalSubjectBody" style="padding: 20px 24px; overflow-y: auto;">
+            <!-- Rendered dynamically -->
+        </div>
+        <div style="padding: 14px 24px; border-top: 1px solid var(--border); text-align: right;">
+            <button type="button" class="btn btn-secondary" onclick="closeSubjectModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Embedded Backend Data for Analytics Charts
+    const analyticsChartData = {{ profile.chart_data|tojson }};
+    const subjectCardsData = {{ profile.client_subject_cards|tojson }};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initAttendanceCharts();
+    });
+
+    function initAttendanceCharts() {
+        if (!analyticsChartData.subjects || analyticsChartData.subjects.length === 0) return;
+
+        // Chart 1: Subject Attendance vs 75% Threshold
+        const ctx1 = document.getElementById('chartSubjectAttendance');
+        if (ctx1) {
+            new Chart(ctx1.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: analyticsChartData.subjects,
+                    datasets: [
+                        {
+                            label: 'Attendance %',
+                            data: analyticsChartData.percentages,
+                            backgroundColor: analyticsChartData.percentages.map(pct => pct >= 75.0 ? '#10b981' : '#ef4444'),
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `Attendance: ${ctx.raw}% (Target: 75%)`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Chart 2: Attended vs Missed Classes
+        const ctx2 = document.getElementById('chartAttendanceDist');
+        if (ctx2) {
+            new Chart(ctx2.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: analyticsChartData.subjects,
+                    datasets: [
+                        {
+                            label: 'Present',
+                            data: analyticsChartData.attended,
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Absent',
+                            data: analyticsChartData.absent,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Chart 3: Classes Needed to Reach 75%
+        const ctx3 = document.getElementById('chartRecoveryPredictor');
+        if (ctx3) {
+            new Chart(ctx3.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: analyticsChartData.subjects,
+                    datasets: [
+                        {
+                            label: 'Consecutive Classes Needed',
+                            data: analyticsChartData.classes_needed,
+                            backgroundColor: analyticsChartData.classes_needed.map(c => c > 0 ? '#f59e0b' : '#10b981'),
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.raw} consecutive classes needed for 75%`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Chart 4: Cumulative Attendance Trend Over Time
+        const ctx4 = document.getElementById('chartAttendanceTrend');
+        if (ctx4) {
+            if (analyticsChartData.trend_labels && analyticsChartData.trend_labels.length > 0) {
+                new Chart(ctx4.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: analyticsChartData.trend_labels,
+                        datasets: [
+                            {
+                                label: 'Cumulative Attendance %',
+                                data: analyticsChartData.trend_percentages,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 100,
+                                ticks: { callback: v => v + '%' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            } else {
+                ctx4.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.85rem;"><i class="fas fa-info-circle" style="margin-right:6px;"></i>No attendance session history to display trend.</div>';
+            }
+        }
+    }
+
+    // Modal Subject Drill-Down Handler
+    function openSubjectModal(subjectIndex) {
+        const sc = subjectCardsData[subjectIndex];
+        if (!sc) return;
+
+        document.getElementById('modalSubjectTitle').innerText = `${sc.subject} — Detailed Session Log`;
+        const body = document.getElementById('modalSubjectBody');
+
+        let html = `
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;background:var(--bg-body);padding:12px;border-radius:8px;">
+                <div style="flex:1;min-width:140px;">
+                    <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Faculty</div>
+                    <div style="font-weight:700;">${sc.faculty_name}</div>
+                </div>
+                <div style="flex:1;min-width:100px;">
+                    <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Attendance %</div>
+                    <div style="font-weight:800;color:${sc.attendance_pct >= 75.0 ? '#059669' : '#dc2626'};">${sc.attendance_pct !== null ? sc.attendance_pct + '%' : 'Pending'}</div>
+                </div>
+                <div style="flex:1;min-width:120px;">
+                    <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Classes Needed</div>
+                    <div style="font-weight:800;color:${sc.classes_needed > 0 ? '#dc2626' : '#059669'};">${sc.classes_needed} consecutive</div>
+                </div>
+            </div>
+            <div style="font-size:0.82rem;margin-bottom:14px;color:var(--text-muted);">
+                ${sc.recovery_explanation}
+            </div>
+        `;
+
+        if (sc.subject_history && sc.subject_history.length > 0) {
+            html += `
+                <table class="table" style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border);text-align:left;background:var(--bg-body);font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">
+                            <th style="padding:8px 10px;">Date</th>
+                            <th style="padding:8px 10px;">Time</th>
+                            <th style="padding:8px 10px;">Room</th>
+                            <th style="padding:8px 10px;text-align:center;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            sc.subject_history.forEach(h => {
+                const badge = h.status === 'Present' 
+                    ? '<span class="badge badge-success"><i class="fas fa-check"></i> Present</span>'
+                    : '<span class="badge badge-danger"><i class="fas fa-times"></i> Absent</span>';
+                html += `
+                    <tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:8px 10px;font-weight:600;">${h.date}</td>
+                        <td style="padding:8px 10px;color:var(--text-muted);">${h.time_slot}</td>
+                        <td style="padding:8px 10px;color:var(--text-muted);">${h.room_no}</td>
+                        <td style="padding:8px 10px;text-align:center;">${badge}</td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+        } else {
+            html += `<div style="text-align:center;padding:20px;color:var(--text-muted);">No recorded sessions for this subject yet.</div>`;
+        }
+
+        body.innerHTML = html;
+        const modal = document.getElementById('subjectDrilldownModal');
+        modal.style.display = 'flex';
+    }
+
+    function closeSubjectModal() {
+        document.getElementById('subjectDrilldownModal').style.display = 'none';
+    }
+
+    function filterSessionsTable() {
+        const input = document.getElementById('sessionSearchInput');
+        const filter = input.value.toLowerCase();
+        const table = document.getElementById('allSessionsTable');
+        if (!table) return;
+        const trs = table.getElementsByTagName('tr');
+
+        for (let i = 1; i < trs.length; i++) {
+            const rowText = trs[i].innerText.toLowerCase();
+            trs[i].style.display = rowText.includes(filter) ? '' : 'none';
+        }
+    }
+</script>
 {% endblock %}

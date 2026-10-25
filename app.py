@@ -2668,7 +2668,7 @@ def is_user_authorized_for_class(user, course, semester, section):
     Checks if a user is authorized to view students/records for this class context.
     - Principal & admin: All classes
     - HOD - BCA Dept: BCA courses
-    - Faculty: Classes where they teach at least one subject
+    - Faculty: Classes where they teach at least one subject (via Timetable or ClassSession)
     """
     if user.role in ['Principal', 'admin']:
         return True
@@ -2681,7 +2681,15 @@ def is_user_authorized_for_class(user, course, semester, section):
             semester=semester,
             section=section
         ).first()
-        return match is not None
+        if match:
+            return True
+        session_match = ClassSession.query.filter(
+            (ClassSession.scheduled_faculty_id == user.id) | (ClassSession.actual_faculty_id == user.id),
+            ClassSession.course == course,
+            ClassSession.semester == semester,
+            ClassSession.section == section
+        ).first()
+        return session_match is not None
     return False
 
 def get_assessment_cutoff_date(course='BCA', semester='Sem V', section='A', subject=None, assessment_cycle='2026-27', component='IA1'):
@@ -6618,129 +6626,28 @@ def compute_academic_analytics_data(course, academic_year, semester, section, su
     }
 
 
-def get_student_academic_analytics_profile(student, viewing_user, low_marks_threshold_pct=None):
+def get_student_academic_analytics_profile(student, viewing_user, low_marks_threshold_pct=None, remaining_classes_by_subject=None):
     """
     Computes detailed academic analytics profile for an individual student.
-    Includes subject-wise attendance, marks, and teacher edit-permission resolution.
+    Includes subject-wise attendance, marks, recovery predictions, feasibility analytics,
+    and teacher edit-permission resolution.
     """
-    if low_marks_threshold_pct is None:
-        low_marks_threshold_pct = get_low_marks_threshold_percent()
-
-    maxima = get_assessment_maxima()
-    course = student.course
-    semester = student.semester
-    section = student.section
-
-    completed_sessions = ClassSession.query.filter_by(
-        course=course,
-        semester=semester,
-        section=section,
-        status='COMPLETED'
-    ).order_by(ClassSession.date.desc()).all()
-
-    total_class_sessions = len(completed_sessions)
-
-    session_ids = [cs.id for cs in completed_sessions]
-    if session_ids:
-        attendances = StudentAttendance.query.filter(
-            StudentAttendance.class_session_id.in_(session_ids),
-            StudentAttendance.student_id == student.id
-        ).all()
-    else:
-        attendances = []
-
-    att_by_session = {a.class_session_id: a.status for a in attendances}
-    attended_count = sum(1 for status in att_by_session.values() if status == 'Present')
-
-    if total_class_sessions > 0:
-        overall_attendance_pct = round((attended_count * 100.0) / total_class_sessions, 2)
-        overall_status = 'ELIGIBLE' if overall_attendance_pct >= 75.0 else 'RESTRICTED'
-    else:
-        overall_attendance_pct = None
-        overall_status = 'PENDING'
-
-    class_subjects = sorted(list({
-        (cs.actual_subject if cs.actual_subject else cs.scheduled_subject)
-        for cs in completed_sessions if (cs.actual_subject or cs.scheduled_subject)
-    } | {
-        r[0] for r in db.session.query(Timetable.subject).filter_by(
-            course=course, semester=semester, section=section
-        ).distinct().all() if r[0]
-    }))
-
-    marks_records = InternalMark.query.filter_by(
-        student_id=student.id,
-        course=course,
-        semester=semester,
-        section=section
-    ).all()
-    marks_by_subject = {m.subject: m for m in marks_records}
-
-    overrides = MarksEligibilityOverride.query.filter_by(
-        student_id=student.id,
-        course=course,
-        semester=semester,
-        section=section,
-        is_active=True
-    ).all()
-    overrides_by_subject = {o.subject: o for o in overrides}
-
-    subject_cards = []
-    for subj in class_subjects:
-        subj_sessions = [
-            cs for cs in completed_sessions
-            if (cs.actual_subject == subj if cs.actual_subject else cs.scheduled_subject == subj)
-        ]
-        s_conducted = len(subj_sessions)
-        s_attended = sum(1 for cs in subj_sessions if att_by_session.get(cs.id) == 'Present')
-
-        if s_conducted > 0:
-            s_pct = round((s_attended * 100.0) / s_conducted, 2)
-            s_status = 'ELIGIBLE' if s_pct >= 75.0 else 'RESTRICTED'
-        else:
-            s_pct = None
-            s_status = 'PENDING'
-
-        m = marks_by_subject.get(subj)
-        override = overrides_by_subject.get(subj)
-        can_edit_marks = is_user_authorized_for_context(viewing_user, course, semester, section, subj)
-
-        subject_cards.append({
-            'subject': subj,
-            'attended_count': s_attended,
-            'conducted_count': s_conducted,
-            'attendance_pct': s_pct,
-            'attendance_status': s_status,
-            'override': override,
-            'internal_mark': m,
-            'can_edit_marks': can_edit_marks
-        })
-
-    session_history = []
-    for cs in completed_sessions[:50]:
-        subj = cs.actual_subject if cs.actual_subject else cs.scheduled_subject
-        fac = cs.actual_faculty.full_name if cs.actual_faculty else (cs.scheduled_faculty.full_name if cs.scheduled_faculty else 'Faculty')
-        status = att_by_session.get(cs.id, 'Unrecorded')
-        session_history.append({
-            'date': cs.date,
-            'time_slot': cs.time_slot,
-            'subject': subj,
-            'faculty_name': fac,
-            'room_no': cs.room_no or 'N/A',
-            'status': status
-        })
-
-    return {
-        'student': student,
-        'overall_attendance_pct': overall_attendance_pct,
-        'attended_count': attended_count,
-        'conducted_count': total_class_sessions,
-        'overall_status': overall_status,
-        'subject_cards': subject_cards,
-        'session_history': session_history,
-        'maxima': maxima,
-        'low_marks_threshold_pct': low_marks_threshold_pct
-    }
+    from attendance_analytics_service import build_student_attendance_analytics
+    return build_student_attendance_analytics(
+        student=student,
+        viewing_user=viewing_user,
+        db=db,
+        ClassSession=ClassSession,
+        StudentAttendance=StudentAttendance,
+        Timetable=Timetable,
+        User=User,
+        InternalMark=InternalMark,
+        MarksEligibilityOverride=MarksEligibilityOverride,
+        is_user_authorized_for_context_func=is_user_authorized_for_context,
+        get_assessment_maxima_func=get_assessment_maxima,
+        get_low_marks_threshold_percent_func=lambda: (low_marks_threshold_pct if low_marks_threshold_pct is not None else get_low_marks_threshold_percent()),
+        remaining_classes_by_subject=remaining_classes_by_subject
+    )
 
 
 # ==============================================================================
