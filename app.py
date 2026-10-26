@@ -1737,13 +1737,13 @@ def my_profile():
 @app.route('/api/auth/staff-login', methods=['POST'])
 def api_staff_login():
     data = request.get_json(silent=True) or request.form
-    username = (data.get('username') or '').strip()
+    identifier = (data.get('username') or data.get('email') or '').strip()
     password = (data.get('password') or '').strip()
 
-    if not username or not password:
+    if not identifier or not password:
         return jsonify({'success': False, 'error': 'Username and password are required.'}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
     if not user or not check_password_hash(user.password, password):
         return jsonify({'success': False, 'error': 'Invalid Username or Password.'}), 401
 
@@ -2009,6 +2009,222 @@ def api_dashboard_summary():
             }), 200
 
     return jsonify({'error': 'Unauthorized'}), 401
+
+
+# ==============================================================================
+# MOBILE API GATEWAY — PHASE 4: ACADEMIC MODULES AND GPS ATTENDANCE
+# ==============================================================================
+
+@app.route('/api/student/attendance-analytics', methods=['GET'])
+def api_student_attendance_analytics():
+    """
+    Authoritative Student Attendance Analytics and 75% Recovery Predictor for logged-in student.
+    Returns overall attendance metrics and subject-wise recovery feasibility projections.
+    """
+    if 'student_id' not in session:
+        return jsonify({'error': 'Unauthorized. Student session required.'}), 401
+    
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        return jsonify({'error': 'Student account inactive or not found.'}), 404
+
+    profile_data = get_student_academic_analytics_profile(student, viewing_user=None)
+
+    return jsonify({
+        'student_id': student.id,
+        'name': student.name,
+        'uucms_id': student.uucms_id,
+        'course': student.course,
+        'semester': student.semester,
+        'section': student.section,
+        'overall_attendance_pct': profile_data.get('overall_attendance_pct'),
+        'conducted_count': profile_data.get('conducted_count', 0),
+        'attended_count': profile_data.get('attended_count', 0),
+        'total_missed': profile_data.get('total_missed', 0),
+        'overall_status': profile_data.get('overall_status', 'PENDING'),
+        'overall_classes_needed': profile_data.get('overall_classes_needed', 0),
+        'subjects_below_75_count': profile_data.get('subjects_below_75_count', 0),
+        'subjects_at_or_above_75_count': profile_data.get('subjects_at_or_above_75_count', 0),
+        'subjects_recoverable_count': profile_data.get('subjects_recoverable_count', 0),
+        'subjects_impossible_count': profile_data.get('subjects_impossible_count', 0),
+        'subject_cards': profile_data.get('client_subject_cards', []),
+        'calculation_timestamp': profile_data.get('calculation_timestamp')
+    }), 200
+
+
+@app.route('/api/attendance/status', methods=['GET'])
+def api_attendance_status():
+    """
+    Returns today's clock-in / clock-out status and authoritative campus geofence configuration.
+    Restricted to staff and faculty.
+    """
+    if 'student_id' in session:
+        return jsonify({'error': 'Access Denied: Staff attendance portal is restricted to employees.'}), 403
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized. Staff session required.'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found.'}), 404
+
+    today = get_ist_time().strftime("%Y-%m-%d")
+    att = Attendance.query.filter_by(user_id=user.id, date=today).first()
+    from campus_geofence import get_geofence_config
+    cfg = get_geofence_config()
+
+    return jsonify({
+        'date': today,
+        'user_id': user.id,
+        'user_name': user.full_name,
+        'has_clocked_in': att is not None and att.check_in is not None,
+        'check_in_time': att.check_in if att else None,
+        'has_clocked_out': att is not None and att.check_out is not None,
+        'check_out_time': att.check_out if att else None,
+        'work_mode': att.work_mode if att else 'Office',
+        'location_status': att.location_status if att else None,
+        'geofence_config': {
+            'enabled': cfg.get('enabled', True),
+            'center_lat': cfg.get('center_lat', 12.9515),
+            'center_lon': cfg.get('center_lon', 77.5762),
+            'radius_meters': cfg.get('radius_meters', 150.0),
+            'max_accuracy_meters': cfg.get('max_accuracy_meters', 50.0),
+            'max_age_seconds': cfg.get('max_age_seconds', 120),
+            'boundary_buffer_meters': cfg.get('boundary_buffer_meters', 10.0)
+        }
+    }), 200
+
+
+@app.route('/api/student/timetable', methods=['GET'])
+def api_student_timetable():
+    """
+    Retrieves current published semester timetable for the logged-in student's cohort.
+    Strictly isolated by course, academic_year, semester, and section.
+    """
+    if 'student_id' not in session:
+        return jsonify({'error': 'Unauthorized. Student session required.'}), 401
+
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        return jsonify({'error': 'Student account inactive or not found.'}), 404
+
+    course = student.course
+    academic_year = student.academic_year
+    semester = student.semester
+    section = student.section or 'A'
+
+    timetable = StudentSemesterTimetable.query.filter(
+        StudentSemesterTimetable.course == course,
+        StudentSemesterTimetable.academic_year == academic_year,
+        StudentSemesterTimetable.semester == semester,
+        StudentSemesterTimetable.section.in_([section, 'ALL']),
+        StudentSemesterTimetable.status == 'PUBLISHED'
+    ).order_by(
+        db.case((StudentSemesterTimetable.section == section, 1), else_=2),
+        StudentSemesterTimetable.version.desc()
+    ).first()
+
+    if not timetable:
+        return jsonify({
+            'has_timetable': False,
+            'message': f'No published timetable available for {course} Semester {semester} Section {section}.',
+            'course': course,
+            'semester': semester,
+            'section': section
+        }), 200
+
+    return jsonify({
+        'has_timetable': True,
+        'timetable': {
+            'id': timetable.id,
+            'title': timetable.title,
+            'course': timetable.course,
+            'academic_year': timetable.academic_year,
+            'semester': timetable.semester,
+            'section': timetable.section,
+            'version': timetable.version,
+            'file_filename': timetable.file_filename,
+            'file_size_bytes': timetable.file_size,
+            'file_mimetype': timetable.file_mimetype,
+            'uploaded_at': timetable.created_at.strftime('%Y-%m-%d %H:%M') if timetable.created_at else None,
+            'download_url': f'/academic/student-timetables/{timetable.id}/download',
+            'view_url': f'/academic/student-timetables/{timetable.id}/view'
+        }
+    }), 200
+
+
+@app.route('/api/student/study-materials', methods=['GET'])
+def api_student_study_materials():
+    """
+    Retrieves published study materials strictly isolated to the logged-in student's academic cohort.
+    Supports filtering by category, subject, and search query.
+    """
+    if 'student_id' not in session:
+        return jsonify({'error': 'Unauthorized. Student session required.'}), 401
+
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        return jsonify({'error': 'Student account inactive or not found.'}), 404
+
+    category = (request.args.get('category') or 'Textbooks').strip()
+    if category not in VALID_STUDY_MATERIAL_CATEGORIES:
+        category = 'Textbooks'
+
+    subject = (request.args.get('subject') or '').strip()
+    search = (request.args.get('search') or '').strip()
+
+    query = StudyMaterial.query.filter(
+        StudyMaterial.course == student.course,
+        StudyMaterial.academic_year == student.academic_year,
+        StudyMaterial.semester == student.semester,
+        StudyMaterial.section.in_([student.section, 'ALL']),
+        StudyMaterial.category == category,
+        StudyMaterial.status == 'Published'
+    )
+
+    if subject:
+        query = query.filter(StudyMaterial.subject == subject)
+    if search:
+        search_pat = f"%{search}%"
+        query = query.filter(
+            (StudyMaterial.title.ilike(search_pat)) |
+            (StudyMaterial.description.ilike(search_pat)) |
+            (StudyMaterial.tags.ilike(search_pat))
+        )
+
+    materials = query.order_by(StudyMaterial.created_at.desc()).all()
+
+    class_subjects = [
+        r[0] for r in db.session.query(Timetable.subject).filter_by(
+            course=student.course,
+            semester=student.semester,
+            section=student.section
+        ).distinct().all() if r[0]
+    ]
+
+    materials_list = []
+    for m in materials:
+        materials_list.append({
+            'id': m.id,
+            'title': m.title,
+            'subject': m.subject,
+            'category': m.category,
+            'description': m.description,
+            'file_filename': m.file_filename,
+            'file_size_bytes': m.file_size,
+            'file_mimetype': m.file_mimetype,
+            'created_at': m.created_at.strftime('%Y-%m-%d') if m.created_at else None,
+            'download_url': f'/academic/study-materials/{m.id}/download',
+            'preview_url': f'/academic/study-materials/{m.id}/preview'
+        })
+
+    return jsonify({
+        'current_category': category,
+        'categories': VALID_STUDY_MATERIAL_CATEGORIES,
+        'materials_count': len(materials_list),
+        'materials': materials_list,
+        'available_subjects': sorted(class_subjects)
+    }), 200
+
 
 @app.context_processor
 def inject_counts():
@@ -7213,6 +7429,27 @@ def student_academic_analytics(student_id):
         if not student:
             return abort(404)
         profile_data = get_student_academic_analytics_profile(student, viewing_user=None)
+        if request.is_json or request.headers.get('Accept') == 'application/json':
+            return jsonify({
+                'student_id': student.id,
+                'name': student.name,
+                'uucms_id': student.uucms_id,
+                'course': student.course,
+                'semester': student.semester,
+                'section': student.section,
+                'overall_attendance_pct': profile_data.get('overall_attendance_pct'),
+                'conducted_count': profile_data.get('conducted_count', 0),
+                'attended_count': profile_data.get('attended_count', 0),
+                'total_missed': profile_data.get('total_missed', 0),
+                'overall_status': profile_data.get('overall_status', 'PENDING'),
+                'overall_classes_needed': profile_data.get('overall_classes_needed', 0),
+                'subjects_below_75_count': profile_data.get('subjects_below_75_count', 0),
+                'subjects_at_or_above_75_count': profile_data.get('subjects_at_or_above_75_count', 0),
+                'subjects_recoverable_count': profile_data.get('subjects_recoverable_count', 0),
+                'subjects_impossible_count': profile_data.get('subjects_impossible_count', 0),
+                'subject_cards': profile_data.get('client_subject_cards', []),
+                'calculation_timestamp': profile_data.get('calculation_timestamp')
+            }), 200
         return render_template(
             'academic/analytics/student_detail.html',
             user=None,
@@ -7241,6 +7478,28 @@ def student_academic_analytics(student_id):
         return abort(403)
 
     profile_data = get_student_academic_analytics_profile(student, viewing_user=user)
+
+    if request.is_json or request.headers.get('Accept') == 'application/json':
+        return jsonify({
+            'student_id': student.id,
+            'name': student.name,
+            'uucms_id': student.uucms_id,
+            'course': student.course,
+            'semester': student.semester,
+            'section': student.section,
+            'overall_attendance_pct': profile_data.get('overall_attendance_pct'),
+            'conducted_count': profile_data.get('conducted_count', 0),
+            'attended_count': profile_data.get('attended_count', 0),
+            'total_missed': profile_data.get('total_missed', 0),
+            'overall_status': profile_data.get('overall_status', 'PENDING'),
+            'overall_classes_needed': profile_data.get('overall_classes_needed', 0),
+            'subjects_below_75_count': profile_data.get('subjects_below_75_count', 0),
+            'subjects_at_or_above_75_count': profile_data.get('subjects_at_or_above_75_count', 0),
+            'subjects_recoverable_count': profile_data.get('subjects_recoverable_count', 0),
+            'subjects_impossible_count': profile_data.get('subjects_impossible_count', 0),
+            'subject_cards': profile_data.get('client_subject_cards', []),
+            'calculation_timestamp': profile_data.get('calculation_timestamp')
+        }), 200
 
     return render_template(
         'academic/analytics/student_detail.html',
