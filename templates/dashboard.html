@@ -49,31 +49,153 @@
 </script>
 {% endif %}
 
-<!-- Key Metrics Stat Cards (3 Columns) -->
+<!-- Key Metrics Stat Cards (Role-Tailored) -->
 <div class="grid grid-cols-3 mb-3">
+    {% if user.role in ['Faculty', 'HOD - BCA Dept'] %}
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Today's Academic Sessions</div>
+        <div class="stat-card-value">{{ today_classes|length }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Classes</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--primary);"><i class="fas fa-calendar-day"></i> {{ today_day_name }} Timetable</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--info);">
+        <div class="stat-card-label">Campus Attendance</div>
+        <div class="stat-card-value" style="color: var(--info);">{{ office_days or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Days</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-check-circle"></i> Geofence Verified Logins</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--warning);">
+        <div class="stat-card-label">Pending Tasks</div>
+        <div class="stat-card-value" style="color: var(--warning);">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }}</div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-tasks"></i> Active In-Queue</div>
+    </div>
+    {% elif user.role in ['HR', 'admin'] %}
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Workforce Administration</div>
+        <div class="stat-card-value">Master <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Directory</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--primary);"><i class="fas fa-users-cog"></i> Active Staff &amp; Faculty</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--warning);">
+        <div class="stat-card-label">Leave Approvals Queue</div>
+        <div class="stat-card-value" style="color: var(--warning);">{{ counts.to_approve or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Pending</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-calendar-minus"></i> Awaiting Authorization</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--info);">
+        <div class="stat-card-label">Campus Attendance</div>
+        <div class="stat-card-value" style="color: var(--info);">{{ office_days or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Days</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-building"></i> Physical On-Campus Logins</div>
+    </div>
+    {% elif user.role == 'Accountant' %}
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Finance &amp; Claims</div>
+        <div class="stat-card-value">{{ counts.expenses or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Claims</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--primary);"><i class="fas fa-file-invoice-dollar"></i> Pending Disbursement</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--info);">
+        <div class="stat-card-label">Payroll Records</div>
+        <div class="stat-card-value" style="color: var(--info);">Active</div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-receipt"></i> Monthly Salary History</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--warning);">
+        <div class="stat-card-label">Campus Attendance</div>
+        <div class="stat-card-value" style="color: var(--warning);">{{ office_days or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Days</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-check-circle"></i> Verified Physical Logins</div>
+    </div>
+    {% elif user.role == 'Principal' %}
+    <div class="stat-card" style="border-top: 3px solid var(--primary);">
+        <div class="stat-card-label">Campus Academic Schedule</div>
+        <div class="stat-card-value">{{ today_classes|length }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Sessions</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--primary);"><i class="fas fa-graduation-cap"></i> Classes Scheduled Today</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--warning);">
+        <div class="stat-card-label">Pending Leave Requests</div>
+        <div class="stat-card-value" style="color: var(--warning);">{{ counts.to_approve or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Pending</span></div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-calendar-check"></i> Principal Sign-off</div>
+    </div>
+    <div class="stat-card" style="border-top: 3px solid var(--info);">
+        <div class="stat-card-label">Audit Logs &amp; Security</div>
+        <div class="stat-card-value" style="color: var(--info);">Active</div>
+        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-shield-alt"></i> Complete Imperial Trail</div>
+    </div>
+    {% else %}
     <div class="stat-card" style="border-top: 3px solid var(--primary);">
         <div class="stat-card-label">Campus Attendance</div>
         <div class="stat-card-value">{{ office_days or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Days</span></div>
         <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-check-circle"></i> Office Physical Logins</div>
     </div>
-
     <div class="stat-card" style="border-top: 3px solid var(--info);">
-        <div class="stat-card-label">Remote Work (WFH)</div>
+        <div class="stat-card-label">Remote Work</div>
         <div class="stat-card-value" style="color: var(--info);">{{ wfh_days or 0 }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Days</span></div>
         <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-laptop-house"></i> Verified Remote Logins</div>
     </div>
-
     <div class="stat-card" style="border-top: 3px solid var(--warning);">
-        <div class="stat-card-label">Pending Assignments</div>
+        <div class="stat-card-label">Pending Tasks</div>
         <div class="stat-card-value" style="color: var(--warning);">{{ tasks|selectattr('is_done', 'equalto', false)|list|count }}</div>
         <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-tasks"></i> Active Tasks in Queue</div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Main Workspace Layout (2 Columns) -->
 <div class="grid grid-cols-3">
     <!-- Left 2 Columns -->
     <div style="grid-column: span 2;">
+        <!-- Role-Specific Action Strip -->
+        {% if user.role in ['Faculty', 'HOD - BCA Dept'] %}
+        <div class="card mb-3" style="background: var(--bg-surface); border-left: 4px solid var(--primary);">
+            <div class="card-body" style="padding: 16px 20px;">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">
+                    <i class="fas fa-bolt" style="color: var(--primary); margin-right: 6px;"></i> Teacher Quick Actions
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-primary btn-sm"><i class="fas fa-clipboard-check"></i> Mark Attendance</a>
+                    <a href="{{ url_for('assignment_create') }}" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Create Assignment</a>
+                    <a href="{{ url_for('study_material_upload') }}" class="btn btn-secondary btn-sm"><i class="fas fa-upload"></i> Upload Material</a>
+                    <a href="{{ url_for('student_timetables_upload') }}" class="btn btn-secondary btn-sm"><i class="fas fa-calendar-plus"></i> Upload Semester TT</a>
+                    <a href="{{ url_for('view_timetable') }}" class="btn btn-outline btn-sm"><i class="fas fa-clock"></i> Weekly Schedule</a>
+                </div>
+            </div>
+        </div>
+        {% elif user.role in ['admin', 'HR'] %}
+        <div class="card mb-3" style="background: var(--bg-surface); border-left: 4px solid #3b82f6;">
+            <div class="card-body" style="padding: 16px 20px;">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">
+                    <i class="fas fa-users-cog" style="color: #3b82f6; margin-right: 6px;"></i> Administrative Governance
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{{ url_for('admin_staff_master') }}" class="btn btn-primary btn-sm"><i class="fas fa-users"></i> Master Workforce Directory</a>
+                    <a href="{{ url_for('digital_vault') }}" class="btn btn-secondary btn-sm"><i class="fas fa-folder-open"></i> Digital Vault &amp; OCR</a>
+                    <a href="{{ url_for('leave_calendar') }}" class="btn btn-secondary btn-sm"><i class="fas fa-calendar-check"></i> Leave Approvals</a>
+                    <a href="{{ url_for('admin_devices') }}" class="btn btn-outline btn-sm"><i class="fas fa-mobile-alt"></i> Device Registry</a>
+                </div>
+            </div>
+        </div>
+        {% elif user.role == 'Accountant' %}
+        <div class="card mb-3" style="background: var(--bg-surface); border-left: 4px solid #10b981;">
+            <div class="card-body" style="padding: 16px 20px;">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">
+                    <i class="fas fa-file-invoice-dollar" style="color: #10b981; margin-right: 6px;"></i> Finance &amp; Accounts Portal
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{{ url_for('finance_tab') }}" class="btn btn-primary btn-sm"><i class="fas fa-check-circle"></i> Process Expense Claims</a>
+                    <a href="{{ url_for('payslip_history') }}" class="btn btn-secondary btn-sm"><i class="fas fa-receipt"></i> Monthly Payslip Records</a>
+                    <a href="{{ url_for('admin_staff_master') }}" class="btn btn-outline btn-sm"><i class="fas fa-users"></i> Staff Payroll Directory</a>
+                </div>
+            </div>
+        </div>
+        {% elif user.role == 'Principal' %}
+        <div class="card mb-3" style="background: var(--bg-surface); border-left: 4px solid #8b5cf6;">
+            <div class="card-body" style="padding: 16px 20px;">
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main);">
+                    <i class="fas fa-university" style="color: #8b5cf6; margin-right: 6px;"></i> Executive Command &amp; Oversight
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="{{ url_for('leave_calendar') }}" class="btn btn-primary btn-sm"><i class="fas fa-calendar-check"></i> Authorize Leaves</a>
+                    <a href="{{ url_for('timetable_overview') }}" class="btn btn-secondary btn-sm"><i class="fas fa-calendar-alt"></i> College Timetable</a>
+                    <a href="{{ url_for('academic_analytics_dashboard') }}" class="btn btn-secondary btn-sm"><i class="fas fa-chart-line"></i> Academic Analytics</a>
+                    <a href="{{ url_for('view_audit_logs') }}" class="btn btn-outline btn-sm"><i class="fas fa-shield-alt"></i> System Audit Trail</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         <!-- Today's Academic Schedule Widget -->
         {% if user.role in ['Faculty', 'HOD - BCA Dept', 'Principal'] %}
         <div class="card mb-3" style="border-top: 4px solid var(--primary);">

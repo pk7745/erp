@@ -209,6 +209,12 @@
 <div class="container">
     <!-- Academic Portal Tabs -->
     <div class="nav-tabs">
+        <a href="{{ url_for('student_dashboard') }}" class="nav-tab">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="{{ url_for('student_attendance_view') }}" class="nav-tab">
+            <i class="fas fa-chart-pie"></i> Attendance Analytics
+        </a>
         <a href="{{ url_for('student_marks') }}" class="nav-tab">
             <i class="fas fa-chart-bar"></i> Internal Marks
         </a>

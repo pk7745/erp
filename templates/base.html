@@ -123,17 +123,34 @@
                 </button>
                 
                 <!-- User Menu Dropdown -->
-                {% if session.get('name') %}
+                {% if session.get('student_id') or session.get('name') %}
+                {% set current_display_name = session.get('student_name') or session.get('name') %}
+                {% set current_display_role = 'Student' if session.get('student_id') else session.get('role') %}
                 <div class="dropdown">
                     <button class="navbar-user" id="user-menu-btn" onclick="toggleUserDropdown(event)">
-                        <div class="navbar-user-avatar">{{ session.get('name')[0] | upper }}</div>
+                        <div class="navbar-user-avatar">{{ current_display_name[0] | upper }}</div>
                         <div class="navbar-user-info">
-                            <div class="navbar-user-name">{{ session.get('name') }}</div>
-                            <div class="navbar-user-role">{{ session.get('role') }}</div>
+                            <div class="navbar-user-name">{{ current_display_name }}</div>
+                            <div class="navbar-user-role">{{ current_display_role }}</div>
                         </div>
                         <i class="fas fa-chevron-down" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 4px;"></i>
                     </button>
                     <div class="dropdown-menu" id="user-menu">
+                        {% if session.get('student_id') %}
+                        <a href="{{ url_for('student_dashboard') }}" class="dropdown-item">
+                            <i class="fas fa-home" style="margin-right: 8px;"></i> Student Dashboard
+                        </a>
+                        <a href="{{ url_for('student_attendance_view') }}" class="dropdown-item">
+                            <i class="fas fa-chart-pie" style="margin-right: 8px;"></i> Attendance Analytics
+                        </a>
+                        <a href="{{ url_for('student_marks') }}" class="dropdown-item">
+                            <i class="fas fa-award" style="margin-right: 8px;"></i> Internal Marks
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('student_logout') }}" class="dropdown-item" style="color: var(--danger);">
+                            <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Sign Out
+                        </a>
+                        {% else %}
                         <a href="{{ url_for('my_profile') }}" class="dropdown-item">
                             <i class="fas fa-user" style="margin-right: 8px;"></i> My Profile
                         </a>
@@ -144,6 +161,7 @@
                         <a href="{{ url_for('logout') }}" class="dropdown-item" style="color: var(--danger);">
                             <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Logout
                         </a>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -171,8 +189,47 @@
                 </div>
             </div>
             <nav class="sidebar-nav">
+                {% if session.get('student_id') %}
+                <!-- STUDENT PORTAL NAVIGATION -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Student Portal</div>
+                    <a href="{{ url_for('student_dashboard') }}" class="sidebar-link {% if request.endpoint == 'student_dashboard' %}active{% endif %}">
+                        <i class="fas fa-home sidebar-icon"></i>
+                        <span class="sidebar-label">Dashboard</span>
+                    </a>
+                    <a href="{{ url_for('student_attendance_view') }}" class="sidebar-link {% if request.endpoint in ['student_attendance_view', 'student_academic_analytics'] %}active{% endif %}">
+                        <i class="fas fa-chart-pie sidebar-icon"></i>
+                        <span class="sidebar-label">Attendance & 75% Tracker</span>
+                    </a>
+                    <a href="{{ url_for('student_marks') }}" class="sidebar-link {% if request.endpoint == 'student_marks' %}active{% endif %}">
+                        <i class="fas fa-award sidebar-icon"></i>
+                        <span class="sidebar-label">Internal Marks</span>
+                    </a>
+                    <a href="{{ url_for('student_assignments') }}" class="sidebar-link {% if request.endpoint in ['student_assignments', 'student_assignment_detail'] %}active{% endif %}">
+                        <i class="fas fa-tasks sidebar-icon"></i>
+                        <span class="sidebar-label">Assignments</span>
+                    </a>
+                    <a href="{{ url_for('student_study_materials') }}" class="sidebar-link {% if request.endpoint == 'student_study_materials' %}active{% endif %}">
+                        <i class="fas fa-book-open sidebar-icon"></i>
+                        <span class="sidebar-label">Study Materials</span>
+                    </a>
+                    <a href="{{ url_for('student_timetable_view') }}" class="sidebar-link {% if request.endpoint == 'student_timetable_view' %}active{% endif %}">
+                        <i class="fas fa-calendar-alt sidebar-icon"></i>
+                        <span class="sidebar-label">Semester Timetable</span>
+                    </a>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Account</div>
+                    <a href="{{ url_for('student_logout') }}" class="sidebar-link" style="color: var(--danger);">
+                        <i class="fas fa-sign-out-alt sidebar-icon"></i>
+                        <span class="sidebar-label">Sign Out</span>
+                    </a>
+                </div>
+                {% else %}
+                <!-- STAFF PORTAL NAVIGATION -->
+                {% set user_role = session.get('role') or (user.role if user else '') %}
                 
-                <!-- Main Section -->
+                <!-- Main Portal -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Main Portal</div>
                     <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
@@ -182,34 +239,23 @@
                     </a>
                 </div>
                 
-                <!-- Operations Section -->
+                <!-- Academic Operations (Faculty, HOD, Principal only - NOT Admin, NOT Accountant) -->
+                {% if user_role in ['Faculty', 'HOD - BCA Dept', 'Principal'] %}
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">Operations</div>
-                    <a href="{{ url_for('attendance') }}" class="sidebar-link {% if request.endpoint == 'attendance' %}active{% endif %}">
-                        <i class="fas fa-user-check sidebar-icon"></i>
-                        <span class="sidebar-label">Attendance</span>
-                    </a>
-                    <a href="{{ url_for('leave') }}" class="sidebar-link {% if request.endpoint == 'leave' %}active{% endif %}">
-                        <i class="fas fa-calendar-minus sidebar-icon"></i>
-                        <span class="sidebar-label">Leave Management</span>
-                        {% if counts and counts.my_leaves > 0 %}<span class="badge badge-primary" style="margin-left: auto;">{{ counts.my_leaves }}</span>{% endif %}
-                    </a>
+                    <div class="sidebar-section-title">Academic Operations</div>
                     <a href="{{ url_for('view_timetable') }}" class="sidebar-link {% if request.endpoint == 'view_timetable' %}active{% endif %}">
                         <i class="fas fa-clock sidebar-icon"></i>
                         <span class="sidebar-label">Weekly Schedule</span>
                     </a>
-                    {% if user and user.username != 'admin' and user.role != 'admin' %}
                     <a href="{{ url_for('timetable_overview') }}" class="sidebar-link {% if request.endpoint == 'timetable_overview' %}active{% endif %}">
                         <i class="fas fa-calendar-alt sidebar-icon"></i>
                         <span class="sidebar-label">College Timetable</span>
                     </a>
-                    {% endif %}
-                    <a href="{{ url_for('academic_attendance_history') }}" class="sidebar-link {% if request.endpoint in ['academic_attendance_history', 'view_class_session', 'take_academic_attendance'] %}active{% endif %}">
+                    <a href="{{ url_for('academic_attendance_history') }}" class="sidebar-link {% if request.endpoint in ['academic_attendance_history', 'view_class_session', 'take_academic_attendance', 'edit_academic_attendance'] %}active{% endif %}">
                         <i class="fas fa-user-graduate sidebar-icon"></i>
                         <span class="sidebar-label">Student Attendance</span>
                     </a>
-                    {% if user and user.role in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin'] %}
-                    <a href="{{ url_for('internal_marks_dashboard') }}" class="sidebar-link {% if request.endpoint in ['internal_marks_dashboard', 'internal_marks_students', 'internal_marks_entry', 'internal_marks_history', 'internal_marks_audit'] %}active{% endif %}">
+                    <a href="{{ url_for('internal_marks_dashboard') }}" class="sidebar-link {% if request.endpoint in ['internal_marks_dashboard', 'internal_marks_students', 'internal_marks_entry', 'internal_marks_history', 'internal_marks_audit', 'internal_marks_hod_restrictions'] %}active{% endif %}">
                         <i class="fas fa-edit sidebar-icon"></i>
                         <span class="sidebar-label">Internal Marks</span>
                     </a>
@@ -229,17 +275,21 @@
                         <i class="fas fa-calendar-check sidebar-icon"></i>
                         <span class="sidebar-label">Student Timetables</span>
                     </a>
-                    {% endif %}
-                    <a href="{{ url_for('assistant_ui') }}" class="sidebar-link {% if request.endpoint == 'assistant_ui' %}active{% endif %}">
-                        <i class="fas fa-robot sidebar-icon" style="color: #6366f1;"></i>
-                        <span class="sidebar-label">AI Operations Assistant</span>
-                        <span class="badge badge-success" style="margin-left: auto; font-size: 0.65rem;">AI</span>
-                    </a>
                 </div>
+                {% endif %}
                 
-                <!-- Collaboration & Finance Section -->
+                <!-- Staff Operations (All Staff) -->
                 <div class="sidebar-section">
-                    <div class="sidebar-section-title">Collaboration & Finance</div>
+                    <div class="sidebar-section-title">Staff Operations</div>
+                    <a href="{{ url_for('attendance') }}" class="sidebar-link {% if request.endpoint == 'attendance' %}active{% endif %}">
+                        <i class="fas fa-user-check sidebar-icon"></i>
+                        <span class="sidebar-label">Campus Attendance</span>
+                    </a>
+                    <a href="{{ url_for('leave') }}" class="sidebar-link {% if request.endpoint == 'leave' %}active{% endif %}">
+                        <i class="fas fa-calendar-minus sidebar-icon"></i>
+                        <span class="sidebar-label">Leave Management</span>
+                        {% if counts and counts.my_leaves > 0 %}<span class="badge badge-primary" style="margin-left: auto;">{{ counts.my_leaves }}</span>{% endif %}
+                    </a>
                     <a href="{{ url_for('chat') }}" class="sidebar-link {% if request.endpoint == 'chat' %}active{% endif %}">
                         <i class="fas fa-comments sidebar-icon"></i>
                         <span class="sidebar-label">BMS Connect Chat</span>
@@ -254,34 +304,55 @@
                         <span class="sidebar-label">Staff Directory</span>
                     </a>
                 </div>
-                
-                <!-- Admin & Management Section -->
-                {% if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept', 'admin', 'Accountant'] %}
+
+                <!-- Financial & Payroll (Accountant only) -->
+                {% if user_role == 'Accountant' %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Finance & Payroll</div>
+                    <a href="{{ url_for('finance_tab') }}" class="sidebar-link {% if request.endpoint == 'finance_tab' %}active{% endif %}">
+                        <i class="fas fa-file-invoice-dollar sidebar-icon"></i>
+                        <span class="sidebar-label">Finance Portal</span>
+                    </a>
+                    <a href="{{ url_for('payslip_history') }}" class="sidebar-link {% if request.endpoint == 'payslip_history' %}active{% endif %}">
+                        <i class="fas fa-receipt sidebar-icon"></i>
+                        <span class="sidebar-label">Payslip History</span>
+                    </a>
+                    <a href="{{ url_for('admin_staff_master') }}" class="sidebar-link {% if request.endpoint == 'admin_staff_master' %}active{% endif %}">
+                        <i class="fas fa-users-cog sidebar-icon"></i>
+                        <span class="sidebar-label">Workforce Directory</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Administrative & Oversight (Admin, HR, HOD, Principal) -->
+                {% if user_role in ['Principal', 'HR', 'HOD - BCA Dept', 'admin'] %}
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Administrative</div>
-                    {% if session.get('role') in ['Principal', 'HR', 'HOD - BCA Dept'] %}
+                    {% if user_role in ['Principal', 'HR', 'HOD - BCA Dept'] %}
                     <a href="{{ url_for('leave_calendar') }}" class="sidebar-link {% if request.endpoint == 'leave_calendar' %}active{% endif %}">
                         <i class="fas fa-calendar-alt sidebar-icon"></i>
                         <span class="sidebar-label">Leave Approvals</span>
                         {% if counts and counts.to_approve > 0 %}<span class="badge badge-warning" style="margin-left: auto;">{{ counts.to_approve }}</span>{% endif %}
                     </a>
                     {% endif %}
-                    {% if session.get('role') in ['admin', 'HR'] or session.get('username') == 'admin' %}
+                    {% if user_role in ['admin', 'HR'] %}
                     <a href="{{ url_for('digital_vault') }}" class="sidebar-link {% if request.endpoint == 'digital_vault' %}active{% endif %}">
                         <i class="fas fa-folder-open sidebar-icon"></i>
                         <span class="sidebar-label">Digital Vault</span>
                     </a>
-                    {% endif %}
-                    {% if session.get('role') in ['HR', 'Accountant', 'admin'] %}
                     <a href="{{ url_for('admin_staff_master') }}" class="sidebar-link {% if request.endpoint == 'admin_staff_master' %}active{% endif %}">
                         <i class="fas fa-users-cog sidebar-icon"></i>
                         <span class="sidebar-label">Master Workforce Directory</span>
+                    </a>
+                    <a href="{{ url_for('admin_devices') }}" class="sidebar-link {% if request.endpoint == 'admin_devices' %}active{% endif %}">
+                        <i class="fas fa-mobile-alt sidebar-icon"></i>
+                        <span class="sidebar-label">Device Management</span>
                     </a>
                     {% endif %}
                 </div>
                 {% endif %}
 
-                {% if session.get('role') == 'Principal' %}
+                {% if user_role == 'Principal' %}
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Security & Audit</div>
                     <a href="{{ url_for('view_audit_logs') }}" class="sidebar-link {% if request.endpoint == 'view_audit_logs' %}active{% endif %}">
@@ -292,24 +363,20 @@
                 {% endif %}
                 
                 <!-- Advanced Intelligence & Tools Section -->
-                {% if session.get('user_id') %}
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Intelligence & Tools</div>
+                    {% if user_role in ['Principal', 'HOD - BCA Dept', 'admin'] %}
                     <a href="{{ url_for('analytics') }}" class="sidebar-link {% if request.endpoint == 'analytics' %}active{% endif %}">
                         <i class="fas fa-chart-bar sidebar-icon"></i>
                         <span class="sidebar-label">Analytics Dashboard</span>
                     </a>
-                    <a href="{{ url_for('assistant') }}" class="sidebar-link {% if request.endpoint == 'assistant' %}active{% endif %}">
-                        <i class="fas fa-robot sidebar-icon"></i>
-                        <span class="sidebar-label">Gemini AI Assistant</span>
-                    </a>
-                    <a href="{{ url_for('attendance_qr') }}" class="sidebar-link {% if request.endpoint == 'attendance_qr' %}active{% endif %}">
-                        <i class="fas fa-qrcode sidebar-icon"></i>
-                        <span class="sidebar-label">QR Attendance</span>
+                    {% endif %}
+                    <a href="{{ url_for('assistant_ui') }}" class="sidebar-link {% if request.endpoint == 'assistant_ui' %}active{% endif %}">
+                        <i class="fas fa-robot sidebar-icon" style="color: #6366f1;"></i>
+                        <span class="sidebar-label">AI Operations Assistant</span>
                     </a>
                 </div>
                 {% endif %}
-                
                 <div class="sidebar-divider"></div>
             </nav>
             

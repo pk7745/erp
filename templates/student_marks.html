@@ -216,8 +216,14 @@
 <div class="container">
     {% if not is_staff_view %}
     <!-- Academic Portal Tabs -->
-    <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 24px;">
-        <a href="{{ url_for('student_marks') }}" style="padding: 12px 18px; text-decoration: none; color: #2563eb; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid #2563eb; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+    <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto;">
+        <a href="{{ url_for('student_dashboard') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="{{ url_for('student_attendance_view') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+            <i class="fas fa-chart-pie"></i> Attendance Analytics
+        </a>
+        <a href="{{ url_for('student_marks') }}" style="padding: 12px 18px; text-decoration: none; color: #2563eb; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid #2563eb; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
             <i class="fas fa-chart-bar"></i> Internal Marks
         </a>
         <a href="{{ url_for('student_assignments') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">

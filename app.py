@@ -1734,7 +1734,7 @@ def view_audit_logs():
     # SECURITY: Only allow Principal to see the 'Black Box'
     if session.get('role') != 'Principal':
         flash("Access Denied: You do not have permission to view system logs.", "error")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')), 403
     
     # Fetch all logs, newest first
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
@@ -1745,7 +1745,7 @@ def clear_audit_logs():
     # SECURITY: Only allow Principal to purge the records
     if session.get('role') != 'Principal':
         flash("Access Denied: You do not have permission to purge system logs.", "error")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')), 403
 
     try:
         # Deletes all entries in the AuditLog table
@@ -1836,6 +1836,10 @@ def timetable_overview():
 
     # Strict Admin Exclusion: Return 403 Forbidden
     if user.username == 'admin' or user.role == 'admin':
+        abort(403)
+
+    # Exclude non-academic staff (Accountant, Clerk) and students
+    if user.role in ['Accountant', 'Clerk']:
         abort(403)
 
     available_semesters = ['Sem I', 'Sem II', 'Sem III', 'Sem IV', 'Sem V', 'Sem VI']
@@ -2031,7 +2035,7 @@ def take_academic_attendance(timetable_id):
     )
     if not is_authorized:
         flash('You are not authorized to take attendance for this class.', 'danger')
-        return redirect(url_for('view_timetable'))
+        return redirect(url_for('view_timetable')), 403
 
     today_date = get_ist_time().date()
 
@@ -2185,7 +2189,7 @@ def view_class_session(session_id):
     if user.role not in ['Principal', 'HOD - BCA Dept', 'admin']:
         if session_obj.actual_faculty_id != user.id and session_obj.scheduled_faculty_id != user.id:
             flash('Unauthorized access to session details.', 'danger')
-            return redirect(url_for('view_timetable'))
+            return redirect(url_for('view_timetable')), 403
 
     attendances = StudentAttendance.query.filter_by(class_session_id=session_obj.id).join(Student).order_by(Student.uucms_id).all()
     total_count = len(attendances)
@@ -2219,7 +2223,7 @@ def edit_academic_attendance(session_id):
     )
     if not is_authorized:
         flash('You are not authorized to modify attendance for this class session.', 'danger')
-        return redirect(url_for('view_class_session', session_id=session_id))
+        return redirect(url_for('view_class_session', session_id=session_id)), 403
 
     if request.method == 'POST':
         # Optimistic concurrency check
@@ -2444,7 +2448,15 @@ def edit_academic_attendance(session_id):
 @app.route('/academic-attendance/history', methods=['GET'])
 @login_required
 def academic_attendance_history():
-    user = User.query.get(session['user_id'])
+    if 'student_id' in session:
+        flash('Access Denied: Academic attendance is restricted to staff.', 'danger')
+        return redirect(url_for('student_attendance_view')), 403
+
+    user = User.query.get(session.get('user_id'))
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Access Denied: Academic attendance is restricted to teaching faculty and administration.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
     is_management = user.role in ['Principal', 'HOD - BCA Dept', 'admin']
 
     query = ClassSession.query
@@ -2684,6 +2696,8 @@ def get_authorized_subject_contexts(user):
     return contexts
 
 def is_user_authorized_for_context(user, course, semester, section, subject):
+    if not user:
+        return False
     if user.role in ['Principal', 'admin']:
         return True
     if user.role == 'HOD - BCA Dept' and course == 'BCA':
@@ -2706,6 +2720,8 @@ def is_user_authorized_for_class(user, course, semester, section):
     - HOD - BCA Dept: BCA courses
     - Faculty: Classes where they teach at least one subject (via Timetable or ClassSession)
     """
+    if not user:
+        return False
     if user.role in ['Principal', 'admin']:
         return True
     if user.role == 'HOD - BCA Dept' and course == 'BCA':
@@ -4161,9 +4177,11 @@ def student_login():
         session['student_course'] = student.course
         session['student_semester'] = student.semester
         session['student_section'] = student.section
+        session['name'] = student.name
+        session['role'] = 'Student'
 
         flash(f'Welcome, {student.name}! You are signed into the Student Academic Portal.', 'success')
-        return redirect(url_for('student_marks'))
+        return redirect(url_for('student_dashboard'))
 
     return render_template('student_login.html')
 
@@ -4176,8 +4194,83 @@ def student_logout():
     session.pop('student_course', None)
     session.pop('student_semester', None)
     session.pop('student_section', None)
+    if session.get('role') == 'Student':
+        session.pop('name', None)
+        session.pop('role', None)
     flash('You have been logged out of the Student Portal.', 'info')
     return redirect(url_for('student_login'))
+@app.route('/student/dashboard', methods=['GET'])
+def student_dashboard():
+    if 'student_id' not in session:
+        if 'user_id' in session:
+            return redirect(url_for('dashboard'))
+        flash('Please login to the Student Academic Portal.', 'info')
+        return redirect(url_for('student_login'))
+
+    student = Student.query.get(session['student_id'])
+    if not student or not student.is_active:
+        session.clear()
+        flash('Invalid session or inactive student. Please login again.', 'warning')
+        return redirect(url_for('student_login'))
+
+    # Fetch analytics summary safely
+    try:
+        analytics_data = get_student_academic_analytics_profile(student, viewing_user=None)
+    except Exception:
+        analytics_data = None
+
+    # Fetch published assignments in student scope
+    assignments = Assignment.query.filter(
+        Assignment.course == student.course,
+        Assignment.academic_year == student.academic_year,
+        Assignment.semester == student.semester,
+        Assignment.section.in_([student.section, 'ALL']),
+        Assignment.status == 'Published'
+    ).order_by(Assignment.deadline.asc()).all()
+
+    submissions = {
+        s.assignment_id: s
+        for s in AssignmentSubmission.query.filter_by(student_id=student.id).all()
+    }
+
+    # Fetch published study materials count
+    study_materials_count = StudyMaterial.query.filter(
+        StudyMaterial.course == student.course,
+        StudyMaterial.academic_year == student.academic_year,
+        StudyMaterial.semester == student.semester,
+        StudyMaterial.section.in_([student.section, 'ALL']),
+        StudyMaterial.status == 'Published'
+    ).count()
+
+    # Fetch published semester timetable
+    timetable = StudentSemesterTimetable.query.filter(
+        StudentSemesterTimetable.course == student.course,
+        StudentSemesterTimetable.academic_year == student.academic_year,
+        StudentSemesterTimetable.semester == student.semester,
+        StudentSemesterTimetable.section.in_([student.section, 'ALL']),
+        StudentSemesterTimetable.status == 'PUBLISHED'
+    ).order_by(
+        db.case((StudentSemesterTimetable.section == student.section, 1), else_=2),
+        StudentSemesterTimetable.version.desc()
+    ).first()
+
+    return render_template(
+        'student_dashboard.html',
+        student=student,
+        analytics=analytics_data,
+        assignments=assignments,
+        submissions=submissions,
+        study_materials_count=study_materials_count,
+        timetable=timetable
+    )
+
+@app.route('/student/attendance', methods=['GET'])
+def student_attendance_view():
+    if 'student_id' not in session:
+        flash('Please login to the Student Academic Portal.', 'info')
+        return redirect(url_for('student_login'))
+    return redirect(url_for('student_academic_analytics', student_id=session['student_id']))
+
 
 
 @app.route('/student/marks', methods=['GET'])
@@ -6785,6 +6878,25 @@ def academic_analytics_dashboard():
 
 @app.route('/academic/analytics/student/<int:student_id>', methods=['GET'])
 def student_academic_analytics(student_id):
+    # 1. Student Session Check
+    if 'student_id' in session:
+        logged_student_id = session['student_id']
+        if student_id != logged_student_id:
+            flash("Security Violation: You are not authorized to view another student's attendance analytics.", "danger")
+            return abort(403)
+        student = Student.query.get(student_id)
+        if not student:
+            return abort(404)
+        profile_data = get_student_academic_analytics_profile(student, viewing_user=None)
+        return render_template(
+            'academic/analytics/student_detail.html',
+            user=None,
+            profile=profile_data,
+            student=student,
+            is_student_view=True
+        )
+
+    # 2. Staff Session Check
     if 'user_id' not in session:
         flash('Please login to view student academic analytics.', 'info')
         return redirect(url_for('login'))
@@ -6809,7 +6921,8 @@ def student_academic_analytics(student_id):
         'academic/analytics/student_detail.html',
         user=user,
         profile=profile_data,
-        student=student
+        student=student,
+        is_student_view=False
     )
 
 
@@ -6916,9 +7029,10 @@ from datetime import datetime, date
 
 @app.route('/leave_calendar')
 def leave_calendar():
-    # 1. Strict Access Control: Only Principal and HR allowed (Updated to match sidebar access)
-    if session.get('role') not in ['Principal', 'HR']:
-        return redirect(url_for('dashboard'))
+    # 1. Strict Access Control: Only Principal, HR, and HOD allowed (Updated to match sidebar access)
+    if session.get('role') not in ['Principal', 'HR', 'HOD - BCA Dept']:
+        flash('Access Denied: Leave approval calendar is restricted to managers.', 'danger')
+        return redirect(url_for('dashboard')), 403
     
     today_date = date.today()
     approved_leaves = Leave.query.filter_by(status='Approved').all()
@@ -7000,7 +7114,7 @@ def digital_vault():
     user = User.query.get(session['user_id'])
     if not user or not is_admin_user(user):
         flash('Access Restricted! Digital Vault is strictly restricted to Admin Department.', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')), 403
 
     is_admin = True
     pending_proposals = VaultProposal.query.filter_by(status='PENDING_APPROVAL').order_by(VaultProposal.created_at.desc()).all()
@@ -7430,6 +7544,8 @@ def scan_and_import():
     
 @app.route('/dashboard')
 def dashboard():
+    if 'student_id' in session:
+        return redirect(url_for('student_dashboard'))
     if 'user_id' not in session: 
         return redirect(url_for('login'))
     
@@ -7532,7 +7648,9 @@ def profile():
 
 @app.route('/finance')
 def finance_tab():
-    if session.get('role') != 'Accountant': return redirect(url_for('dashboard'))
+    if session.get('role') != 'Accountant':
+        flash('Access Denied: Financial portal is restricted to Accountants.', 'danger')
+        return redirect(url_for('dashboard')), 403
     pending = ExpenseClaim.query.filter_by(status='Approved by HR').all()
     return render_template('finance.html', pending=pending)
 
@@ -7561,6 +7679,9 @@ def download_salary_certificate():
 
 @app.route('/staff_directory')
 def staff_directory():
+    if 'student_id' in session:
+        flash('Access Denied: Staff directory is restricted to employees.', 'danger')
+        return redirect(url_for('student_dashboard')), 403
     if 'user_id' not in session: return redirect(url_for('login'))
     curr_user = User.query.get(session['user_id'])
     # Full list is restricted to Accounts, HR, and Admin; others see only their individual payroll
@@ -8093,7 +8214,7 @@ def admin_staff_master():
     user = User.query.get(session['user_id'])
     if not user or user.role.lower() not in ['hr', 'accountant', 'admin']:
         flash('Access Restricted! Master Workforce Section is restricted to Admin Department.', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')), 403
 
     all_staff = User.query.order_by(User.full_name.asc()).all()
     return render_template('admin_staff_master.html', all_staff=all_staff)
@@ -8104,7 +8225,7 @@ def admin_edit_staff(uid):
     user = User.query.get(session['user_id'])
     if not user or user.role.lower() not in ['hr', 'accountant', 'admin']:
         flash('Access Restricted! Only Admin Department can edit staff profiles.', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dashboard')), 403
 
     emp = User.query.get(uid)
     if not emp:
@@ -8144,6 +8265,9 @@ def admin_edit_staff(uid):
 
 @app.route('/attendance', methods=['GET', 'POST'])
 def attendance():
+    if 'student_id' in session:
+        flash('Access Denied: Staff attendance portal is restricted to employees.', 'danger')
+        return redirect(url_for('student_dashboard')), 403
     if 'user_id' not in session: 
         return redirect(url_for('login'))
         
@@ -8299,6 +8423,9 @@ def monthly_summary():
     
 @app.route('/leave', methods=['GET', 'POST'])
 def leave():
+    if 'student_id' in session:
+        flash('Access Denied: Staff leave portal is restricted to employees.', 'danger')
+        return redirect(url_for('student_dashboard')), 403
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     limit, taken = 20, Leave.query.filter_by(user_id=session['user_id'], status='Approved').count()
@@ -8373,6 +8500,9 @@ from datetime import datetime
 
 @app.route('/expenses', methods=['GET', 'POST'])
 def expenses():
+    if 'student_id' in session:
+        flash('Access Denied: Staff expenses portal is restricted to employees.', 'danger')
+        return redirect(url_for('student_dashboard')), 403
     if 'user_id' not in session: return redirect(url_for('login'))
     user = User.query.get(session['user_id'])
     
@@ -9882,8 +10012,8 @@ def admin_geofence_update():
 def admin_devices():
     user = User.query.get(session['user_id'])
     if not user or user.role not in ['admin', 'HR', 'Principal']:
-        flash('Unauthorized access to Device Registry.')
-        return redirect(url_for('dashboard'))
+        flash('Unauthorized access to Device Registry.', 'danger')
+        return redirect(url_for('dashboard')), 403
 
     devices = RegisteredDevice.query.order_by(RegisteredDevice.first_seen.desc()).all()
     return render_template('admin_devices.html', devices=devices)
