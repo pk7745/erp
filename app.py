@@ -10634,7 +10634,8 @@ if __name__ == '__main__':
             print(f"👉 Access Portal at: http://localhost:{port}")
             print("👉 Default Login: Username: admin | Password: bms123")
             print("="*55 + "\n")
-            socketio.run(app, host='127.0.0.1', port=port, allow_unsafe_werkzeug=True)
+            flask_host = os.environ.get('FLASK_HOST', '0.0.0.0')
+            socketio.run(app, host=flask_host, port=port, allow_unsafe_werkzeug=True)
             break
         except OSError as e:
             if "10048" in str(e) or "address already in use" in str(e).lower():
