@@ -108,7 +108,19 @@ if not os.path.exists(data_dir):
 destination_db = os.path.join(data_dir, 'bms_college_v30.db')
 database_url = os.environ.get('DATABASE_URL')
 
-if database_url:
+# Check if automated test execution is active to protect production database
+is_running_tests = (
+    'pytest' in sys.modules
+    or any('pytest' in arg for arg in sys.argv)
+    or any(os.path.basename(arg).startswith('test_') for arg in sys.argv)
+    or os.environ.get('TESTING') in ('1', 'true', 'True')
+    or app.config.get('TESTING')
+)
+
+if is_running_tests:
+    # Automated tests stay isolated on local database to guarantee production PostgreSQL safety
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
+elif database_url:
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     
@@ -120,19 +132,24 @@ if database_url:
 
     try:
         import psycopg2
-        test_conn = psycopg2.connect(database_url, connect_timeout=5)
+        test_conn = psycopg2.connect(database_url, connect_timeout=10)
         test_conn.close()
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 3,
-            'max_overflow': 5,
-            'pool_recycle': 120,
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_recycle': 300,
             'pool_pre_ping': True,
         }
+        print("Connected to PostgreSQL Production Database (Supabase pooler).")
     except Exception as e:
-        print(f"⚠️ PostgreSQL Cloud Notice: {e}. Active mode: Local Database.")
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
+        # If DATABASE_URL is explicitly configured, fail clearly. Silent SQLite fallback is disabled!
+        raise RuntimeError(
+            f"CRITICAL: Failed to connect to configured PostgreSQL database ({e}). "
+            "Silent fallback to SQLite is strictly disabled to prevent data divergence."
+        ) from e
 else:
+    print("WARNING: No DATABASE_URL environment variable provided. Defaulting to local SQLite database.")
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + destination_db
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
