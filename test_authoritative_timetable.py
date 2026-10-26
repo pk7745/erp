@@ -120,6 +120,43 @@ class AuthoritativeTimetableTestCase(unittest.TestCase):
         res = self.client.get('/timetable/overview')
         self.assertEqual(res.status_code, 302, "Anonymous user must be redirected to login")
 
+    def test_10_semester_selection_overview(self):
+        with app.app_context():
+            balram = User.query.filter_by(username='balram').first()
+            balram_id = balram.id
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(balram_id)
+            sess['user_id'] = balram_id
+
+        # Verify Sem I selection displays Sem I subjects and slot count
+        res_sem1 = self.client.get('/timetable/overview?semester=Sem+I')
+        self.assertEqual(res_sem1.status_code, 200)
+        self.assertIn(b'Sem I (Section A)', res_sem1.data)
+        self.assertIn(b'C Programming', res_sem1.data)
+        self.assertIn(b'8 Slots Scheduled', res_sem1.data)
+
+        # Verify Sem IV selection displays Sem IV subjects
+        res_sem4 = self.client.get('/timetable/overview?semester=Sem+IV')
+        self.assertEqual(res_sem4.status_code, 200)
+        self.assertIn(b'Sem IV (Section A)', res_sem4.data)
+        self.assertIn(b'Design and Analysis of Algorithms', res_sem4.data)
+        self.assertIn(b'11 Slots Scheduled', res_sem4.data)
+
+    def test_11_invalid_semester_fallback(self):
+        with app.app_context():
+            balram = User.query.filter_by(username='balram').first()
+            balram_id = balram.id
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(balram_id)
+            sess['user_id'] = balram_id
+
+        res_invalid = self.client.get('/timetable/overview?semester=NonExistentSem')
+        self.assertEqual(res_invalid.status_code, 200)
+        self.assertIn(b'Sem V (Section A)', res_invalid.data)
+        self.assertIn(b'Web Programming', res_invalid.data)
+
 
 if __name__ == '__main__':
     unittest.main()

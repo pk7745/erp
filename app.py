@@ -1838,8 +1838,23 @@ def timetable_overview():
     if user.username == 'admin' or user.role == 'admin':
         abort(403)
 
-    # Fetch authoritative Sem V timetable entries
-    sem5_entries = Timetable.query.filter_by(semester='Sem V').all()
+    available_semesters = ['Sem I', 'Sem II', 'Sem III', 'Sem IV', 'Sem V', 'Sem VI']
+    try:
+        db_sems = [r[0] for r in db.session.query(Timetable.semester).distinct().all() if r[0]]
+        for s in db_sems:
+            if s not in available_semesters:
+                available_semesters.append(s)
+    except Exception:
+        pass
+
+    selected_semester = request.args.get('semester', 'Sem V')
+    if selected_semester:
+        selected_semester = selected_semester.strip()
+    if not selected_semester or selected_semester not in available_semesters:
+        selected_semester = 'Sem V'
+
+    # Fetch timetable entries for selected semester
+    semester_entries = Timetable.query.filter_by(semester=selected_semester).all()
 
     # Organize entries by day
     timetable_by_day = {
@@ -1850,7 +1865,7 @@ def timetable_overview():
         'Friday': [],
         'Saturday': []
     }
-    for entry in sem5_entries:
+    for entry in semester_entries:
         if entry.day in timetable_by_day:
             timetable_by_day[entry.day].append(entry)
 
@@ -1858,11 +1873,32 @@ def timetable_overview():
     for day in timetable_by_day:
         timetable_by_day[day].sort(key=lambda e: _parse_slot_minutes(e.time_slot)[0])
 
+    # Faculty teaching allocations for selected semester
+    faculty_allocations = {}
+    for entry in semester_entries:
+        fac_name = entry.faculty.full_name if (entry.faculty and entry.faculty.full_name) else 'Department Faculty'
+        if fac_name not in faculty_allocations:
+            faculty_allocations[fac_name] = {
+                'faculty': entry.faculty,
+                'subjects': set(),
+                'rooms': set(),
+                'slot_count': 0
+            }
+        faculty_allocations[fac_name]['subjects'].add(entry.subject)
+        if entry.room_no:
+            faculty_allocations[fac_name]['rooms'].add(f'Room {entry.room_no}')
+        faculty_allocations[fac_name]['slot_count'] += 1
+
     return render_template(
         'timetable_overview.html',
         user=user,
         timetable_by_day=timetable_by_day,
-        sem5_entries=sem5_entries
+        sem5_entries=semester_entries,  # Backwards compatibility
+        semester_entries=semester_entries,
+        selected_semester=selected_semester,
+        available_semesters=available_semesters,
+        faculty_allocations=faculty_allocations,
+        total_slots=len(semester_entries)
     )
 
 
