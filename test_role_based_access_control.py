@@ -1,7 +1,7 @@
 import os
 import unittest
-from datetime import datetime, date
-from app import app, db, User, Student, Timetable, ClassSession, StudentAttendance, InternalMark
+from datetime import datetime, date, timedelta
+from app import app, db, User, Student, Timetable, ClassSession, StudentAttendance, InternalMark, Assignment, StudyMaterial, StudentSemesterTimetable, generate_password_hash
 
 class RoleBasedAccessControlTestCase(unittest.TestCase):
     """
@@ -382,5 +382,141 @@ class RoleBasedAccessControlTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
 
 
+    # --------------------------------------------------------------------------
+    # 15. Student Password Authentication
+    # --------------------------------------------------------------------------
+    def test_15_student_password_authentication(self):
+        # 1. Login with correct UUCMS ID and valid generated password
+        res = self.client.post('/student/login', data={
+            'uucms_id': self.student1.uucms_id,
+            'password': self.student1.raw_password
+        }, follow_redirects=False)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn('/student/dashboard', res.headers.get('Location', ''))
+
+        with self.client.session_transaction() as sess:
+            self.assertEqual(sess.get('student_id'), self.student1.id)
+            self.assertEqual(sess.get('role'), 'Student')
+
+        # 2. Login with correct UUCMS ID but WRONG password
+        res_fail = self.client.post('/student/login', data={
+            'uucms_id': self.student1.uucms_id,
+            'password': 'WrongPassword123!'
+        }, follow_redirects=True)
+        self.assertEqual(res_fail.status_code, 200)
+        html = res_fail.data.decode('utf-8')
+        self.assertIn('Invalid password', html)
+
+        # 3. Login with nonexistent UUCMS ID
+        res_bad_id = self.client.post('/student/login', data={
+            'uucms_id': 'NONEXISTENT_UUCMS_9999',
+            'password': 'AnyPassword123!'
+        }, follow_redirects=True)
+        self.assertEqual(res_bad_id.status_code, 200)
+        html_bad = res_bad_id.data.decode('utf-8')
+        self.assertIn('Invalid or inactive UUCMS ID', html_bad)
+
+    # --------------------------------------------------------------------------
+    # 16. Strict Student Semester Isolation
+    # --------------------------------------------------------------------------
+    def test_16_strict_student_semester_isolation(self):
+        created_ids = {}
+        with app.app_context():
+            now_dt = datetime.utcnow()
+            # Ensure an assignment in Sem III exists
+            sem3_asgn = Assignment(
+                title='TEST_Sem3_Iso_Assignment',
+                description='Sem III only',
+                subject='Data Structures',
+                course='BCA',
+                academic_year='2nd Year',
+                semester='Sem III',
+                section='A',
+                assigned_date=now_dt.date(),
+                deadline=now_dt + timedelta(days=7),
+                status='Published',
+                created_by_id=self.faculty.id,
+                updated_by_id=self.faculty.id
+            )
+            db.session.add(sem3_asgn)
+
+            # Ensure a study material in Sem III exists
+            sem3_mat = StudyMaterial(
+                title='TEST_Sem3_DS_Notes',
+                category='Textbooks',
+                subject='Data Structures',
+                course='BCA',
+                academic_year='2nd Year',
+                semester='Sem III',
+                section='A',
+                file_filename='ds_notes.pdf',
+                file_storage_key='dummy_sem3_ds_notes.pdf',
+                file_mimetype='application/pdf',
+                file_size=1024,
+                status='Published',
+                created_by_id=self.faculty.id,
+                updated_by_id=self.faculty.id
+            )
+            db.session.add(sem3_mat)
+
+            # Ensure a timetable in Sem III exists
+            sem3_tt = StudentSemesterTimetable(
+                title='TEST_BCA_Sem3_Timetable',
+                course='BCA',
+                academic_year='2nd Year',
+                semester='Sem III',
+                section='A',
+                status='PUBLISHED',
+                file_filename='bca_sem3_tt.pdf',
+                file_storage_key='dummy_sem3_tt.pdf',
+                file_mimetype='application/pdf',
+                file_size=1024,
+                version=1,
+                uploaded_by_id=self.faculty.id
+            )
+            db.session.add(sem3_tt)
+            db.session.commit()
+
+            created_ids['asgn'] = sem3_asgn.id
+            created_ids['mat'] = sem3_mat.id
+            created_ids['tt'] = sem3_tt.id
+
+        try:
+            # Log in as student1 who is enrolled in Sem V
+            self.assertEqual(self.student1.semester, 'Sem V')
+            self._login_as_student(self.student1)
+
+            # 1. Sem V student attempting to view Sem III assignment detail -> 403 Forbidden
+            res = self.client.get(f'/student/assignments/{created_ids["asgn"]}')
+            self.assertEqual(res.status_code, 403)
+
+            # 2. Sem V student attempting to submit to Sem III assignment -> 403 Forbidden
+            res = self.client.post(f'/student/assignments/{created_ids["asgn"]}/submit', data={'student_comment': 'Hack attempt'})
+            self.assertEqual(res.status_code, 403)
+
+            # 3. Sem V student attempting to preview Sem III study material -> 403 Forbidden
+            res = self.client.get(f'/academic/study-materials/{created_ids["mat"]}/preview')
+            self.assertEqual(res.status_code, 403)
+
+            # 4. Sem V student attempting to download Sem III study material -> 403 Forbidden
+            res = self.client.get(f'/academic/study-materials/{created_ids["mat"]}/download')
+            self.assertEqual(res.status_code, 403)
+
+            # 5. Sem V student attempting to view Sem III semester timetable document -> 403 Forbidden
+            res = self.client.get(f'/academic/student-timetables/{created_ids["tt"]}/view')
+            self.assertEqual(res.status_code, 403)
+
+            # 6. Sem V student attempting to download Sem III semester timetable document -> 403 Forbidden
+            res = self.client.get(f'/academic/student-timetables/{created_ids["tt"]}/download')
+            self.assertEqual(res.status_code, 403)
+        finally:
+            with app.app_context():
+                Assignment.query.filter_by(id=created_ids['asgn']).delete()
+                StudyMaterial.query.filter_by(id=created_ids['mat']).delete()
+                StudentSemesterTimetable.query.filter_by(id=created_ids['tt']).delete()
+                db.session.commit()
+
+
 if __name__ == '__main__':
     unittest.main()
+

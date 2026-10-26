@@ -90,23 +90,53 @@
     {% endwith %}
 
     <form method="POST" action="{{ url_for('student_login') }}">
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 18px;">
             <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px;">
                 Official UUCMS ID / Registration Number
             </label>
             <div style="position: relative;">
-                <input type="text" name="uucms_id" class="form-control" style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; font-family: monospace; font-weight: 700; text-transform: uppercase; box-sizing: border-box;" placeholder="e.g. U18IN24S0004" required autofocus>
+                <input type="text" name="uucms_id" value="{{ uucms_id or '' }}" class="form-control" style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; font-family: monospace; font-weight: 700; text-transform: uppercase; box-sizing: border-box;" placeholder="e.g. U18IN24S0004" required {% if not uucms_id %}autofocus{% endif %}>
                 <i class="fas fa-id-card" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
             </div>
-            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
                 Enter the unique student identification number issued by the university.
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        <div style="margin-bottom: 22px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 6px;">
+                Student Portal Password
+            </label>
+            <div style="position: relative;">
+                <input type="password" id="student_password" name="password" class="form-control" style="width: 100%; padding: 12px 42px 12px 38px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; box-sizing: border-box;" placeholder="Enter your confidential password" required {% if uucms_id %}autofocus{% endif %}>
+                <i class="fas fa-lock" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 0.9rem;"></i>
+                <button type="button" id="togglePasswordBtn" onclick="toggleStudentPassword()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px;">
+                    <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                </button>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
+                Enter your assigned student portal credentials.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
             Access Academic Records <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </form>
+
+    <script>
+        function toggleStudentPassword() {
+            var pwd = document.getElementById('student_password');
+            var icon = document.getElementById('togglePasswordIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                pwd.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+    </script>
 
     <div style="margin-top: 24px; text-align: center; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 18px;">
         Faculty or Administration? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 700; text-decoration: none;">Executive Portal Login</a>
