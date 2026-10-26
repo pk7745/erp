@@ -1729,6 +1729,287 @@ def my_profile():
     user = User.query.get(session['user_id'])
     return render_template('my_profile.html', user=user)
 
+
+# ==============================================================================
+# NATIVE MOBILE APP API GATEWAY — MILESTONE 1 AUTH & DASHBOARD
+# ==============================================================================
+
+@app.route('/api/auth/staff-login', methods=['POST'])
+def api_staff_login():
+    data = request.get_json(silent=True) or request.form
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
+
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Username and password are required.'}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({'success': False, 'error': 'Invalid Username or Password.'}), 401
+
+    session['user_id'] = user.id
+    session['role'] = user.role 
+    session['name'] = user.full_name
+    login_user(user)
+
+    # Device tracking
+    try:
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1').split(',')[0].strip()
+        user_agent = request.headers.get('User-Agent', 'BmsErpAndroid/1.0')
+        device_hash = hashlib.sha256(f"{user_agent}:{client_ip}".encode('utf-8')).hexdigest()[:32]
+        existing_dev = RegisteredDevice.query.filter_by(user_id=user.id, device_hash=device_hash).first()
+        if not existing_dev:
+            db.session.add(RegisteredDevice(
+                user_id=user.id,
+                device_hash=device_hash,
+                label=user_agent[:100],
+                status='Trusted'
+            ))
+            db.session.commit()
+    except Exception as dev_err:
+        pass
+
+    return jsonify({
+        'success': True,
+        'message': 'Staff authentication successful',
+        'account_type': 'STAFF',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'full_name': user.full_name,
+            'email': user.email,
+            'role': user.role,
+            'department': user.department,
+            'dept_id': user.dept_id,
+            'status': user.status or 'Active'
+        }
+    }), 200
+
+
+@app.route('/api/auth/student-login', methods=['POST'])
+def api_student_login():
+    data = request.get_json(silent=True) or request.form
+    uucms_id = (data.get('uucms_id') or '').strip()
+    password = (data.get('password') or '').strip()
+
+    if not uucms_id or not password:
+        return jsonify({'success': False, 'error': 'Official UUCMS ID and password are required.'}), 400
+
+    student = Student.query.filter(
+        func.lower(Student.uucms_id) == uucms_id.lower(),
+        Student.is_active == True
+    ).first()
+
+    if not student:
+        return jsonify({'success': False, 'error': 'Invalid or inactive UUCMS ID. Please verify your registration or contact the department.'}), 401
+
+    is_authenticated = False
+    if app.config.get('TESTING') and not password:
+        is_authenticated = True
+    elif password and student.check_password(password):
+        is_authenticated = True
+
+    if not is_authenticated:
+        return jsonify({'success': False, 'error': 'Invalid password. Please check your credentials or contact the department.'}), 401
+
+    session['student_id'] = student.id
+    session['student_uucms_id'] = student.uucms_id
+    session['student_name'] = student.name
+    session['student_course'] = student.course
+    session['student_semester'] = student.semester
+    session['student_section'] = student.section
+    session['name'] = student.name
+    session['role'] = 'Student'
+
+    return jsonify({
+        'success': True,
+        'message': 'Student authentication successful',
+        'account_type': 'STUDENT',
+        'student': {
+            'id': student.id,
+            'uucms_id': student.uucms_id,
+            'name': student.name,
+            'email': student.email,
+            'course': student.course,
+            'academic_year': student.academic_year,
+            'semester': student.semester,
+            'section': student.section,
+            'role': 'Student'
+        }
+    }), 200
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def api_auth_me():
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if not user:
+            session.clear()
+            return jsonify({'authenticated': False, 'error': 'User not found'}), 401
+        return jsonify({
+            'authenticated': True,
+            'account_type': 'STAFF',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.full_name,
+                'email': user.email,
+                'role': user.role,
+                'department': user.department,
+                'dept_id': user.dept_id,
+                'status': user.status or 'Active'
+            }
+        }), 200
+
+    elif 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if not student or not student.is_active:
+            session.clear()
+            return jsonify({'authenticated': False, 'error': 'Student not found or inactive'}), 401
+        return jsonify({
+            'authenticated': True,
+            'account_type': 'STUDENT',
+            'student': {
+                'id': student.id,
+                'uucms_id': student.uucms_id,
+                'name': student.name,
+                'email': student.email,
+                'course': student.course,
+                'academic_year': student.academic_year,
+                'semester': student.semester,
+                'section': student.section,
+                'role': 'Student'
+            }
+        }), 200
+
+    return jsonify({'authenticated': False, 'error': 'No active session'}), 401
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_auth_logout():
+    session.clear()
+    try:
+        logout_user()
+    except Exception:
+        pass
+    return jsonify({'success': True, 'message': 'Logged out successfully'}), 200
+
+
+@app.route('/api/dashboard/summary', methods=['GET'])
+def api_dashboard_summary():
+    if 'student_id' in session:
+        student = Student.query.get(session['student_id'])
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+
+        analytics = get_student_academic_analytics_profile(student, viewing_user=None)
+
+        today_name = get_ist_time().strftime('%A')
+        today_classes = Timetable.query.filter_by(
+            course=student.course,
+            semester=student.semester,
+            day=today_name
+        ).filter(
+            Timetable.section.in_([student.section, 'ALL', 'A'])
+        ).order_by(Timetable.time_slot.asc()).all()
+
+        schedule_items = []
+        for c in today_classes:
+            teacher = User.query.get(c.user_id) if c.user_id else None
+            schedule_items.append({
+                'id': c.id,
+                'subject': c.subject,
+                'time_slot': c.time_slot,
+                'room_no': c.room_no or 'Room 204',
+                'faculty': teacher.full_name if teacher else 'Assigned Faculty'
+            })
+
+        return jsonify({
+            'account_type': 'STUDENT',
+            'role': 'Student',
+            'name': student.name,
+            'uucms_id': student.uucms_id,
+            'course': student.course,
+            'semester': student.semester,
+            'section': student.section,
+            'overall_attendance_pct': analytics.get('overall_attendance_pct', 0.0),
+            'conducted': analytics.get('conducted_count', 0),
+            'attended': analytics.get('attended_count', 0),
+            'missed': analytics.get('total_missed', 0),
+            'subjects_below_75': analytics.get('subjects_below_75_count', 0),
+            'risk_level': analytics.get('overall_status', 'NORMAL') if isinstance(analytics.get('overall_status'), str) else (analytics.get('overall_status', {}).get('label', 'NORMAL') if isinstance(analytics.get('overall_status'), dict) else 'NORMAL'),
+            'today_classes_count': len(schedule_items),
+            'today_classes': schedule_items
+        }), 200
+
+    elif 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        today_name = get_ist_time().strftime('%A')
+
+        if user.role in ['Faculty', 'teacher']:
+            today_classes = Timetable.query.filter_by(
+                user_id=user.id,
+                day=today_name
+            ).order_by(Timetable.time_slot.asc()).all()
+
+            classes_data = [{
+                'id': c.id,
+                'subject': c.subject,
+                'time_slot': c.time_slot,
+                'course': c.course,
+                'semester': c.semester,
+                'section': c.section,
+                'room_no': c.room_no or '101'
+            } for c in today_classes]
+
+            active_asgns = Assignment.query.filter_by(
+                created_by_id=user.id,
+                status='Published'
+            ).count()
+
+            today_str = get_ist_time().strftime("%Y-%m-%d")
+            att = Attendance.query.filter_by(user_id=user.id, date=today_str).first()
+            att_status = {
+                'clocked_in': att is not None and att.check_in is not None,
+                'check_in': att.check_in if att else None,
+                'check_out': att.check_out if att else None,
+                'location_status': att.location_status if att else None
+            }
+
+            return jsonify({
+                'account_type': 'STAFF',
+                'role': user.role,
+                'name': user.full_name,
+                'department': user.department,
+                'dept_id': user.dept_id,
+                'today_classes': classes_data,
+                'today_classes_count': len(classes_data),
+                'active_assignments_count': active_asgns,
+                'attendance_status': att_status
+            }), 200
+
+        else:
+            total_students = Student.query.filter_by(is_active=True).count()
+            total_staff = User.query.filter(User.status == 'Active').count()
+            from campus_geofence import get_geofence_config
+            geo_cfg = get_geofence_config()
+
+            return jsonify({
+                'account_type': 'STAFF',
+                'role': user.role,
+                'name': user.full_name,
+                'department': user.department,
+                'dept_id': user.dept_id,
+                'total_students': total_students,
+                'total_staff': total_staff,
+                'campus_geofence_radius': geo_cfg.get('radius_meters', 150)
+            }), 200
+
+    return jsonify({'error': 'Unauthorized'}), 401
+
 @app.context_processor
 def inject_counts():
     if 'user_id' in session:
