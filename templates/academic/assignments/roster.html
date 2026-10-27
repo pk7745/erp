@@ -3,30 +3,30 @@
 {% block title %}Submission Roster — {{ assignment.title }} | BMS College ERP{% endblock %}
 
 {% block content %}
-<div class="page-container" style="padding: 24px;">
+<div class="page-container" style="padding: 24px; padding-bottom: 70px;">
     <!-- Breadcrumb & Top Bar -->
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: #1E3E62; text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
             <i class="fas fa-arrow-left"></i> Back to Assignment Detail
         </a>
     </div>
 
     <!-- Header Summary Card -->
-    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-top: 4px solid #1E3E62; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(11,25,44,0.04);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
             <div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                    <span class="badge" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                    <span class="badge" style="background: #1E3E62; color: #ffffff; border: 1px solid #C5A059; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
                         {{ assignment.course }} {{ assignment.semester }} • Sec {{ assignment.section }}
                     </span>
-                    <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
+                    <span class="badge" style="background: rgba(197, 160, 89, 0.15); color: #0B192C; border: 1px solid #C5A059; font-weight: 800; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;">
                         {{ assignment.subject }}
                     </span>
                 </div>
-                <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-main);">
+                <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: #0B192C;">
                     Submission Roster: {{ assignment.title }}
                 </h1>
-                <div style="margin-top: 6px; font-size: 0.85rem; color: var(--text-muted);">
+                <div style="margin-top: 6px; font-size: 0.85rem; color: #64748B;">
                     Deadline: <strong>{{ assignment.deadline.strftime('%d %b %Y, %I:%M %p') }}</strong> • Max Marks: <strong>{{ assignment.max_marks or 'N/A' }}</strong>
                 </div>
             </div>

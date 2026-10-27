@@ -1,99 +1,490 @@
 {% extends "base.html" %}
 {% block title %}Expense Claims - BMS College ERP{% endblock %}
 
-{% block content %}
-<!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>Expense Claims</span>
-</div>
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --color-danger: #DC2626;
+        --color-danger-bg: rgba(220, 38, 38, 0.1);
+        --color-warning: #D97706;
+        --color-warning-bg: rgba(217, 119, 6, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.1);
+    }
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
-        <h1>Expense Claim Authorization</h1>
-        <div class="page-subtitle">Submit official reimbursement claims and track disbursement status</div>
+    .expenses-page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Hero Header */
+    .expenses-hero-header {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .expenses-hero-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    .hero-title-group h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+    .hero-title-group p {
+        margin: 0;
+        color: #CBD5E1;
+        font-size: 0.92rem;
+    }
+
+    /* Action in Header */
+    .btn-export-csv {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, var(--bms-gold) 0%, #A98338 100%);
+        color: var(--bms-navy-dark);
+        border: 1px solid var(--bms-gold-light);
+        border-radius: var(--radius-sm);
+        font-weight: 800;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        z-index: 1;
+    }
+    .btn-export-csv:hover {
+        background: linear-gradient(135deg, #D4AF37 0%, var(--bms-gold) 100%);
+        color: var(--bms-navy-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.35);
+    }
+
+    /* Grid Layout */
+    .expenses-layout-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+
+    /* Cards */
+    .bms-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .bms-card-header {
+        background: #FAFCFE;
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .bms-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bms-card-body {
+        padding: 22px;
+    }
+
+    /* Form Controls */
+    .bms-form-group {
+        margin-bottom: 18px;
+    }
+    .bms-form-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .bms-form-control {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        font-size: 0.92rem;
+        color: var(--text-main);
+        background: #FFFFFF;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+    .bms-form-control:focus {
+        outline: none;
+        border-color: var(--bms-navy);
+        box-shadow: 0 0 0 3px rgba(30, 62, 98, 0.15);
+    }
+
+    .btn-bms-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 20px;
+        background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-navy-dark) 100%);
+        color: #FFFFFF;
+        border: 1px solid var(--bms-navy-dark);
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        box-shadow: var(--shadow-sm);
+    }
+    .btn-bms-primary:hover {
+        background: linear-gradient(135deg, var(--bms-navy-light) 0%, var(--bms-navy) 100%);
+        border-color: var(--bms-gold);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(11, 25, 44, 0.2);
+    }
+
+    /* Search Input */
+    .expense-search-input {
+        width: 220px;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        outline: none;
+        color: var(--text-main);
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .expense-search-input:focus {
+        border-color: var(--bms-navy);
+        box-shadow: 0 0 0 3px rgba(30, 62, 98, 0.15);
+    }
+
+    /* Table */
+    .table-container-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .bms-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        text-align: left;
+    }
+    .bms-table thead th {
+        background: #F8FAFC;
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 13px 18px;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+    .bms-table tbody td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+        color: var(--text-main);
+    }
+    .bms-table tbody tr:hover {
+        background: #F9FBFE;
+    }
+
+    /* Badges */
+    .bms-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .badge-paid {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+    .badge-pending {
+        background: var(--color-warning-bg);
+        color: var(--color-warning);
+        border: 1px solid rgba(217, 119, 6, 0.3);
+    }
+    .badge-category {
+        background: rgba(30, 62, 98, 0.08);
+        color: var(--bms-navy);
+        border: 1px solid rgba(30, 62, 98, 0.2);
+    }
+
+    /* Approve Action Button */
+    .btn-action-approve {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 38px;
+        padding: 6px 14px;
+        background: var(--color-success);
+        color: #FFFFFF;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .btn-action-approve:hover {
+        background: #047857;
+        color: #FFFFFF;
+        transform: translateY(-1px);
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .expenses-layout-grid {
+            grid-template-columns: 1fr;
+        }
+        .expense-search-input {
+            width: 100%;
+        }
+    }
+    @media (max-width: 768px) {
+        .expenses-hero-header {
+            padding: 20px 18px;
+        }
+        .hero-title-group h1 {
+            font-size: 1.45rem;
+        }
+        .bms-card-body {
+            padding: 16px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="expenses-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">Expense Claims</span>
     </div>
-    <div class="page-actions">
+
+    <!-- Page Header -->
+    <div class="expenses-hero-header">
+        <div class="hero-title-group">
+            <div class="hero-tag">
+                <i class="fas fa-file-invoice-dollar"></i> Expense Claims
+            </div>
+            <h1>Expense Claim Authorization</h1>
+            <p>Submit official reimbursement claims and track disbursement status</p>
+        </div>
         {% if session['role'] in ['HR', 'Accountant'] %}
-        <a href="{{ url_for('export_csv', rtype='expenses') }}" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV Ledger</a>
+        <div>
+            <a href="{{ url_for('export_csv', rtype='expenses') }}" class="btn-export-csv">
+                <i class="fas fa-file-export"></i> Export CSV Ledger
+            </a>
+        </div>
         {% endif %}
     </div>
-</div>
 
-<div class="grid grid-cols-3">
-    <!-- Submit Expense Form (1 Col) -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-file-invoice-dollar" style="margin-right: 6px;"></i> Submit New Claim</h3>
+    <div class="expenses-layout-grid">
+        <!-- Submit Expense Form (Column 1) -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title">
+                    <i class="fas fa-plus-circle" style="color: var(--bms-gold);"></i> Submit New Claim
+                </h3>
+            </div>
+            <div class="bms-card-body">
+                <form method="POST">
+                    <div class="bms-form-group">
+                        <label class="bms-form-label">Expense Category</label>
+                        <input type="text" name="category" placeholder="e.g. Travel, Office Supplies, WiFi" class="bms-form-control" required>
+                    </div>
+
+                    <div class="bms-form-group">
+                        <label class="bms-form-label">Amount (INR ₹)</label>
+                        <input type="number" step="0.01" name="amount" placeholder="0.00" class="bms-form-control" required>
+                    </div>
+
+                    <div class="bms-form-group">
+                        <label class="bms-form-label">Description & Justification</label>
+                        <textarea name="desc" rows="3" placeholder="Provide justification..." class="bms-form-control" required style="resize: vertical; min-height: 85px;"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-bms-primary">
+                        <i class="fas fa-paper-plane"></i> Finalize Claim Entry
+                    </button>
+                </form>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="POST" class="form">
-                <div class="form-group">
-                    <label class="form-label">Expense Category</label>
-                    <input type="text" name="category" placeholder="e.g. Travel, Office Supplies, WiFi" class="form-control" required>
+
+        <!-- Expense Claims Table (Column 2) -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title">
+                    <i class="fas fa-list-alt" style="color: var(--bms-gold);"></i> Command Expense Ledger
+                </h3>
+                <div>
+                    <input type="text" id="expenseSearch" placeholder="Filter Ledger..." class="expense-search-input" aria-label="Filter ledger rows">
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Amount (INR ₹)</label>
-                    <input type="number" step="0.01" name="amount" placeholder="₹ 0.00" class="form-control" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Description & Justification</label>
-                    <textarea name="desc" rows="3" placeholder="Provide justification..." class="form-control" required></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-paper-plane"></i> Finalize Claim Entry</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Expense Claims Table (2 Cols) -->
-    <div class="card" style="grid-column: span 2;">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-list-alt" style="margin-right: 6px;"></i> Command Expense Ledger</h3>
-            <input type="text" id="expenseSearch" placeholder="Filter Ledger..." class="form-control" style="width: 200px; font-size: 0.8rem; padding: 4px 10px;">
-        </div>
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Personnel</th>
-                        <th>Category</th>
-                        <th>Submission Date</th>
-                        <th>Amount</th>
-                        <th style="text-align: right;">Status / Action</th>
-                    </tr>
-                </thead>
-                <tbody id="expenseTable">
-                    {% for claim in claims %}
-                    <tr>
-                        <td><strong>{{ claim.rel_user.full_name }}</strong></td>
-                        <td><span class="badge badge-info">{{ claim.category }}</span></td>
-                        <td>
-                            <div>{{ claim.timestamp.strftime('%d %b %Y') }}</div>
-                            <small class="text-muted">{{ claim.timestamp.strftime('%H:%M') }} HRS</small>
-                        </td>
-                        <td><strong style="color: var(--danger); font-size: 1rem;">₹{{ claim.amount }}</strong></td>
-                        <td style="text-align: right;">
-                            {% if claim.status == 'Finalized' %}
-                                <span class="badge badge-success">PAID</span>
-                            {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
-                                <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="btn btn-success btn-sm">Approve</a>
-                            {% else %}
-                                <span class="badge badge-warning">{{ claim.status }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted p-2">No expense claims recorded.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            </div>
+            <div class="table-container-responsive">
+                <table class="bms-table">
+                    <thead>
+                        <tr>
+                            <th>Personnel</th>
+                            <th>Category</th>
+                            <th>Submission Date</th>
+                            <th>Amount</th>
+                            <th style="text-align: right;">Status / Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTable">
+                        {% for claim in claims %}
+                        <tr>
+                            <td>
+                                <strong style="color: var(--bms-navy-dark); font-weight: 700;">{{ claim.rel_user.full_name }}</strong>
+                            </td>
+                            <td>
+                                <span class="bms-badge badge-category">{{ claim.category }}</span>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">{{ claim.timestamp.strftime('%d %b %Y') }}</div>
+                                <small style="color: var(--text-muted); font-size: 0.75rem;">{{ claim.timestamp.strftime('%H:%M') }} HRS</small>
+                            </td>
+                            <td>
+                                <strong style="color: var(--color-danger); font-size: 0.98rem;">₹{{ claim.amount }}</strong>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                {% if claim.status == 'Finalized' %}
+                                    <span class="bms-badge badge-paid"><i class="fas fa-check-circle"></i> PAID</span>
+                                {% elif claim.status == 'Pending' and session['role'] == 'HR' %}
+                                    <a href="{{ url_for('approve_expense', id=claim.id, action='hr_approve') }}" class="btn-action-approve">
+                                        <i class="fas fa-check"></i> Approve
+                                    </a>
+                                {% elif claim.status == 'Approved by HR' and session['role'] == 'Accountant' %}
+                                    <a href="{{ url_for('approve_expense', id=claim.id, action='acc_approve') }}" class="btn-action-approve" style="background: var(--bms-navy); color: #FFFFFF;">
+                                        <i class="fas fa-money-check-alt"></i> Finalize Payment
+                                    </a>
+                                {% else %}
+                                    <span class="bms-badge badge-pending">{{ claim.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 36px 16px;">
+                                <i class="fas fa-receipt" style="font-size: 2rem; color: #CBD5E1; display: block; margin-bottom: 8px;"></i>
+                                No expense claims recorded.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

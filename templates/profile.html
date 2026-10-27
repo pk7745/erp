@@ -1,208 +1,564 @@
 {% extends "base.html" %}
-{% block content %}
+{% block title %}Staff Profile & Settings - BMS College ERP{% endblock %}
 
+{% block extra_css %}
 <style>
     :root {
-        --royal-maroon: #2d000f;
-        --gold-primary: #d4af37;
-        --gold-glow: #ffdf00;
-        --ink-dark: #0a0a0a; /* Darkest ink for maximum legibility */
-        --imperial-bg: #fdfaf0; /* Cream background for table/form sections */
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --color-danger: #DC2626;
+        --color-danger-bg: rgba(220, 38, 38, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.12);
+        --shadow-lg: 0 10px 25px rgba(11, 25, 44, 0.18);
     }
 
-    .profile-card {
-        background: rgba(45, 0, 15, 0.98);
-        border-radius: 24px;
-        border: 1px solid var(--gold-primary);
-        box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    .profile-page-container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Main Profile Container Card */
+    .bms-profile-master-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
         overflow: hidden;
-        max-width: 800px;
-        margin: 20px auto;
-        color: white;
     }
 
-    .info-section {
-        background: var(--imperial-bg);
-        padding: 40px;
+    /* Profile Hero Header */
+    .profile-card-hero {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        padding: 36px 28px;
+        text-align: center;
+        color: #FFFFFF;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 2px solid var(--bms-gold);
+    }
+    .profile-card-hero::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 280px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    /* Photo Upload Container */
+    .avatar-upload-frame {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 0 auto 18px auto;
+        border-radius: 50%;
+        border: 4px solid var(--bms-gold);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+        background: #F8FAFC;
+    }
+    .avatar-upload-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    .avatar-upload-btn-label {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        background: var(--bms-gold);
+        color: var(--bms-navy-dark);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 3px solid var(--bms-navy-dark);
+        font-size: 1rem;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .avatar-upload-btn-label:hover {
+        transform: scale(1.08);
+        background: var(--bms-gold-light);
+    }
+
+    .hero-profile-name {
+        margin: 0 0 6px 0;
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #FFFFFF;
+    }
+    .hero-profile-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        padding: 5px 16px;
+        border-radius: 20px;
+        color: var(--bms-gold-light);
+        font-weight: 800;
+        font-size: 0.78rem;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    /* Editable Profile Form Section */
+    .profile-form-section {
+        background: #FFFFFF;
+        padding: 32px 36px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 25px;
-        border-top: 2px solid var(--gold-primary);
+        gap: 24px;
+        border-bottom: 1px solid var(--border-color);
     }
-
-    .info-group label {
-        display: block;
-        color: var(--royal-maroon);
-        font-size: 0.75rem;
+    .form-field-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-field-label {
+        font-size: 0.78rem;
+        color: var(--bms-navy);
         text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-weight: 900;
-        margin-bottom: 5px;
-    }
-
-    /* High contrast dark text for inputs */
-    .imperial-input {
-        width: 100%;
-        border: none;
-        border-bottom: 2px solid var(--gold-primary);
-        background: transparent;
+        letter-spacing: 0.75px;
         font-weight: 800;
-        font-size: 1.1rem;
-        padding: 8px 0;
-        color: var(--ink-dark) !important;
+        margin-bottom: 6px;
+    }
+    .bms-input-styled {
+        width: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: #F8FAFC;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 10px 14px;
+        color: var(--text-main);
+        box-sizing: border-box;
+        transition: all 0.2s ease;
         outline: none;
-        transition: 0.3s;
+        font-family: inherit;
+    }
+    .bms-input-styled:focus {
+        background: #FFFFFF;
+        border-color: var(--bms-navy);
+        box-shadow: 0 0 0 3px rgba(30, 62, 98, 0.15);
+    }
+    .static-field-value {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--bms-navy-dark);
+        padding: 10px 0;
+        display: flex;
+        align-items: center;
+    }
+    .static-username-pill {
+        background: rgba(11, 25, 44, 0.08);
+        color: var(--bms-navy-dark);
+        border: 1px solid rgba(11, 25, 44, 0.2);
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-weight: 700;
+        font-size: 0.9rem;
     }
 
-    .imperial-input:focus {
-        border-bottom-color: var(--royal-maroon);
-    }
-
-    .static-value {
-        font-weight: 800;
-        font-size: 1.1rem;
-        color: var(--royal-maroon);
-        display: block;
-        padding: 8px 0;
-    }
-
-    .btn-imperial {
-        background: var(--gold-primary);
-        color: var(--royal-maroon);
-        font-weight: 900;
-        border: none;
-        padding: 15px;
-        border-radius: 12px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        cursor: pointer;
-        transition: 0.3s;
+    /* Submit Button */
+    .btn-save-profile {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
         width: 100%;
+        min-height: 46px;
+        background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-navy-dark) 100%);
+        color: #FFFFFF;
+        font-weight: 800;
+        border: 1px solid var(--bms-navy-dark);
+        padding: 12px 24px;
+        border-radius: var(--radius-sm);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    .btn-save-profile:hover {
+        background: linear-gradient(135deg, var(--bms-navy-light) 0%, var(--bms-navy) 100%);
+        border-color: var(--bms-gold);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(11, 25, 44, 0.22);
     }
 
-    .btn-imperial:hover {
-        background: var(--gold-glow);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+    /* Salary Architecture Section */
+    .salary-section {
+        background: #FAFCFE;
+        padding: 32px 36px;
+        border-bottom: 1px solid var(--border-color);
     }
-
-    .payroll-box {
-        padding: 15px;
-        border-radius: 12px;
-        border: 2px solid var(--gold-primary);
+    .section-title-bar {
+        margin: 0 0 20px 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--bms-navy-dark);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.2px;
     }
-
-    .salary-net-strip {
-        background: linear-gradient(90deg, var(--gold-primary), var(--gold-glow));
-        color: var(--royal-maroon);
+    .salary-boxes-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .payroll-breakdown-card {
         padding: 20px;
-        border-radius: 12px;
-        margin-top: 20px;
+        border-radius: var(--radius-md);
+        background: #FFFFFF;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+    }
+    .breakdown-header {
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.75px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+    }
+    .breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        padding: 5px 0;
+    }
+    .breakdown-divider {
+        border: 0;
+        height: 1px;
+        background: var(--border-color);
+        margin: 10px 0;
+    }
+    .breakdown-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.95rem;
+        font-weight: 800;
+        padding-top: 4px;
+    }
+
+    .salary-net-strip-modern {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border: 1px solid var(--bms-gold);
+        color: #FFFFFF;
+        padding: 20px 24px;
+        border-radius: var(--radius-md);
+        margin-top: 22px;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        box-shadow: var(--shadow-sm);
+    }
+    .salary-net-strip-modern h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: -0.3px;
+        color: var(--bms-gold-light);
+    }
+
+    /* Growth Trajectory Section */
+    .growth-section {
+        background: #FFFFFF;
+        padding: 32px 36px;
+    }
+    .growth-header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .growth-actions-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .btn-growth-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-action-gold {
+        background: linear-gradient(135deg, var(--bms-gold) 0%, #A98338 100%);
+        color: var(--bms-navy-dark);
+        border: 1px solid var(--bms-gold-light);
+    }
+    .btn-action-gold:hover {
+        background: linear-gradient(135deg, #D4AF37 0%, var(--bms-gold) 100%);
+        transform: translateY(-1px);
+    }
+    .btn-action-navy {
+        background: var(--bms-navy-dark);
+        color: #FFFFFF;
+        border: 1px solid var(--bms-navy);
+    }
+    .btn-action-navy:hover {
+        background: var(--bms-navy);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+    }
+    .chart-container-box {
+        height: 260px;
+        background: #FAFCFE;
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-card-hero {
+            padding: 28px 18px;
+        }
+        .hero-profile-name {
+            font-size: 1.45rem;
+        }
+        .profile-form-section {
+            padding: 24px 18px;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+        .profile-form-section div[style*="grid-column: span 2"] {
+            grid-column: span 1 !important;
+        }
+        .salary-section {
+            padding: 24px 18px;
+        }
+        .salary-boxes-grid {
+            grid-template-columns: 1fr;
+        }
+        .growth-section {
+            padding: 24px 18px;
+        }
+        .growth-header-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .growth-actions-group {
+            width: 100%;
+        }
+        .btn-growth-action {
+            flex: 1;
+            justify-content: center;
+        }
     }
 </style>
+{% endblock %}
 
-<div class="profile-card">
-    <div style="padding: 40px; text-align: center; background: linear-gradient(to bottom, #4a001a, var(--royal-maroon));">
-        <div style="position: relative; width: 140px; height: 140px; margin: 0 auto 20px auto;">
-            <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic or 'default.png')) }}" 
-                 onerror="this.src='https://ui-avatars.com/api/?name={{ user.full_name }}&background=d4af37&color=2d000f'"
-                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; border: 4px solid var(--gold-primary); box-shadow: 0 0 20px rgba(212,175,55,0.3);">
+{% block content %}
+<div class="profile-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">Staff Profile & Settings</span>
+    </div>
+
+    <div class="bms-profile-master-card">
+        <!-- Hero Header with Avatar and Upload -->
+        <div class="profile-card-hero">
+            <div class="avatar-upload-frame">
+                <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic.lstrip('/') if user.profile_pic else 'default.png')) }}" 
+                     alt="{{ user.full_name }}"
+                     onerror="this.src='https://ui-avatars.com/api/?name={{ user.full_name|urlencode }}&background=C5A059&color=0B192C'"
+                     class="avatar-upload-img">
+                
+                <form action="{{ url_for('upload_photo', uid=user.id) }}" method="POST" enctype="multipart/form-data" id="photoForm">
+                    <input type="file" name="profile_pic" id="photoInput" style="display:none;" onchange="document.getElementById('photoForm').submit()" accept="image/*">
+                    <label for="photoInput" class="avatar-upload-btn-label" title="Upload new photo" aria-label="Upload new photo">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                </form>
+            </div>
             
-            <form action="{{ url_for('upload_photo', uid=user.id) }}" method="POST" enctype="multipart/form-data" id="photoForm">
-                <input type="file" name="photo" id="photoInput" style="display:none;" onchange="document.getElementById('photoForm').submit()">
-                <label for="photoInput" style="position: absolute; bottom: 5px; right: 5px; background: var(--gold-primary); color: var(--royal-maroon); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid var(--royal-maroon); font-size: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    📷
-                </label>
-            </form>
-        </div>
-        
-        <h1 style="margin: 0; color: var(--gold-primary); letter-spacing: -1px; text-transform: uppercase;">{{ user.full_name }}</h1>
-        <div style="display: inline-block; background: rgba(212,175,55,0.1); border: 1px solid var(--gold-primary); padding: 5px 20px; border-radius: 20px; color: var(--gold-primary); font-weight: 700; margin-top: 10px; font-size: 0.8rem; text-transform: uppercase;">
-            🛡️ Official Nexus Profile
-        </div>
-    </div>
-
-    <form method="POST" class="info-section">
-        <div class="info-group">
-            <label>Full Name</label>
-            <input type="text" name="full_name" value="{{ user.full_name }}" class="imperial-input" required>
+            <h1 class="hero-profile-name">{{ user.full_name }}</h1>
+            <div class="hero-profile-tag">
+                <i class="fas fa-shield-alt"></i> Official Staff Profile
+            </div>
         </div>
 
-        <div class="info-group">
-            <label>Designation / Role</label>
-            <span class="static-value">{{ user.role }}</span>
-        </div>
-        
-        <div class="info-group">
-            <label>Official Email</label>
-            <input type="email" name="email" value="{{ user.email }}" class="imperial-input" required>
-        </div>
+        <!-- Editable Profile Form -->
+        <form method="POST" class="profile-form-section">
+            <div class="form-field-group">
+                <label class="form-field-label">Full Name</label>
+                <input type="text" name="full_name" value="{{ user.full_name }}" class="bms-input-styled" required>
+            </div>
 
-        <div class="info-group">
-            <label>Work Location</label>
-            <input type="text" name="address" value="{{ user.address or 'Nexus HQ' }}" class="imperial-input">
-        </div>
+            <div class="form-field-group">
+                <label class="form-field-label">Designation / Role</label>
+                <span class="static-field-value">{{ user.role }}</span>
+            </div>
+            
+            <div class="form-field-group">
+                <label class="form-field-label">Official Email</label>
+                <input type="email" name="email" value="{{ user.email }}" class="bms-input-styled" required>
+            </div>
 
-        <div class="info-group">
-            <label>Username</label>
-            <span class="static-value" style="color: var(--gold-primary); background: var(--royal-maroon); display: inline-block; padding: 2px 10px; border-radius: 5px;">@{{ user.username }}</span>
-        </div>
+            <div class="form-field-group">
+                <label class="form-field-label">Work Location</label>
+                <input type="text" name="address" value="{{ user.address or '' }}" placeholder="e.g. BMS Campus Block A" class="bms-input-styled">
+            </div>
 
-        <div class="info-group">
-            <label>Security Key (Password)</label>
-            <input type="password" name="password" placeholder="••••••••" class="imperial-input">
-        </div>
-
-        <div style="grid-column: span 2; margin-top: 10px;">
-            <button type="submit" class="btn-imperial">Save Imperial Records</button>
-        </div>
-    </form>
-
-    <div style="background: white; padding: 40px; border-top: 2px solid var(--gold-primary);">
-        <h3 style="margin-top: 0; color: var(--royal-maroon); text-transform: uppercase; letter-spacing: 1px;">💰 Salary Architecture</h3>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="payroll-box" style="background: #fdfaf0;">
-                <p style="color: var(--royal-maroon); font-weight: 900; border-bottom: 2px solid var(--gold-primary); margin-bottom: 10px; font-size: 0.75rem;">EARNINGS</p>
-                <div style="color: var(--ink-dark); font-size: 0.9rem; font-weight: 700;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>Basic:</span> <span>₹{{ user.salary }}</span></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>HRA:</span> <span>₹{{ payroll.hra }}</span></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>DA:</span> <span>₹{{ payroll.da }}</span></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>TA:</span> <span>₹{{ payroll.ta }}</span></div>
-                    <hr style="border: 1px solid var(--gold-primary); opacity: 0.3;">
-                    <div style="display: flex; justify-content: space-between; color: var(--royal-maroon);"><span>GROSS:</span> <span>₹{{ payroll.gross }}</span></div>
+            <div class="form-field-group">
+                <label class="form-field-label">Portal Username</label>
+                <div class="static-field-value">
+                    <span class="static-username-pill">@{{ user.username }}</span>
                 </div>
             </div>
 
-            <div class="payroll-box" style="background: #fff5f5; border-color: #feb2b2;">
-                <p style="color: #c53030; font-weight: 900; border-bottom: 2px solid #feb2b2; margin-bottom: 10px; font-size: 0.75rem;">DEDUCTIONS</p>
-                <div style="color: var(--ink-dark); font-size: 0.9rem; font-weight: 700;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>EPF (12%):</span> <span>₹{{ payroll.epf }}</span></div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;"><span>Prof. Tax:</span> <span>₹{{ payroll.pt }}</span></div>
-                    <div style="height: 50px;"></div>
-                    <hr style="border: 1px solid #feb2b2;">
-                    <div style="display: flex; justify-content: space-between; color: #c53030;"><span>TOTAL:</span> <span>₹{{ payroll.epf + payroll.pt }}</span></div>
+            <div class="form-field-group">
+                <label class="form-field-label">Security Key (Password)</label>
+                <input type="password" name="password" placeholder="•••••••• (leave blank to keep current)" class="bms-input-styled">
+            </div>
+
+            <div style="grid-column: span 2; margin-top: 8px;">
+                <button type="submit" class="btn-save-profile">
+                    <i class="fas fa-save"></i> Save Profile Records
+                </button>
+            </div>
+        </form>
+
+        <!-- Salary Architecture -->
+        <div class="salary-section">
+            <h3 class="section-title-bar">
+                <i class="fas fa-coins" style="color: var(--bms-gold);"></i> Salary Architecture
+            </h3>
+            
+            <div class="salary-boxes-grid">
+                <!-- Earnings Box -->
+                <div class="payroll-breakdown-card" style="border-left: 3px solid var(--color-success);">
+                    <div class="breakdown-header" style="color: var(--color-success); border-color: rgba(5, 150, 105, 0.2);">
+                        <i class="fas fa-arrow-down"></i> Earnings
+                    </div>
+                    <div>
+                        <div class="breakdown-row"><span>Basic Salary:</span> <span>₹{{ user.salary }}</span></div>
+                        <div class="breakdown-row"><span>HRA:</span> <span>₹{{ payroll.hra }}</span></div>
+                        <div class="breakdown-row"><span>DA:</span> <span>₹{{ payroll.da }}</span></div>
+                        <div class="breakdown-row"><span>TA:</span> <span>₹{{ payroll.ta }}</span></div>
+                        <hr class="breakdown-divider">
+                        <div class="breakdown-total" style="color: var(--color-success);">
+                            <span>GROSS EARNINGS:</span> <span>₹{{ payroll.gross }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deductions Box -->
+                <div class="payroll-breakdown-card" style="border-left: 3px solid var(--color-danger);">
+                    <div class="breakdown-header" style="color: var(--color-danger); border-color: rgba(220, 38, 38, 0.2);">
+                        <i class="fas fa-arrow-up"></i> Deductions
+                    </div>
+                    <div>
+                        <div class="breakdown-row"><span>EPF (12%):</span> <span>₹{{ payroll.epf }}</span></div>
+                        <div class="breakdown-row"><span>Prof. Tax:</span> <span>₹{{ payroll.pt }}</span></div>
+                        <div style="height: 32px;"></div>
+                        <hr class="breakdown-divider">
+                        <div class="breakdown-total" style="color: var(--color-danger);">
+                            <span>TOTAL DEDUCTIONS:</span> <span>₹{{ payroll.epf + payroll.pt }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="salary-net-strip">
-            <h2 style="margin: 0; font-weight: 900;">Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
-        </div>
-    </div>
-
-    <div style="background: var(--imperial-bg); padding: 40px; border-top: 2px solid var(--gold-primary);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin: 0; color: var(--royal-maroon); text-transform: uppercase;">📈 Growth Trajectory</h3>
-            <div style="display: flex; gap: 10px;">
-                <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn-imperial" style="padding: 8px 15px; font-size: 0.7rem; text-decoration: none;">🪪 Digital ID</a>
-                <a href="{{ url_for('download_salary_certificate') }}" class="btn-imperial" style="padding: 8px 15px; font-size: 0.7rem; text-decoration: none; background: var(--royal-maroon); color: var(--gold-primary);">📥 Certificate</a>
+            <!-- Net Take-Home Banner -->
+            <div class="salary-net-strip-modern">
+                <h2>Net Take-Home: ₹{{ "{:,}".format(payroll.net) }}</h2>
             </div>
         </div>
-        <div style="height: 250px; background: white; padding: 20px; border-radius: 15px; border: 1px solid var(--gold-primary);">
-            <canvas id="salaryChart"></canvas>
+
+        <!-- Growth Trajectory & Charts -->
+        <div class="growth-section">
+            <div class="growth-header-bar">
+                <h3 class="section-title-bar" style="margin: 0;">
+                    <i class="fas fa-chart-line" style="color: var(--bms-gold);"></i> Growth Trajectory
+                </h3>
+                <div class="growth-actions-group">
+                    <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn-growth-action btn-action-gold">
+                        <i class="fas fa-id-card"></i> Digital ID
+                    </a>
+                    <a href="{{ url_for('download_salary_certificate') }}" class="btn-growth-action btn-action-navy">
+                        <i class="fas fa-file-invoice"></i> Certificate
+                    </a>
+                </div>
+            </div>
+            <div class="chart-container-box">
+                <canvas id="salaryChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -210,7 +566,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('salaryChart').getContext('2d');
+    const canvas = document.getElementById('salaryChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const currentSalary = {{ user.salary or 0 }};
     const labels = ['2023', '2024', 'Current'];
     const dataPoints = [Math.floor(currentSalary * 0.8), Math.floor(currentSalary * 0.9), currentSalary];
@@ -222,14 +580,16 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 label: 'Monthly Basic (INR)',
                 data: dataPoints,
-                borderColor: '#2d000f',
-                backgroundColor: 'rgba(212, 175, 55, 0.2)',
-                borderWidth: 4,
+                borderColor: '#0B192C',
+                backgroundColor: 'rgba(197, 160, 89, 0.18)',
+                borderWidth: 3,
                 fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#d4af37',
-                pointBorderWidth: 3,
-                pointRadius: 6
+                tension: 0.35,
+                pointBackgroundColor: '#C5A059',
+                pointBorderColor: '#0B192C',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
             }]
         },
         options: {
@@ -238,14 +598,17 @@ document.addEventListener('DOMContentLoaded', function() {
             scales: {
                 y: { 
                     ticks: { 
-                        color: '#2d000f',
-                        font: { weight: 'bold' },
-                        callback: (v) => '₹' + v.toLocaleString() 
+                        color: '#0B192C',
+                        font: { weight: '600', size: 11 },
+                        callback: function(v) { return '₹' + v.toLocaleString(); }
                     },
-                    grid: { color: 'rgba(212, 175, 55, 0.1)' }
+                    grid: { color: 'rgba(11, 25, 44, 0.08)' }
                 },
                 x: {
-                    ticks: { color: '#2d000f', font: { weight: 'bold' } },
+                    ticks: { 
+                        color: '#0B192C', 
+                        font: { weight: '700', size: 12 } 
+                    },
                     grid: { display: false }
                 }
             },

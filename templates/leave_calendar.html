@@ -1,90 +1,413 @@
 {% extends "base.html" %}
 {% block title %}Leave Calendar & Coverage Map - BMS College ERP{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --color-danger: #DC2626;
+        --color-danger-bg: rgba(220, 38, 38, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.1);
+    }
+
+    .calendar-page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Hero Header */
+    .calendar-hero-header {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .calendar-hero-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    .calendar-hero-header h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+    .calendar-hero-header p {
+        margin: 0;
+        color: #CBD5E1;
+        font-size: 0.92rem;
+    }
+
+    /* Layout Grid */
+    .calendar-layout-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Cards */
+    .bms-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .bms-card-header {
+        background: #FAFCFE;
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .bms-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bms-card-body {
+        padding: 20px;
+    }
+
+    /* Coverage Monitor Lists */
+    .coverage-scroll-area {
+        max-height: 560px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    .coverage-status-block {
+        margin-bottom: 20px;
+    }
+    .coverage-header-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .staff-entry-item {
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .staff-entry-item.absent {
+        background: var(--color-danger-bg);
+        border-left: 3px solid var(--color-danger);
+    }
+    .staff-entry-item.present {
+        background: var(--color-success-bg);
+        border-left: 3px solid var(--color-success);
+    }
+    .staff-name {
+        font-weight: 700;
+        font-size: 0.88rem;
+    }
+    .staff-entry-item.absent .staff-name {
+        color: var(--color-danger);
+    }
+    .staff-entry-item.present .staff-name {
+        color: var(--color-success);
+    }
+
+    /* Calendar Grid */
+    .calendar-grid-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .calendar-matrix-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(110px, 1fr));
+        gap: 4px;
+        background: var(--border-color);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        padding: 1px;
+    }
+    .calendar-day-header {
+        background: #F1F5F9;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 800;
+        font-size: 0.78rem;
+        color: var(--bms-navy-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .calendar-day-cell {
+        background: #FFFFFF;
+        min-height: 96px;
+        padding: 10px 8px;
+        border: 1px solid rgba(226, 232, 240, 0.6);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: background 0.15s ease;
+    }
+    .calendar-day-cell:hover {
+        background: #F8FAFC;
+    }
+    .day-number-label {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--bms-navy-dark);
+        margin-bottom: 2px;
+    }
+    .calendar-leave-badge {
+        display: block;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: default;
+    }
+    .badge-faculty {
+        background: rgba(30, 62, 98, 0.12);
+        color: var(--bms-navy);
+        border: 1px solid rgba(30, 62, 98, 0.25);
+    }
+    .badge-admin {
+        background: var(--bms-gold-tint);
+        color: #8C6D23;
+        border: 1px solid rgba(197, 160, 89, 0.35);
+    }
+
+    /* Badges generic */
+    .bms-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .bms-badge-danger {
+        background: var(--color-danger);
+        color: #FFFFFF;
+    }
+    .bms-badge-success {
+        background: var(--color-success);
+        color: #FFFFFF;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .calendar-layout-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 768px) {
+        .calendar-hero-header {
+            padding: 20px 18px;
+        }
+        .calendar-hero-header h1 {
+            font-size: 1.45rem;
+        }
+        .bms-card-body {
+            padding: 16px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>Leave Approvals & Availability Map</span>
-</div>
+<div class="calendar-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">Leave Approvals & Availability Map</span>
+    </div>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
+    <!-- Page Header -->
+    <div class="calendar-hero-header">
+        <div class="hero-tag">
+            <i class="fas fa-calendar-alt"></i> Coverage Monitor
+        </div>
         <h1>Staff Leave Approvals & Availability Map</h1>
-        <div class="page-subtitle">Visual coverage monitor and institutional leave schedule</div>
-    </div>
-</div>
-
-<div class="grid grid-cols-4">
-    <!-- Coverage Monitor (1 Col) -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-eye" style="margin-right: 6px;"></i> Coverage Monitor</h3>
-        </div>
-        <div class="card-body" style="max-height: 520px; overflow-y: auto;">
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
-                Current Date: <strong>{{ today.strftime('%d %b, %Y') }}</strong>
-            </div>
-
-            <div class="mb-3">
-                <label style="font-size: 0.75rem; font-weight: 700; color: var(--danger); text-transform: uppercase; display: block; margin-bottom: 8px;">
-                    🔴 Staff On Leave ({{ absent|length }})
-                </label>
-                {% for f in absent %}
-                <div style="padding: 8px 12px; border-radius: var(--radius-md); background: var(--danger-bg); border-left: 3px solid var(--danger); margin-bottom: 6px;">
-                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--danger);">{{ f.full_name }}</div>
-                    <span class="badge badge-danger">{{ f.role }}</span>
-                </div>
-                {% else %}
-                <p class="text-muted" style="font-size: 0.8rem; font-style: italic;">No staff on leave today.</p>
-                {% endfor %}
-            </div>
-
-            <div>
-                <label style="font-size: 0.75rem; font-weight: 700; color: var(--success); text-transform: uppercase; display: block; margin-bottom: 8px;">
-                    🟢 Staff Present ({{ present|length }})
-                </label>
-                {% for f in present %}
-                <div style="padding: 8px 12px; border-radius: var(--radius-md); background: var(--success-bg); border-left: 3px solid var(--success); margin-bottom: 6px;">
-                    <div style="font-weight: 600; font-size: 0.85rem; color: var(--success);">{{ f.full_name }}</div>
-                    <span class="badge badge-success">{{ f.role }}</span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+        <p>Visual institutional coverage monitor and monthly staff leave schedule</p>
     </div>
 
-    <!-- Calendar Map Grid (3 Cols) -->
-    <div class="card" style="grid-column: span 3;">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-calendar-alt" style="margin-right: 6px;"></i> Monthly Availability Matrix</h3>
-            <div style="display: flex; gap: 12px; font-size: 0.8rem;">
-                <span><span class="badge badge-primary">●</span> Faculty</span>
-                <span><span class="badge badge-info">●</span> Admin/HOD</span>
+    <div class="calendar-layout-grid">
+        <!-- Coverage Monitor (Column 1) -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title">
+                    <i class="fas fa-user-clock" style="color: var(--bms-gold);"></i> Coverage Monitor
+                </h3>
+            </div>
+            <div class="bms-card-body coverage-scroll-area">
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+                    <span>Current Date:</span>
+                    <strong style="color: var(--bms-navy-dark); font-size: 0.88rem;">{{ today.strftime('%d %b, %Y') }}</strong>
+                </div>
+
+                <!-- Staff On Leave -->
+                <div class="coverage-status-block">
+                    <label class="coverage-header-label" style="color: var(--color-danger);">
+                        <i class="fas fa-user-minus"></i> Staff On Leave ({{ absent|length }})
+                    </label>
+                    {% for f in absent %}
+                    <div class="staff-entry-item absent">
+                        <div class="staff-name">{{ f.full_name }}</div>
+                        <span class="bms-badge bms-badge-danger">{{ f.role }}</span>
+                    </div>
+                    {% else %}
+                    <p style="font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin: 4px 0 0 0; padding: 8px 12px; background: #F8FAFC; border-radius: var(--radius-sm);">
+                        <i class="fas fa-check-circle" style="color: var(--color-success); margin-right: 4px;"></i> No staff on leave today.
+                    </p>
+                    {% endfor %}
+                </div>
+
+                <!-- Staff Present -->
+                <div class="coverage-status-block" style="margin-bottom: 0;">
+                    <label class="coverage-header-label" style="color: var(--color-success);">
+                        <i class="fas fa-user-check"></i> Staff Present ({{ present|length }})
+                    </label>
+                    {% for f in present %}
+                    <div class="staff-entry-item present">
+                        <div class="staff-name">{{ f.full_name }}</div>
+                        <span class="bms-badge bms-badge-success">{{ f.role }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
-        <div class="card-body">
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: var(--border); border-radius: var(--radius-md); overflow: hidden; padding: 1px;">
-                {% for day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
-                <div style="background: var(--gray-100); padding: 10px; text-align: center; font-weight: 700; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">{{ day }}</div>
-                {% endfor %}
 
-                {% for day_num in range(1, 32) %}
-                <div style="background: var(--white); min-height: 90px; padding: 8px; border: 1px solid var(--border-light);">
-                    <strong style="font-size: 0.9rem; color: var(--text-primary); display: block; margin-bottom: 4px;">{{ day_num }}</strong>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        {% for leave in leaves %}
-                            {% if leave.start_date.day <= day_num <= leave.end_date.day %}
-                            <span class="badge {% if leave.role == 'Faculty' %}badge-primary{% else %}badge-info{% endif %}" title="{{ leave.reason }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                👤 {{ leave.user.full_name }}
-                            </span>
-                            {% endif %}
+        <!-- Monthly Availability Matrix Grid (Column 2) -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title">
+                    <i class="fas fa-calendar-week" style="color: var(--bms-gold);"></i> Monthly Availability Matrix
+                </h3>
+                <div style="display: flex; gap: 14px; font-size: 0.8rem; align-items: center;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--bms-navy); display: inline-block;"></span>
+                        <strong>Faculty</strong>
+                    </span>
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="width: 10px; height: 10px; border-radius: 50%; background: var(--bms-gold); display: inline-block;"></span>
+                        <strong>Admin / HOD</strong>
+                    </span>
+                </div>
+            </div>
+            <div class="bms-card-body">
+                <div class="calendar-grid-wrapper">
+                    <div class="calendar-matrix-grid">
+                        {% for day in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+                        <div class="calendar-day-header">{{ day }}</div>
+                        {% endfor %}
+
+                        {% for day_num in range(1, (days_in_month or 31) + 1) %}
+                        <div class="calendar-day-cell">
+                            <strong class="day-number-label">{{ day_num }}</strong>
+                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                {% for leave in leaves %}
+                                    {% if leave.start_date.year == today.year and leave.start_date.month == today.month and leave.start_date.day <= day_num <= leave.end_date.day %}
+                                    <span class="calendar-leave-badge {% if leave.role == 'Faculty' %}badge-faculty{% else %}badge-admin{% endif %}" title="{{ leave.reason }}">
+                                        👤 {{ leave.user.full_name }}
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>

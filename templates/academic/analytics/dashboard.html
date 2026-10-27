@@ -140,6 +140,9 @@
         </div>
 
         <div style="display: flex; gap: 12px; align-items: center;">
+            <a href="{{ url_for('academic_analytics_export', course=scope.course, academic_year=scope.academic_year, semester=scope.semester, section=scope.section, subject=scope.subject, search=search_query, filter_status=filter_status) }}" class="btn btn-secondary" style="padding: 9px 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" title="Export Analytics to CSV">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
             <a href="{{ url_for('view_timetable') }}" class="btn btn-secondary" style="padding: 9px 16px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                 <i class="fas fa-calendar-alt"></i> Weekly Schedule
             </a>

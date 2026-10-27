@@ -16,10 +16,8 @@
         <div class="page-subtitle">Encrypted tracking of administrative operations and access logs</div>
     </div>
     <div class="page-actions">
-        <form action="{{ url_for('clear_audit_logs') }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Permanently purge all system audit logs?');">
-            <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Purge Logs</button>
-        </form>
-        <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print"></i> Export Log Report</button>
+        <a href="{{ url_for('export_audit_logs') }}" class="btn btn-primary"><i class="fas fa-file-csv"></i> Export CSV</a>
+        <button onclick="window.print()" class="btn btn-secondary"><i class="fas fa-print"></i> Print Log Report</button>
     </div>
 </div>
 

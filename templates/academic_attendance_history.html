@@ -1,66 +1,199 @@
 {% extends "base.html" %}
 {% block title %}Student Academic Attendance History - BMS College ERP{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --success: #059669;
+        --success-soft: rgba(5, 150, 105, 0.1);
+        --danger: #DC2626;
+        --danger-soft: rgba(220, 38, 38, 0.1);
+        --warning: #D97706;
+    }
+
+    .history-hero {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: 12px;
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 14px rgba(11, 25, 44, 0.15);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(197, 160, 89, 0.2);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .filter-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(11, 25, 44, 0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+
+    .stat-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-kpi-card {
+        background: #FFFFFF;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 20px 24px;
+        box-shadow: 0 2px 6px rgba(11, 25, 44, 0.04);
+    }
+
+    .table-container-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0 0 10px 10px;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .history-table th {
+        background: #F8FAFC;
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 18px;
+        border-bottom: 2px solid #E2E8F0;
+        white-space: nowrap;
+    }
+
+    .history-table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid #E2E8F0;
+        vertical-align: middle;
+    }
+
+    .history-table tbody tr:hover {
+        background: #F8FAFC;
+    }
+
+    @media (max-width: 768px) {
+        .history-hero {
+            padding: 18px 20px;
+        }
+
+        .stat-kpi-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <a href="{{ url_for('view_timetable') }}"><i class="fas fa-clock"></i> Weekly Schedule</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>Student Attendance History</span>
+<div class="breadcrumb" style="margin-bottom: 16px;">
+    <a href="{{ url_for('dashboard') }}" style="color: var(--bms-navy);"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <a href="{{ url_for('view_timetable') }}" style="color: var(--bms-navy);"><i class="fas fa-clock"></i> Weekly Schedule</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <span style="color: var(--text-muted); font-weight: 600;">Student Attendance History</span>
 </div>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
-        <h1>Student Academic Attendance History</h1>
-        <div class="page-subtitle">Historical records of classroom lectures, lab sessions, and student attendance across academic terms</div>
-    </div>
-    <div class="page-actions" style="display: flex; gap: 8px;">
-        <a href="{{ url_for('view_timetable') }}" class="btn btn-primary">
-            <i class="fas fa-calendar-alt"></i> Weekly Schedule
-        </a>
+<!-- Page Hero Header -->
+<div class="history-hero">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="hero-badge">
+                <i class="fas fa-archive"></i> Academic Archives &bull; Institutional Log
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px;">
+                Student Academic Attendance History
+            </h1>
+            <div style="font-size: 1rem; color: #E2E8F0;">
+                Historical records of classroom lectures, lab sessions, and student attendance across academic terms
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('view_timetable') }}" class="btn" style="background: var(--bms-gold); color: #0B192C; font-weight: 700; padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                <i class="fas fa-calendar-alt"></i> Weekly Schedule
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- Filter & Search Toolbar Card -->
-<div class="card mb-3" style="border-top: 3px solid var(--primary);">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <h3 class="card-title"><i class="fas fa-filter" style="margin-right: 8px; color: var(--primary);"></i> Search &amp; Filter Historical Attendance</h3>
-        <span class="badge badge-info"><i class="fas fa-database"></i> Server-side Filter &amp; Pagination</span>
+<div class="filter-card">
+    <div class="card-header" style="background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h3 class="card-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--bms-navy-dark); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-filter" style="color: var(--bms-gold);"></i> Search &amp; Filter Historical Attendance
+        </h3>
+        <span class="badge" style="background: #EEF2F6; color: var(--bms-navy-dark); border: 1px solid #CBD5E1; font-weight: 700; padding: 4px 10px; border-radius: 6px;">
+            <i class="fas fa-database"></i> Server-side Filter &amp; Pagination
+        </span>
     </div>
-    <div class="card-body">
+    <div class="card-body" style="padding: 20px;">
         <form method="GET" action="{{ url_for('academic_attendance_history') }}" id="filterForm">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; align-items: end;">
                 <!-- Specific Date -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Specific Date:</label>
-                    <input type="date" name="date" class="form-control" value="{{ filter_date }}">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Specific Date:</label>
+                    <input type="date" name="date" class="form-control" value="{{ filter_date }}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
 
                 <!-- Start Date -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">From Date:</label>
-                    <input type="date" name="start_date" class="form-control" value="{{ filter_start_date }}">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">From Date:</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ filter_start_date }}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
 
                 <!-- End Date -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">To Date:</label>
-                    <input type="date" name="end_date" class="form-control" value="{{ filter_end_date }}">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">To Date:</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ filter_end_date }}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
 
                 <!-- Month (Month & Year picker) -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Month &amp; Year:</label>
-                    <input type="month" name="month" class="form-control" value="{{ filter_month }}">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Month &amp; Year:</label>
+                    <input type="month" name="month" class="form-control" value="{{ filter_month }}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
 
                 <!-- Course -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Course:</label>
-                    <select name="course" class="form-control">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Course:</label>
+                    <select name="course" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                         <option value="">All Courses</option>
                         <option value="BCA" {% if filter_course == 'BCA' %}selected{% endif %}>BCA</option>
                         <option value="BBA" {% if filter_course == 'BBA' %}selected{% endif %}>BBA</option>
@@ -70,8 +203,8 @@
 
                 <!-- Semester -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Semester:</label>
-                    <select name="semester" class="form-control">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Semester:</label>
+                    <select name="semester" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                         <option value="">All Semesters</option>
                         <option value="Sem I" {% if filter_semester == 'Sem I' %}selected{% endif %}>Sem I</option>
                         <option value="Sem II" {% if filter_semester == 'Sem II' %}selected{% endif %}>Sem II</option>
@@ -84,8 +217,8 @@
 
                 <!-- Section -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Section:</label>
-                    <select name="section" class="form-control">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Section:</label>
+                    <select name="section" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                         <option value="">All Sections</option>
                         <option value="A" {% if filter_section == 'A' %}selected{% endif %}>Section A</option>
                         <option value="B" {% if filter_section == 'B' %}selected{% endif %}>Section B</option>
@@ -95,8 +228,8 @@
                 {% if is_management and faculty_list %}
                 <!-- Faculty filter for Management -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Faculty Member:</label>
-                    <select name="faculty_id" class="form-control">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Faculty Member:</label>
+                    <select name="faculty_id" class="form-control" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                         <option value="">All Faculty</option>
                         {% for f in faculty_list %}
                         <option value="{{ f.id }}" {% if filter_faculty_id|string == f.id|string %}selected{% endif %}>{{ f.full_name }}</option>
@@ -107,16 +240,16 @@
 
                 <!-- Subject Search -->
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Search Subject / Topic:</label>
-                    <input type="text" name="search" class="form-control" placeholder="Subject keyword..." value="{{ filter_search }}">
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block;">Search Subject / Topic:</label>
+                    <input type="text" name="search" class="form-control" placeholder="Subject keyword..." value="{{ filter_search }}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
 
                 <!-- Filter Actions -->
                 <div style="display: flex; gap: 8px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">
-                        <i class="fas fa-search"></i> Apply Filter
+                    <button type="submit" class="btn btn-primary" style="flex: 1; font-weight: 700; background: var(--bms-navy); color: #FFFFFF; border: 1px solid var(--bms-gold); padding: 8px 14px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fas fa-search" style="color: var(--bms-gold);"></i> Apply Filter
                     </button>
-                    <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary" title="Reset Filters">
+                    <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary" title="Reset Filters" style="font-weight: 600; padding: 8px 12px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                         <i class="fas fa-redo"></i> Reset
                     </a>
                 </div>
@@ -126,35 +259,45 @@
 </div>
 
 <!-- Key Stat Cards -->
-<div class="grid grid-cols-3 mb-3">
-    <div class="stat-card" style="border-top: 3px solid var(--primary);">
-        <div class="stat-card-label">Matching Sessions</div>
-        <div class="stat-card-value">{{ total_sessions }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Classes</span></div>
-        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-chalkboard"></i> Total Filtered Lectures</div>
+<div class="stat-kpi-grid">
+    <div class="stat-kpi-card" style="border-left: 4px solid var(--bms-navy);">
+        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Matching Sessions</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--bms-navy-dark); margin: 6px 0;">
+            {{ total_sessions }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Classes</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted);"><i class="fas fa-chalkboard" style="color: var(--bms-navy);"></i> Total Filtered Lectures</div>
     </div>
 
-    <div class="stat-card" style="border-top: 3px solid var(--info);">
-        <div class="stat-card-label">Page Attendances</div>
-        <div class="stat-card-value" style="color: var(--info);">{{ total_attendances }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Records</span></div>
-        <div style="font-size: var(--font-size-xs); color: var(--text-muted);"><i class="fas fa-id-card"></i> Student Session Marks on this page</div>
+    <div class="stat-kpi-card" style="border-left: 4px solid var(--bms-gold);">
+        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Page Attendances</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--bms-navy-dark); margin: 6px 0;">
+            {{ total_attendances }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">Records</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted);"><i class="fas fa-id-card" style="color: var(--bms-gold);"></i> Student Session Marks on this page</div>
     </div>
 
-    <div class="stat-card" style="border-top: 3px solid var(--success);">
-        <div class="stat-card-label">Average Attendance Rate</div>
-        <div class="stat-card-value" style="color: var(--success);">{{ avg_attendance_rate }}%</div>
-        <div style="font-size: var(--font-size-xs); color: var(--success);"><i class="fas fa-percentage"></i> Institutional Attendance Ratio</div>
+    <div class="stat-kpi-card" style="border-left: 4px solid var(--success);">
+        <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--success); letter-spacing: 0.5px;">Average Attendance Rate</div>
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--success); margin: 6px 0;">
+            {{ avg_attendance_rate }}%
+        </div>
+        <div style="font-size: 0.82rem; color: var(--success);"><i class="fas fa-percentage"></i> Institutional Attendance Ratio</div>
     </div>
 </div>
 
 <!-- Sessions Table Card -->
-<div class="card mb-3">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <h3 class="card-title"><i class="fas fa-history" style="margin-right: 8px;"></i> Lecture Attendance Log</h3>
-        <span class="badge badge-info">{{ total_sessions }} Recorded Sessions Found</span>
+<div class="card mb-3" style="border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(11, 25, 44, 0.05); margin-bottom: 24px; overflow: hidden;">
+    <div class="card-header" style="background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h3 class="card-title" style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--bms-navy-dark); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-history" style="color: var(--bms-gold);"></i> Lecture Attendance Log
+        </h3>
+        <span class="badge" style="background: #EEF2F6; color: var(--bms-navy-dark); border: 1px solid #CBD5E1; font-weight: 700; padding: 4px 12px; border-radius: 6px;">
+            {{ total_sessions }} Recorded Sessions Found
+        </span>
     </div>
-    <div class="card-body p-0">
-        <div class="table-wrapper">
-            <table class="table">
+    <div class="card-body p-0" style="padding: 0;">
+        <div class="table-container-responsive">
+            <table class="history-table table">
                 <thead>
                     <tr>
                         <th style="width: 140px;">Date</th>
@@ -162,58 +305,58 @@
                         <th style="width: 170px;">Class / Section</th>
                         <th style="width: 170px;">Time Slot &amp; Room</th>
                         <th style="width: 180px;">Faculty</th>
-                        <th style="width: 130px; text-align: center;">Present / Absent</th>
-                        <th style="width: 150px; text-align: center;">Action</th>
+                        <th style="width: 140px; text-align: center;">Present / Absent</th>
+                        <th style="width: 160px; text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in session_records %}
                     <tr>
                         <td>
-                            <strong style="color: var(--primary);">{{ item.session.date.strftime("%d-%m-%Y") }}</strong>
+                            <strong style="color: var(--bms-navy-dark); font-size: 0.95rem;">{{ item.session.date.strftime("%d-%m-%Y") }}</strong>
                             <div style="font-size: 0.78rem; color: var(--text-muted);">{{ item.session.date.strftime("%A") }}</div>
                         </td>
                         <td>
-                            <div style="font-weight: 700; font-size: 0.95rem;">{{ item.session.actual_subject }}</div>
+                            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main);">{{ item.session.actual_subject }}</div>
                             {% if item.session.actual_subject != item.session.scheduled_subject %}
-                                <div style="font-size: 0.75rem; color: var(--warning);">
+                                <div style="font-size: 0.78rem; color: var(--warning); font-weight: 600; margin-top: 2px;">
                                     <i class="fas fa-exchange-alt"></i> Sched: {{ item.session.scheduled_subject }}
                                 </div>
                             {% endif %}
                             {% if item.session.remarks %}
-                                <div style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; margin-top: 2px;">
                                     "{{ item.session.remarks }}"
                                 </div>
                             {% endif %}
                             {% if item.session.audit_logs|length > 0 %}
-                                <div style="font-size: 0.72rem; color: var(--info); margin-top: 2px;">
+                                <div style="font-size: 0.75rem; color: var(--bms-navy); font-weight: 600; margin-top: 4px;">
                                     <i class="fas fa-history"></i> {{ item.session.audit_logs|length }} correction(s)
                                 </div>
                             {% endif %}
                         </td>
                         <td>
-                            <span class="badge badge-primary">{{ item.session.course }} {{ item.session.semester }}</span>
-                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 2px;">Section {{ item.session.section }}</div>
+                            <span class="badge" style="background: rgba(11, 25, 44, 0.08); color: var(--bms-navy-dark); font-weight: 700; border: 1px solid #CBD5E1; padding: 4px 8px; border-radius: 4px;">{{ item.session.course }} {{ item.session.semester }}</span>
+                            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-top: 4px;">Section {{ item.session.section }}</div>
                         </td>
                         <td>
-                            <div style="font-size: 0.88rem; font-weight: 600;">{{ item.session.time_slot }}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);"><i class="fas fa-door-open"></i> {{ item.session.room_no }}</div>
+                            <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main);">{{ item.session.time_slot }}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;"><i class="fas fa-door-open"></i> {{ item.session.room_no }}</div>
                         </td>
                         <td>
-                            <div style="font-size: 0.9rem; font-weight: 600;">{{ item.session.actual_faculty.full_name }}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ item.session.actual_faculty.role }}</div>
+                            <div style="font-size: 0.92rem; font-weight: 700; color: var(--text-main);">{{ item.session.actual_faculty.full_name }}</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">{{ item.session.actual_faculty.role }}</div>
                         </td>
-                        <td style="text-align: center;">
-                            <span class="badge badge-success">{{ item.present_count }} P</span>
-                            <span class="badge badge-danger">{{ item.absent_count }} A</span>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <span class="badge badge-success" style="background: var(--success); color: #FFFFFF; font-weight: 700; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem;">{{ item.present_count }} P</span>
+                            <span class="badge badge-danger" style="background: var(--danger); color: #FFFFFF; font-weight: 700; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem;">{{ item.absent_count }} A</span>
                         </td>
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 6px; justify-content: center;">
-                                <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm" title="View Details">
+                                <a href="{{ url_for('view_class_session', session_id=item.session.id) }}" class="btn btn-secondary btn-sm" title="View Details" style="font-weight: 600; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem;">
                                     <i class="fas fa-eye"></i> Details
                                 </a>
                                 {% if user.role in ['Principal', 'HOD - BCA Dept', 'admin'] or item.session.actual_faculty_id == user.id or item.session.scheduled_faculty_id == user.id %}
-                                <a href="{{ url_for('edit_academic_attendance', session_id=item.session.id) }}" class="btn btn-warning btn-sm" title="Edit / Modify Attendance">
+                                <a href="{{ url_for('edit_academic_attendance', session_id=item.session.id) }}" class="btn btn-warning btn-sm" title="Edit / Modify Attendance" style="background: var(--bms-gold); color: #0B192C; font-weight: 700; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem;">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
                                 {% endif %}
@@ -222,11 +365,11 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-folder-open" style="font-size: 2.5rem; margin-bottom: 12px; color: var(--border);"></i>
-                            <h4>No attendance history found matching your filters</h4>
-                            <p>Try clearing your date or search filters to view previous classroom records.</p>
-                            <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary btn-sm" style="margin-top: 8px;">
+                        <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                            <i class="fas fa-folder-open" style="font-size: 2.8rem; margin-bottom: 12px; color: #CBD5E1; display: block;"></i>
+                            <h4 style="color: var(--text-main); font-weight: 700; margin-bottom: 6px;">No attendance history found matching your filters</h4>
+                            <p style="margin-bottom: 12px;">Try clearing your date or search filters to view previous classroom records.</p>
+                            <a href="{{ url_for('academic_attendance_history') }}" class="btn btn-secondary btn-sm" style="font-weight: 600; padding: 8px 16px; border-radius: 6px;">
                                 <i class="fas fa-redo"></i> Reset Filters
                             </a>
                         </td>
@@ -237,22 +380,22 @@
         </div>
     </div>
     {% if pagination and pagination.pages > 1 %}
-    <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; flex-wrap: wrap; gap: 10px;">
+    <div class="card-footer" style="background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; flex-wrap: wrap; gap: 10px;">
         <div style="font-size: 0.85rem; color: var(--text-muted);">
             Showing Page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> ({{ pagination.total }} total sessions)
         </div>
         <div style="display: flex; gap: 6px;">
             {% if pagination.has_prev %}
-            <a href="{{ url_for('academic_attendance_history', page=pagination.prev_num, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm">
+            <a href="{{ url_for('academic_attendance_history', page=pagination.prev_num, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm" style="font-weight: 600;">
                 &larr; Previous
             </a>
             {% endif %}
             {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
                 {% if p %}
                     {% if p == pagination.page %}
-                    <span class="btn btn-primary btn-sm disabled" style="font-weight: 700;">{{ p }}</span>
+                    <span class="btn btn-primary btn-sm disabled" style="font-weight: 700; background: var(--bms-navy); color: #FFFFFF; border: 1px solid var(--bms-gold);">{{ p }}</span>
                     {% else %}
-                    <a href="{{ url_for('academic_attendance_history', page=p, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm">
+                    <a href="{{ url_for('academic_attendance_history', page=p, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm" style="font-weight: 600;">
                         {{ p }}
                     </a>
                     {% endif %}
@@ -261,7 +404,7 @@
                 {% endif %}
             {% endfor %}
             {% if pagination.has_next %}
-            <a href="{{ url_for('academic_attendance_history', page=pagination.next_num, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm">
+            <a href="{{ url_for('academic_attendance_history', page=pagination.next_num, date=filter_date, start_date=filter_start_date, end_date=filter_end_date, month=filter_month, course=filter_course, semester=filter_semester, section=filter_section, search=filter_search, faculty_id=filter_faculty_id) }}" class="btn btn-secondary btn-sm" style="font-weight: 600;">
                 Next &rarr;
             </a>
             {% endif %}

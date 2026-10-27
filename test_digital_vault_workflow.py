@@ -298,9 +298,10 @@ class TestDigitalVaultWorkflow(unittest.TestCase):
             sess['_user_id'] = str(self.accountant_id)
             sess['user_id'] = self.accountant_id
 
-        # 1. UI route
+        # 1. UI route - Strictly restricted to Admin Department (HTTP 403 Forbidden)
         res_ui = self.client.get('/digital_vault')
-        self.assertEqual(res_ui.status_code, 302) # Redirect to dashboard
+        self.assertEqual(res_ui.status_code, 403)
+        self.assertNotIn(b"Upload Document", res_ui.data)
 
         # 2. Scan API
         res_scan = self.client.post('/vault/scan', data={'doc_file': (self._create_mock_image(), 'acc_test.jpg')}, content_type='multipart/form-data')

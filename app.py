@@ -2203,6 +2203,15 @@ def api_student_study_materials():
 
     materials_list = []
     for m in materials:
+        scope = {'course': m.course, 'semester': m.semester, 'section': m.section}
+        decision = get_academic_content_access_decision(
+            user=None,
+            student=student,
+            subject=m.subject,
+            academic_scope=scope,
+            resource_type='STUDY_MATERIAL',
+            evaluation_date=m.created_at.date() if m.created_at else None
+        )
         materials_list.append({
             'id': m.id,
             'title': m.title,
@@ -2214,7 +2223,11 @@ def api_student_study_materials():
             'file_mimetype': m.file_mimetype,
             'created_at': m.created_at.strftime('%Y-%m-%d') if m.created_at else None,
             'download_url': f'/academic/study-materials/{m.id}/download',
-            'preview_url': f'/academic/study-materials/{m.id}/preview'
+            'preview_url': f'/academic/study-materials/{m.id}/preview',
+            'is_accessible': decision['can_view'],
+            'public_message': decision.get('public_message'),
+            'decision_source': decision.get('decision_source'),
+            'attendance_percentage': decision.get('attendance_percentage')
         })
 
     return jsonify({
@@ -2265,22 +2278,55 @@ def view_audit_logs():
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
     return render_template('audit_logs.html', logs=logs)
 
+@app.route('/audit_logs/export', methods=['GET'])
+def export_audit_logs():
+    # SECURITY: Only allow Principal to export system logs
+    if session.get('role') != 'Principal':
+        flash("Access Denied: You do not have permission to export system logs.", "error")
+        return redirect(url_for('dashboard')), 403
+
+    import csv
+    import io
+
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Safe CSV formula injection mitigation: prepend single-quote if cell starts with dangerous symbols
+    def sanitize_csv_cell(val):
+        if val is None:
+            return ""
+        s = str(val).strip()
+        if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+            return "'" + s
+        return s
+
+    writer.writerow(["Log ID", "Timestamp (IST)", "Actor (User)", "Action Description", "Target Resource"])
+    for l in logs:
+        ts_str = l.timestamp.strftime("%Y-%m-%d %H:%M:%S") if l.timestamp else ""
+        writer.writerow([
+            l.id,
+            ts_str,
+            sanitize_csv_cell(l.user_name),
+            sanitize_csv_cell(l.action),
+            sanitize_csv_cell(l.target_user)
+        ])
+
+    csv_data = output.getvalue()
+    response = make_response(csv_data)
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = f"attachment; filename=audit_logs_{get_ist_time().strftime('%Y%m%d_%H%M%S')}.csv"
+    return response
+
 @app.route('/clear_audit_logs', methods=['POST'])
 def clear_audit_logs():
-    # SECURITY: Only allow Principal to purge the records
+    # SECURITY: Only allow Principal to access purge endpoint
     if session.get('role') != 'Principal':
         flash("Access Denied: You do not have permission to purge system logs.", "error")
         return redirect(url_for('dashboard')), 403
 
-    try:
-        # Deletes all entries in the AuditLog table
-        AuditLog.query.delete()
-        db.session.commit()
-        flash("Imperial records have been purged successfully.", "success")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error purging logs: {str(e)}", "error")
-        
+    # Institutional audit protection: Irrevocable permanent purge is disabled for compliance retention
+    flash("Audit Log Purging is permanently disabled for statutory compliance and institutional retention. Audit logs are preserved permanently. Please use 'Export CSV' for offline archiving.", "warning")
     return redirect(url_for('view_audit_logs'))
 
 @app.route('/timetable', methods=['GET'])
@@ -2434,43 +2480,183 @@ def timetable_overview():
 @app.route('/timetable/manage', methods=['POST'])
 @login_required
 def manage_timetable():
+    user = User.query.get(session.get('user_id')) if 'user_id' in session else (current_user if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated else None)
+    if not user:
+        return redirect(url_for('login')), 302
+
+    if 'student_id' in session or getattr(user, 'role', None) == 'Student':
+        flash('Access Denied: Timetable management is restricted to authorized faculty and administrators.', 'danger')
+        return redirect(url_for('student_dashboard' if 'student_id' in session else 'dashboard')), 403
+
+    is_admin = (user.username == 'admin' or user.role in ['Principal', 'HOD - BCA Dept', 'admin'])
+
+    if not (is_admin or user.role == 'Faculty'):
+        flash('Unauthorized: You do not have permission to manage timetables.', 'danger')
+        return redirect(url_for('dashboard')), 403
     action = request.form.get('action')
     faculty_id = request.form.get('faculty_id') # For redirection
 
+    if not action:
+        flash('No action specified for timetable management.', 'danger')
+        return redirect(url_for('view_timetable', faculty_id=faculty_id)), 400
+
     if action == 'add':
+        target_faculty_id = None
+        if faculty_id:
+            try:
+                target_faculty_id = int(faculty_id)
+            except (ValueError, TypeError):
+                flash('Invalid faculty identifier.', 'danger')
+                return redirect(url_for('view_timetable')), 400
+        else:
+            target_faculty_id = user.id
+
+        if not is_admin and target_faculty_id != user.id:
+            flash('Unauthorized: Regular faculty can only add timetable sessions for themselves.', 'danger')
+            return redirect(url_for('view_timetable')), 403
+
+        target_faculty = User.query.get(target_faculty_id)
+        if not target_faculty:
+            flash('Target faculty member not found.', 'danger')
+            return redirect(url_for('view_timetable')), 404
+
+        course = (request.form.get('course') or 'BCA').strip()
+        # Enforce departmental scope for HOD - BCA Dept
+        if user.role == 'HOD - BCA Dept' and course.upper() != 'BCA':
+            flash('Unauthorized: HOD - BCA Dept can only manage timetable sessions for the BCA department.', 'danger')
+            return redirect(url_for('view_timetable')), 403
+
+        day = (request.form.get('day') or '').strip()
+        time_slot = (request.form.get('time') or '').strip()
+        subject = (request.form.get('subject') or '').strip()
+        semester = (request.form.get('semester') or '').strip()
+
+        if not subject:
+            flash('Subject name is required.', 'danger')
+            return redirect(url_for('view_timetable', faculty_id=target_faculty_id)), 400
+
         new_class = Timetable(
-            day=request.form.get('day'),
-            time_slot=request.form.get('time'),
-            subject=request.form.get('subject'),
-            semester=request.form.get('semester'),
-            user_id=faculty_id,
+            day=day or 'Monday',
+            time_slot=time_slot or '09:00 AM-10:00 AM',
+            subject=subject,
+            semester=semester or 'Sem V',
+            course=course or 'BCA',
+            user_id=target_faculty_id,
             status='pending' # Default status
         )
         db.session.add(new_class)
+        db.session.commit()
 
-    elif action == 'update_session': # NEW: Edit Logic
-        class_id = request.form.get('class_id')
-        entry = Timetable.query.get(class_id)
-        if entry:
-            entry.day = request.form.get('day')
-            entry.time_slot = request.form.get('time')
-            entry.subject = request.form.get('subject')
-            entry.semester = request.form.get('semester')
+        # Audit logging for timetable addition
+        try:
+            log_action(f"Timetable slot added: '{subject}' ({day} {time_slot}, {semester}, {course})", target=target_faculty.full_name)
+        except Exception:
+            pass
 
-    elif action == 'update_status':
+        flash('Timetable session added successfully.', 'success')
+        return redirect(url_for('view_timetable', faculty_id=target_faculty_id))
+
+    elif action in ['update_session', 'update_status', 'delete']:
         class_id = request.form.get('class_id')
-        new_status = request.form.get('status')
-        entry = Timetable.query.get(class_id)
-        if entry:
+        try:
+            class_id_int = int(class_id)
+        except (ValueError, TypeError):
+            flash('Invalid class session identifier.', 'danger')
+            return redirect(url_for('view_timetable', faculty_id=faculty_id)), 400
+
+        entry = Timetable.query.get(class_id_int)
+        if not entry:
+            flash('Timetable slot not found.', 'danger')
+            return redirect(url_for('view_timetable', faculty_id=faculty_id)), 404
+
+        is_owner = (entry.user_id == user.id)
+        if not (is_owner or is_admin):
+            flash('Unauthorized: You are not authorized to modify another faculty member\'s timetable.', 'danger')
+            return redirect(url_for('view_timetable', faculty_id=entry.user_id)), 403
+
+        # Enforce departmental scope for HOD - BCA Dept on existing records
+        if user.role == 'HOD - BCA Dept':
+            entry_course = (entry.course or 'BCA').strip().upper()
+            if entry_course != 'BCA':
+                flash('Unauthorized: HOD - BCA Dept can only manage timetable sessions for the BCA department.', 'danger')
+                return redirect(url_for('view_timetable', faculty_id=entry.user_id)), 403
+
+        redirect_target_id = faculty_id if faculty_id else entry.user_id
+        target_faculty_user = User.query.get(entry.user_id)
+        target_name = target_faculty_user.full_name if target_faculty_user else f"Faculty #{entry.user_id}"
+
+        if action == 'update_session':
+            submitted_course = (request.form.get('course') or '').strip()
+            if user.role == 'HOD - BCA Dept' and submitted_course and submitted_course.upper() != 'BCA':
+                flash('Unauthorized: HOD - BCA Dept cannot assign timetable sessions to non-BCA departments.', 'danger')
+                return redirect(url_for('view_timetable', faculty_id=redirect_target_id)), 403
+
+            day = (request.form.get('day') or '').strip()
+            time_slot = (request.form.get('time') or '').strip()
+            subject = (request.form.get('subject') or '').strip()
+            semester = (request.form.get('semester') or '').strip()
+
+            if day:
+                entry.day = day
+            if time_slot:
+                entry.time_slot = time_slot
+            if subject:
+                entry.subject = subject
+            if semester:
+                entry.semester = semester
+            if submitted_course:
+                entry.course = submitted_course
+
+            db.session.commit()
+
+            # Audit logging for session update
+            try:
+                log_action(f"Timetable slot #{entry.id} updated: '{entry.subject}' ({entry.day} {entry.time_slot}, {entry.semester})", target=target_name)
+            except Exception:
+                pass
+
+            flash('Timetable session updated successfully.', 'success')
+
+        elif action == 'update_status':
+            new_status = (request.form.get('status') or '').strip().lower()
+            if new_status not in ['held', 'missed', 'pending']:
+                flash('Invalid status value provided.', 'danger')
+                return redirect(url_for('view_timetable', faculty_id=redirect_target_id)), 400
+
             entry.status = new_status
+            db.session.commit()
 
-    elif action == 'delete':
-        class_id = request.form.get('class_id')
-        Timetable.query.filter_by(id=class_id).delete()
-        
-    db.session.commit()
-    # Redirect back to the faculty being viewed
-    return redirect(url_for('view_timetable', faculty_id=faculty_id))
+            # Audit logging for status change
+            try:
+                log_action(f"Timetable slot #{entry.id} status marked '{new_status}'", target=target_name)
+            except Exception:
+                pass
+
+            flash(f'Timetable session marked as {new_status}.', 'success')
+
+        elif action == 'delete':
+            has_sessions = ClassSession.query.filter_by(timetable_id=entry.id).first() is not None
+            if has_sessions:
+                flash('Cannot delete timetable slot because academic attendance sessions are recorded for it.', 'warning')
+                return redirect(url_for('view_timetable', faculty_id=redirect_target_id)), 400
+
+            slot_desc = f"'{entry.subject}' ({entry.day} {entry.time_slot})"
+            db.session.delete(entry)
+            db.session.commit()
+
+            # Audit logging for deletion
+            try:
+                log_action(f"Timetable slot #{class_id_int} deleted: {slot_desc}", target=target_name)
+            except Exception:
+                pass
+
+            flash('Timetable slot deleted successfully.', 'success')
+
+        return redirect(url_for('view_timetable', faculty_id=redirect_target_id))
+
+    else:
+        flash('Invalid timetable action requested.', 'danger')
+        return redirect(url_for('view_timetable', faculty_id=faculty_id)), 400
 
 # ==========================================
 # 3B. STUDENT ACADEMIC ATTENDANCE WORKFLOW
@@ -4378,21 +4564,15 @@ def internal_marks_audit(mark_id):
 @login_required
 def internal_marks_hod_restrictions():
     user = User.query.get(session.get('user_id'))
-    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
-        flash('Unauthorized: HOD Restrictions Management is restricted to Department Heads and Executive Administration.', 'danger')
+    if not user or user.role != 'HOD - BCA Dept':
+        flash('Unauthorized: HOD Restrictions Management is restricted exclusively to HOD - BCA Dept.', 'danger')
         return redirect(url_for('dashboard')), 403
 
-    if user.role == 'HOD - BCA Dept':
-        allowed_courses = ['BCA']
-    else:
-        allowed_courses = [r[0] for r in db.session.query(Timetable.course).distinct().all() if r[0]]
-        if not allowed_courses:
-            allowed_courses = ['BCA']
-
-    course = (request.args.get('course') or allowed_courses[0]).strip()
-    if course not in allowed_courses:
-        flash('Unauthorized course scope for your department.', 'danger')
-        return redirect(url_for('internal_marks_dashboard')), 403
+    allowed_courses = ['BCA']
+    course = (request.args.get('course') or 'BCA').strip()
+    if course != 'BCA':
+        flash('Unauthorized course scope: HOD - BCA Dept can only manage BCA courses.', 'danger')
+        return redirect(url_for('dashboard')), 403
 
     semester = (request.args.get('semester') or 'Sem V').strip()
     section = (request.args.get('section') or 'A').strip()
@@ -4497,8 +4677,8 @@ def internal_marks_hod_restrictions():
 @login_required
 def internal_marks_hod_restrictions_save():
     user = User.query.get(session.get('user_id'))
-    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
-        flash('Unauthorized access: HOD restrictions management requires HOD or Executive authority.', 'danger')
+    if not user or user.role != 'HOD - BCA Dept':
+        flash('Unauthorized access: HOD attendance overrides management requires HOD - BCA Dept authority.', 'danger')
         return redirect(url_for('dashboard')), 403
 
     student_id = request.form.get('student_id', type=int)
@@ -4511,9 +4691,9 @@ def internal_marks_hod_restrictions_save():
     action = (request.form.get('action') or '').strip()
     reason = (request.form.get('reason') or '').strip()
 
-    if user.role == 'HOD - BCA Dept' and course != 'BCA':
+    if course != 'BCA':
         flash('Access Denied: You are only authorized to manage restrictions for BCA Department courses.', 'danger')
-        return redirect(url_for('internal_marks_dashboard')), 403
+        return redirect(url_for('dashboard')), 403
 
     if not reason:
         flash('Submission Rejected: A non-empty justification reason is strictly mandatory for any HOD eligibility action or revocation.', 'danger')
@@ -4644,19 +4824,15 @@ def internal_marks_hod_restrictions_save():
 @login_required
 def internal_marks_hod_restrictions_audit():
     user = User.query.get(session.get('user_id'))
-    if not user or user.role not in ['HOD - BCA Dept', 'Principal', 'admin']:
-        flash('Unauthorized access.', 'danger')
+    if not user or user.role != 'HOD - BCA Dept':
+        flash('Unauthorized access: HOD restrictions audit requires HOD - BCA Dept authority.', 'danger')
         return redirect(url_for('dashboard')), 403
 
     student_id = request.args.get('student_id', type=int)
     subject = (request.args.get('subject') or '').strip()
     course = (request.args.get('course') or 'BCA').strip()
 
-    query = MarksEligibilityAudit.query
-    if user.role == 'HOD - BCA Dept':
-        query = query.filter(MarksEligibilityAudit.course == 'BCA')
-    elif course:
-        query = query.filter(MarksEligibilityAudit.course == course)
+    query = MarksEligibilityAudit.query.filter(MarksEligibilityAudit.course == 'BCA')
 
     if student_id:
         query = query.filter(MarksEligibilityAudit.student_id == student_id)
@@ -6686,12 +6862,17 @@ def view_student_timetable_file(timetable_id):
         abort(403)
 
     folder = app.config['STUDENT_TIMETABLES_STORAGE_FOLDER']
-    return send_from_directory(
+    resp = make_response(send_from_directory(
         folder,
         timetable.file_storage_key,
         as_attachment=False,
         mimetype=timetable.file_mimetype
-    )
+    ))
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Content-Disposition'] = f'inline; filename="{timetable.file_filename}"'
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 @app.route('/student/timetable', methods=['GET'])
@@ -6774,6 +6955,8 @@ def preview_study_material(material_id):
     ))
     resp.headers['X-Content-Type-Options'] = 'nosniff'
     resp.headers['Content-Disposition'] = f'inline; filename="{material.file_filename}"'
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    resp.headers['Pragma'] = 'no-cache'
     return resp
 
 
@@ -7416,6 +7599,134 @@ def academic_analytics_dashboard():
         sort_by=sort_by
     )
 
+@app.route('/academic/analytics/export', methods=['GET'])
+def academic_analytics_export():
+    if 'student_id' in session:
+        flash('Access Denied: Academic Analytics export is restricted to faculty.', 'danger')
+        return redirect(url_for('student_dashboard')), 403
+    if 'user_id' not in session:
+        flash('Please login to export Academic Analytics.', 'info')
+        return redirect(url_for('login')), 401
+
+    user = User.query.get(session['user_id'])
+    if not user or user.role not in ['Faculty', 'HOD - BCA Dept', 'Principal', 'admin']:
+        flash('Access Denied: You do not have permission to export Academic Analytics.', 'danger')
+        return redirect(url_for('dashboard')), 403
+
+    req_course = request.args.get('course')
+    req_academic_year = request.args.get('academic_year')
+    req_semester = request.args.get('semester')
+    req_section = request.args.get('section')
+    req_subject = request.args.get('subject')
+
+    scope, options, is_auth = resolve_teacher_academic_scope(
+        user=user,
+        req_course=req_course,
+        req_academic_year=req_academic_year,
+        req_semester=req_semester,
+        req_section=req_section,
+        req_subject=req_subject
+    )
+
+    if not is_auth or not scope:
+        flash('Access Denied: You are not authorized to export the requested academic context.', 'danger')
+        return abort(403)
+
+    search_query = (request.args.get('search') or '').strip()
+    filter_status = (request.args.get('filter_status') or 'all').strip()
+    sort_by = (request.args.get('sort_by') or 'uucms_id').strip()
+
+    analytics_data = compute_academic_analytics_data(
+        course=scope['course'],
+        academic_year=scope['academic_year'],
+        semester=scope['semester'],
+        section=scope['section'],
+        subject_filter=scope['subject']
+    )
+
+    all_rows = analytics_data['student_rows']
+    if search_query:
+        sq = search_query.lower()
+        all_rows = [
+            r for r in all_rows
+            if sq in r['student'].name.lower() or sq in r['student'].uucms_id.lower()
+        ]
+
+    if filter_status == 'risk':
+        all_rows = [r for r in all_rows if r['has_attendance_risk']]
+    elif filter_status == 'low_marks':
+        all_rows = [r for r in all_rows if r['has_low_marks']]
+    elif filter_status == 'pending':
+        all_rows = [r for r in all_rows if (r['has_pending_mark'] or r['attendance_status'] == 'PENDING')]
+    elif filter_status == 'threshold_met':
+        all_rows = [r for r in all_rows if r['attendance_status'] == 'ELIGIBLE']
+
+    if sort_by == 'name':
+        all_rows.sort(key=lambda r: r['student'].name.lower())
+    elif sort_by == 'attendance_asc':
+        all_rows.sort(key=lambda r: (r['overall_attendance_pct'] if r['overall_attendance_pct'] is not None else 999.0))
+    elif sort_by == 'attendance_desc':
+        all_rows.sort(key=lambda r: (r['overall_attendance_pct'] if r['overall_attendance_pct'] is not None else -1.0), reverse=True)
+    else:
+        all_rows.sort(key=lambda r: (r['student'].uucms_id or ''))
+
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    def sanitize_csv_cell(val):
+        if val is None:
+            return ""
+        s = str(val).strip()
+        if s and s[0] in ('=', '+', '-', '@', '\t', '\r'):
+            return "'" + s
+        return s
+
+    writer.writerow([
+        "Student USN",
+        "Student Name",
+        "Course",
+        "Semester",
+        "Section",
+        "Subject Scope",
+        "Classes Conducted",
+        "Classes Attended",
+        "Attendance %",
+        "Eligibility Status",
+        "Internal Marks Summary",
+        "Performance Risk Flags"
+    ])
+
+    for r in all_rows:
+        s = r['student']
+        att_pct_str = f"{r['overall_attendance_pct']:.2f}%" if r['overall_attendance_pct'] is not None else "N/A"
+        risk_flags = "At Risk" if r['is_red'] else "Normal"
+        writer.writerow([
+            sanitize_csv_cell(s.uucms_id),
+            sanitize_csv_cell(s.name),
+            sanitize_csv_cell(s.course),
+            sanitize_csv_cell(s.semester),
+            sanitize_csv_cell(s.section),
+            sanitize_csv_cell(scope.get('subject') or 'All Subjects'),
+            r['conducted_count'],
+            r['attended_count'],
+            att_pct_str,
+            sanitize_csv_cell(r['attendance_status']),
+            sanitize_csv_cell(r['marks_summary']),
+            risk_flags
+        ])
+
+    csv_data = output.getvalue()
+    filename_subject = f"_{scope['subject']}" if scope.get('subject') else ""
+    filename = f"academic_analytics_{scope['course']}_{scope['semester']}_{scope['section']}{filename_subject}_{get_ist_time().strftime('%Y%m%d_%H%M%S')}.csv"
+    response = make_response(csv_data)
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return response
+
+
 
 @app.route('/academic/analytics/student/<int:student_id>', methods=['GET'])
 def student_academic_analytics(student_id):
@@ -7619,6 +7930,8 @@ def leave_calendar():
         return redirect(url_for('dashboard')), 403
     
     today_date = date.today()
+    import calendar
+    days_in_month = calendar.monthrange(today_date.year, today_date.month)[1]
     approved_leaves = Leave.query.filter_by(status='Approved').all()
     
     # SAFETY CHECK & DATE OBJECT CONVERSION
@@ -7660,7 +7973,8 @@ def leave_calendar():
                            leaves=approved_leaves, 
                            present=present_staff, 
                            absent=absent_staff,
-                           today=today_date)
+                           today=today_date,
+                           days_in_month=days_in_month)
     
 from vault_engine import (
     validate_vault_file,
@@ -7979,6 +8293,16 @@ def vault_proposal_approve(proposal_id):
     if not proposal:
         return jsonify({"success": False, "error": "Proposal not found."}), 404
 
+    # Guard against unconfirmed AMBIGUOUS_CONFLICT proposals
+    if proposal.classification == 'AMBIGUOUS_CONFLICT':
+        payload = request.get_json(silent=True) or request.form.to_dict()
+        force_resolve = payload.get('resolve_conflict') or payload.get('confirm_conflict')
+        if not force_resolve:
+            return jsonify({
+                "success": False,
+                "error": "Cannot approve proposal with AMBIGUOUS_CONFLICT without explicit conflict resolution confirmation."
+            }), 400
+
     # Submitter self-approval check
     if proposal.submitted_by_id == user.id:
         return jsonify({
@@ -8068,6 +8392,13 @@ def vault_document_download(document_id):
     if not vault_doc or not os.path.isfile(vault_doc.file_path):
         flash('Requested document was not found.', 'error')
         return redirect(url_for('digital_vault')), 404
+
+    storage_folder = get_vault_storage_folder(app)
+    canonical_storage = os.path.realpath(storage_folder)
+    canonical_file = os.path.realpath(vault_doc.file_path)
+    if not canonical_file.startswith(canonical_storage):
+        flash('Security Violation: Unauthorized document path.', 'danger')
+        return redirect(url_for('digital_vault')), 403
 
     return send_file(
         vault_doc.file_path,
@@ -8266,14 +8597,53 @@ def staff_directory():
     if 'student_id' in session:
         flash('Access Denied: Staff directory is restricted to employees.', 'danger')
         return redirect(url_for('student_dashboard')), 403
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     curr_user = User.query.get(session['user_id'])
-    # Full list is restricted to Accounts, HR, and Admin; others see only their individual payroll
-    if curr_user.role in ['HR', 'Accountant', 'admin']:
+    if not curr_user:
+        return redirect(url_for('login'))
+
+    is_privileged = (curr_user.role in ['HR', 'Accountant', 'admin'] or curr_user.username == 'admin')
+
+    if is_privileged:
+        # Full workforce list for HR, Accounts, and Admin
         employees = User.query.all()
     else:
-        employees = [curr_user]
-    return render_template('staff_directory.html', employees=employees, SalaryUpdate=SalaryUpdate)
+        # Authenticated staff can view professional colleague information
+        # Sensitive personal demographics (salary, address, DOB, caste, religion) are strictly masked on the server
+        all_active = User.query.filter(User.status != 'Inactive').all()
+        employees = []
+        for u in all_active:
+            if u.id == curr_user.id:
+                employees.append(u)
+            else:
+                masked_emp = type('StaffDirectoryMember', (), {
+                    'id': u.id,
+                    'user_id': u.user_id,
+                    'username': u.username,
+                    'full_name': u.full_name,
+                    'role': u.role,
+                    'department': u.department,
+                    'dept_id': u.dept_id,
+                    'email': u.email,
+                    'phone': u.phone,
+                    'profile_pic': u.profile_pic,
+                    'status': u.status,
+                    'join_date': u.join_date,
+                    'salary': 0,
+                    'address': '[Confidential]',
+                    'dob': '[Confidential]',
+                    'caste': '[Confidential]',
+                    'religion': '[Confidential]'
+                })()
+                employees.append(masked_emp)
+
+    return render_template(
+        'staff_directory.html',
+        employees=employees,
+        is_privileged=is_privileged,
+        SalaryUpdate=SalaryUpdate
+    )
 
 @app.route('/create_meeting', methods=['POST'])
 def create_meeting():
@@ -9014,17 +9384,42 @@ def leave():
     user = User.query.get(session['user_id'])
     limit, taken = 20, Leave.query.filter_by(user_id=session['user_id'], status='Approved').count()
     if request.method == 'POST':
+        if taken >= limit:
+            flash('Leave application rejected: Annual leave quota (20 days) has been exhausted.', 'danger')
+            return redirect(url_for('leave'))
+        
+        req_date = request.form.get('date', '').strip()
+        req_reason = request.form.get('reason', '').strip()
+        if not req_date or not req_reason:
+            flash('Please provide both effective date and reason for absence.', 'danger')
+            return redirect(url_for('leave'))
+        
+        try:
+            parsed_date = datetime.strptime(req_date, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Invalid date format submitted. Please use YYYY-MM-DD.', 'danger')
+            return redirect(url_for('leave'))
+        
+        existing_leave = Leave.query.filter_by(user_id=session['user_id'], date=req_date).filter(
+            Leave.status.in_(['Pending HOD', 'Pending Principal', 'Approved'])
+        ).first()
+        if existing_leave:
+            flash(f'A leave application for {req_date} is already {existing_leave.status.lower()}.', 'warning')
+            return redirect(url_for('leave'))
+
         if user.role == 'Principal': initial_status = 'Approved'
         elif user.role == 'Faculty': initial_status = 'Pending HOD'
         else: initial_status = 'Pending Principal'
-        db.session.add(Leave(user_id=session['user_id'], date=request.form['date'], reason=request.form['reason'], status=initial_status))
+        db.session.add(Leave(user_id=session['user_id'], date=req_date, reason=req_reason, status=initial_status))
         db.session.add(Notification(message=f"LEAVE REQUEST: {user.full_name}"))
         db.session.commit()
+        flash('Leave application submitted successfully.', 'success')
+        return redirect(url_for('leave'))
     if user.role == 'Principal': leaves = Leave.query.filter(Leave.status.in_(['Pending Principal', 'Approved', 'Rejected'])).all()
     elif user.role == 'HOD - BCA Dept': leaves = Leave.query.filter((Leave.status == 'Pending HOD') | (Leave.user_id == user.id)).all()
     elif user.role == 'HR': leaves = Leave.query.all()
     else: leaves = Leave.query.filter_by(user_id=session['user_id']).all()
-    return render_template('leave.html', leaves=leaves, leaves_taken=taken, leaves_left=(limit-taken), leave_limit=limit)
+    return render_template('leave.html', leaves=leaves, leaves_taken=taken, leaves_left=max(0, limit-taken), leave_limit=limit)
 
 @app.route('/approve_leave/<int:id>/<action>')
 def approve_leave(id, action):
@@ -9112,10 +9507,36 @@ def expenses():
 @app.route('/approve_expense/<int:id>/<action>')
 def approve_expense(id, action):
     claim = ExpenseClaim.query.get(id)
-    if action == 'hr_approve' and session['role'] == 'HR': claim.status = 'Approved by HR'
-    elif action == 'acc_approve' and session['role'] == 'Accountant':
-        claim.status, claim.payment_date, claim.processed_by = 'Finalized', get_ist_time().strftime("%d-%m-%Y"), session['name']
-    elif action == 'reject': claim.status = 'Rejected'
+    if not claim:
+        flash("Expense claim not found.", "error")
+        return redirect(url_for('expenses'))
+    
+    if action == 'hr_approve':
+        if session.get('role') != 'HR':
+            flash("Unauthorized action! Only HR can approve initial claims.", "error")
+            return redirect(url_for('expenses'))
+        if claim.status != 'Pending':
+            flash(f"Claim cannot be HR approved (current status: {claim.status}).", "warning")
+            return redirect(url_for('expenses'))
+        claim.status = 'Approved by HR'
+    elif action == 'acc_approve':
+        if session.get('role') != 'Accountant':
+            flash("Unauthorized action! Only Accountants can finalize disbursement.", "error")
+            return redirect(url_for('expenses'))
+        if claim.status != 'Approved by HR':
+            flash("Claim must be approved by HR prior to final Accountant disbursement.", "warning")
+            return redirect(url_for('expenses'))
+        claim.status = 'Finalized'
+        claim.payment_date = get_ist_time().strftime("%d-%m-%Y")
+        claim.processed_by = session.get('name', 'Accountant')
+    elif action == 'reject':
+        if session.get('role') not in ['HR', 'Accountant']:
+            flash("Unauthorized action to reject claim.", "error")
+            return redirect(url_for('expenses'))
+        claim.status = 'Rejected'
+    else:
+        flash("Invalid expense action.", "error")
+        return redirect(url_for('expenses'))
     db.session.commit()
 
     # --- EVENT 4: EXPENSE DECISION NOTIFICATION ---
@@ -9260,6 +9681,13 @@ from flask import make_response
 @app.route('/generate_payslip/<int:uid>')
 @app.route('/generate_payslip/<int:uid>/<month_str>') # Added secondary route
 def generate_payslip(uid, month_str=None):
+    if 'user_id' not in session:
+        return redirect(url_for('login')), 401
+    current_uid = session['user_id']
+    user_role = session.get('role', '')
+    if current_uid != uid and user_role not in ['HR', 'Accountant', 'admin', 'Principal']:
+        flash("Access Denied: You are not authorized to view another employee's payslip.", 'danger')
+        return redirect(url_for('dashboard')), 403
     u = User.query.get(uid)
     if not u:
         return "Employee not found", 404
@@ -9574,21 +10002,42 @@ def email_staff_list():
 
 @app.route('/upload_photo/<int:uid>', methods=['POST'])
 def upload_photo(uid):
-    # Changed 'photo' to 'profile_pic' to match HTML
-    if 'profile_pic' not in request.files: return redirect(request.referrer)
-    file = request.files['profile_pic']
+    if 'user_id' not in session:
+        return redirect(url_for('login')), 401
+    current_uid = session['user_id']
+    user_role = session.get('role', '')
+    if current_uid != uid and user_role not in ['admin', 'HR']:
+        flash("Access Denied: Unauthorized photo upload.", "danger")
+        return redirect(url_for('dashboard')), 403
+    file = request.files.get('profile_pic') or request.files.get('photo')
+    if not file or file.filename == '':
+        flash("No file selected for photo upload.", "warning")
+        return redirect(request.referrer or url_for('profile'))
     if file and allowed_file(file.filename):
         user = User.query.get(uid)
+        if not user:
+            return "User not found", 404
         filename = f"staff_{uid}_{secure_filename(file.filename)}"
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         user.profile_pic = filename
         db.session.commit()
         flash("Photo updated successfully!", "success")
-    return redirect(request.referrer)
+    else:
+        flash("Invalid file format. Allowed formats: png, jpg, jpeg, gif.", "danger")
+    return redirect(request.referrer or url_for('profile'))
 
 @app.route('/generate_id/<int:uid>')
 def generate_id(uid):
+    if 'user_id' not in session:
+        return redirect(url_for('login')), 401
+    current_uid = session['user_id']
+    user_role = session.get('role', '')
+    if current_uid != uid and user_role not in ['HR', 'admin', 'Principal']:
+        flash("Access Denied: You are not authorized to download another employee's ID card.", "danger")
+        return redirect(url_for('dashboard')), 403
     u = User.query.get(uid)
+    if not u:
+        return "Employee not found", 404
     # ID Card Size: 54mm x 86mm (Standard CR80)
     pdf = FPDF(format=(54, 86))
     pdf.add_page()
@@ -9605,7 +10054,10 @@ def generate_id(uid):
     if not pic_path or not os.path.exists(pic_path) or u.profile_pic == 'default.png':
         pdf.rect(17, 20, 20, 20) # Placeholder
     else:
-        pdf.image(pic_path, 17, 20, 20, 20)
+        try:
+            pdf.image(pic_path, 17, 20, 20, 20)
+        except Exception:
+            pdf.rect(17, 20, 20, 20)
 
     # Details
     pdf.set_text_color(0, 0, 0)

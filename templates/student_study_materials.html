@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        @media print { body, html { display: none !important; } }
+
         :root {
             --bg-body: #f8fafc;
             --bg-surface: #ffffff;
@@ -311,11 +313,8 @@
 
             <!-- Action Buttons -->
             <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-                <a href="{{ url_for('preview_study_material', material_id=m.id) }}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 6px 12px; text-decoration: none; border-radius: 4px;">
-                    <i class="fas fa-eye"></i> Preview
-                </a>
-                <a href="{{ url_for('download_study_material', material_id=m.id) }}" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; font-weight: 700; text-decoration: none; border-radius: 4px;">
-                    <i class="fas fa-download"></i> Download
+                <a href="{{ url_for('preview_study_material', material_id=m.id) }}" target="_blank" class="btn btn-primary" style="font-size: 0.8rem; padding: 6px 14px; font-weight: 700; text-decoration: none; border-radius: 4px;">
+                    <i class="fas fa-eye"></i> View Material (Read-Only)
                 </a>
             </div>
         </div>

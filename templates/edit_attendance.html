@@ -1,71 +1,293 @@
 {% extends "base.html" %}
 {% block title %}Edit Previous Attendance - BMS College ERP{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --success: #059669;
+        --success-soft: rgba(5, 150, 105, 0.1);
+        --danger: #DC2626;
+        --danger-soft: rgba(220, 38, 38, 0.1);
+        --warning: #D97706;
+        --warning-soft: rgba(217, 119, 6, 0.1);
+    }
+
+    .edit-hero {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: 12px;
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 14px rgba(11, 25, 44, 0.15);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(197, 160, 89, 0.2);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+
+    .session-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        background: #FFFFFF;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 6px rgba(11, 25, 44, 0.04);
+    }
+
+    .meta-item-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .meta-item-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Comparison Bar */
+    .stat-comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-comparison-card {
+        background: #FFFFFF;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 18px 22px;
+        box-shadow: 0 2px 6px rgba(11, 25, 44, 0.04);
+    }
+
+    /* Segmented Toggle Pill (Minimum 44px touch target) */
+    .status-toggle-group {
+        display: inline-flex;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #CBD5E1;
+        background: #F8FAFC;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .status-toggle-btn {
+        min-height: 44px;
+        min-width: 96px;
+        padding: 8px 18px;
+        margin: 0;
+        cursor: pointer;
+        font-size: 0.88rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .status-toggle-btn input[type="radio"] {
+        display: none;
+    }
+
+    /* Table styling & responsive wrapper */
+    .table-container-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 0 0 10px 10px;
+    }
+
+    .edit-roster-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .edit-roster-table th {
+        background: #F8FAFC;
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 18px;
+        border-bottom: 2px solid #E2E8F0;
+        white-space: nowrap;
+    }
+
+    .edit-roster-table td {
+        padding: 12px 18px;
+        border-bottom: 1px solid #E2E8F0;
+        vertical-align: middle;
+    }
+
+    .student-row {
+        transition: background 0.15s ease;
+    }
+
+    .student-row:hover {
+        background: #F8FAFC;
+    }
+
+    .modal-backdrop-custom {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 25, 44, 0.65);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+
+    .modal-window {
+        background: #FFFFFF;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 650px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border);
+        border-top: 5px solid var(--bms-navy);
+        overflow: hidden;
+        animation: modalSlideIn 0.25s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .edit-hero {
+            padding: 18px 20px;
+        }
+
+        .session-meta-grid, .stat-comparison-grid {
+            grid-template-columns: 1fr;
+            padding: 16px;
+        }
+
+        .status-toggle-btn {
+            min-width: 80px;
+            padding: 8px 12px;
+            font-size: 0.82rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <a href="{{ url_for('view_timetable') }}"><i class="fas fa-clock"></i> Weekly Schedule</a>
-    <span class="breadcrumb-separator">›</span>
-    <a href="{{ url_for('academic_attendance_history') }}">Attendance History</a>
-    <span class="breadcrumb-separator">›</span>
-    <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}">Session #{{ session_obj.id }}</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>Edit Previous Attendance</span>
+<div class="breadcrumb" style="margin-bottom: 16px;">
+    <a href="{{ url_for('dashboard') }}" style="color: var(--bms-navy);"><i class="fas fa-home"></i> Home</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <a href="{{ url_for('view_timetable') }}" style="color: var(--bms-navy);"><i class="fas fa-clock"></i> Weekly Schedule</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <a href="{{ url_for('academic_attendance_history') }}" style="color: var(--bms-navy);">Attendance History</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" style="color: var(--bms-navy);">Session #{{ session_obj.id }}</a>
+    <span class="breadcrumb-separator" style="margin: 0 8px; color: var(--text-muted);">›</span>
+    <span style="color: var(--text-muted); font-weight: 600;">Edit Previous Attendance</span>
 </div>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
-        <h1>Edit Previous Academic Attendance</h1>
-        <div class="page-subtitle">{{ session_obj.course }} — {{ session_obj.academic_year }} — {{ session_obj.semester }} — Section {{ session_obj.section }} &bull; Session #{{ session_obj.id }}</div>
-    </div>
-    <div class="page-actions" style="display: flex; gap: 8px;">
-        <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Cancel &amp; Back
-        </a>
+<!-- Page Hero Header -->
+<div class="edit-hero">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <div class="hero-badge">
+                <i class="fas fa-edit"></i> Institutional Correction Workflow &bull; Session #{{ session_obj.id }}
+            </div>
+            <h1 style="font-size: 2rem; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px;">
+                Edit Previous Academic Attendance
+            </h1>
+            <div style="font-size: 1rem; color: #E2E8F0;">
+                {{ session_obj.course }} — {{ session_obj.academic_year }} — {{ session_obj.semester }} — Section {{ session_obj.section }} &bull; Session #{{ session_obj.id }}
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn" style="background: rgba(255, 255, 255, 0.15); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.3); font-weight: 600; padding: 10px 18px; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-arrow-left"></i> Cancel &amp; Back
+            </a>
+        </div>
     </div>
 </div>
 
 <!-- Historical Session Information Card (Read-only metadata) -->
-<div class="card mb-3" style="border-top: 4px solid var(--warning);">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <h3 class="card-title"><i class="fas fa-history" style="color: var(--warning); margin-right: 8px;"></i> Preserved Historical Session Metadata</h3>
-        <span class="badge badge-warning"><i class="fas fa-lock"></i> IDENTITY PRESERVED</span>
+<div class="session-meta-grid">
+    <div>
+        <div class="meta-item-label">Conducted Date</div>
+        <div class="meta-item-value">
+            <i class="far fa-calendar-alt" style="color: var(--bms-gold);"></i>
+            <span>{{ session_obj.date.strftime("%d %B %Y") }}</span>
+        </div>
     </div>
-    <div class="card-body">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-            <div>
-                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Conducted Date</div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-                    <i class="far fa-calendar-alt" style="color: var(--primary); margin-right: 6px;"></i>{{ session_obj.date.strftime("%d %B %Y") }}
-                </div>
-            </div>
-            <div>
-                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Time Slot</div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-                    <i class="far fa-clock" style="color: var(--info); margin-right: 6px;"></i>{{ session_obj.time_slot }}
-                </div>
-            </div>
-            <div>
-                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Classroom / Lab</div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-                    <i class="fas fa-door-open" style="color: var(--warning); margin-right: 6px;"></i>{{ session_obj.room_no }}
-                </div>
-            </div>
-            <div>
-                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Scheduled Subject</div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-                    <i class="fas fa-book" style="color: var(--primary); margin-right: 6px;"></i>{{ session_obj.scheduled_subject }}
-                </div>
-            </div>
-            <div>
-                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Conducted Faculty</div>
-                <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-                    <i class="fas fa-chalkboard-teacher" style="color: var(--success); margin-right: 6px;"></i>{{ session_obj.actual_faculty.full_name }}
-                </div>
-            </div>
+    <div>
+        <div class="meta-item-label">Time Slot</div>
+        <div class="meta-item-value">
+            <i class="far fa-clock" style="color: var(--bms-navy);"></i>
+            <span>{{ session_obj.time_slot }}</span>
+        </div>
+    </div>
+    <div>
+        <div class="meta-item-label">Classroom / Lab</div>
+        <div class="meta-item-value">
+            <i class="fas fa-door-open" style="color: var(--warning);"></i>
+            <span>{{ session_obj.room_no }}</span>
+        </div>
+    </div>
+    <div>
+        <div class="meta-item-label">Scheduled Subject</div>
+        <div class="meta-item-value">
+            <i class="fas fa-book" style="color: var(--bms-navy);"></i>
+            <span>{{ session_obj.scheduled_subject }}</span>
+        </div>
+    </div>
+    <div>
+        <div class="meta-item-label">Conducted Faculty</div>
+        <div class="meta-item-value">
+            <i class="fas fa-chalkboard-teacher" style="color: var(--success);"></i>
+            <span>{{ session_obj.actual_faculty.full_name }}</span>
         </div>
     </div>
 </div>
@@ -76,99 +298,100 @@
     <input type="hidden" name="version" value="{{ session_obj.version or 1 }}">
 
     <!-- Subject Override & Correction Reason Card -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-edit" style="margin-right: 8px;"></i> Session Correction &amp; Audit Information</h3>
+    <div class="card mb-3" style="border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(11, 25, 44, 0.04); margin-bottom: 24px;">
+        <div class="card-header" style="background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 16px 20px;">
+            <h3 class="card-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--bms-navy-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-edit" style="color: var(--bms-gold);"></i> Session Correction &amp; Audit Information
+            </h3>
         </div>
-        <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="card-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-weight: 700;">
+                    <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">
                         Actual Subject Taught <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Update if topic/substitute differed):</span>
                     </label>
-                    <input type="text" id="actual_subject" name="actual_subject" class="form-control" value="{{ session_obj.actual_subject }}" required>
-                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                    <input type="text" id="actual_subject" name="actual_subject" class="form-control" value="{{ session_obj.actual_subject }}" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); font-weight: 600; color: var(--text-main);">
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">
                         Scheduled: <strong>{{ session_obj.scheduled_subject }}</strong>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label" style="font-weight: 700;">
+                    <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">
                         Session Remarks <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">(Optional topics or lab notes):</span>
                     </label>
-                    <input type="text" id="remarks" name="remarks" class="form-control" value="{{ session_obj.remarks or '' }}" placeholder="e.g. Unit 4: Memory allocation hands-on demo">
+                    <input type="text" id="remarks" name="remarks" class="form-control" value="{{ session_obj.remarks or '' }}" placeholder="e.g. Unit 4: Memory allocation hands-on demo" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main);">
                 </div>
             </div>
 
             <!-- Mandatory Correction Reason -->
-            <div class="form-group" style="margin-top: 16px; margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 700; color: var(--text-main);">
-                    <i class="fas fa-clipboard-check" style="color: var(--primary); margin-right: 6px;"></i>
+            <div class="form-group" style="margin-top: 18px; margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">
+                    <i class="fas fa-clipboard-check" style="color: var(--bms-gold); margin-right: 4px;"></i>
                     Correction Reason <span style="color: var(--danger); font-weight: 700;">*</span>
                     <span style="font-size: 0.82rem; font-weight: 400; color: var(--text-muted);">(Required by institutional audit policy whenever attendance statuses are changed):</span>
                 </label>
-                <input type="text" id="reason" name="reason" class="form-control" placeholder="e.g. Student submitted official on-duty approval; corrected proxy marking" required>
+                <input type="text" id="reason" name="reason" class="form-control" placeholder="e.g. Student submitted official on-duty approval; corrected proxy marking" required style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-size: 0.95rem;">
             </div>
         </div>
     </div>
 
     <!-- Live Metrics Comparison Bar -->
-    <div class="grid grid-cols-3 mb-3">
-        <div class="stat-card" style="border-top: 3px solid var(--info);">
-            <div class="stat-card-label">Original Saved State</div>
-            <div class="stat-card-value" style="font-size: 1.25rem;">
+    <div class="stat-comparison-grid">
+        <div class="stat-comparison-card" style="border-left: 4px solid var(--bms-navy);">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Original Saved State</div>
+            <div style="font-size: 1.4rem; font-weight: 800; margin: 6px 0;">
                 <span style="color: var(--success); font-weight: 700;">{{ present_count }} P</span> / 
                 <span style="color: var(--danger); font-weight: 700;">{{ absent_count }} A</span>
             </div>
-            <div style="font-size: var(--font-size-xs); color: var(--text-muted);">Total Enrolled: {{ total_students }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted);">Total Enrolled: {{ total_students }}</div>
         </div>
 
-        <div class="stat-card" style="border-top: 3px solid var(--primary);">
-            <div class="stat-card-label">New Corrected State</div>
-            <div class="stat-card-value" style="font-size: 1.25rem;">
+        <div class="stat-comparison-card" style="border-left: 4px solid var(--bms-gold);">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">New Corrected State</div>
+            <div style="font-size: 1.4rem; font-weight: 800; margin: 6px 0;">
                 <span id="statNewPresent" style="color: var(--success); font-weight: 800;">{{ present_count }} P</span> / 
                 <span id="statNewAbsent" style="color: var(--danger); font-weight: 800;">{{ absent_count }} A</span>
             </div>
-            <div style="font-size: var(--font-size-xs); color: var(--primary);">Interactive Live Preview</div>
+            <div style="font-size: 0.82rem; color: var(--bms-navy); font-weight: 600;"><i class="fas fa-eye"></i> Interactive Live Preview</div>
         </div>
 
-        <div class="stat-card" style="border-top: 3px solid var(--warning);">
-            <div class="stat-card-label">Pending Changes</div>
-            <div class="stat-card-value" id="statChangeCount" style="color: var(--warning); font-size: 1.25rem; font-weight: 800;">
+        <div class="stat-comparison-card" style="border-left: 4px solid var(--warning);">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Pending Changes</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--warning); margin: 6px 0;" id="statChangeCount">
                 0
             </div>
-            <div style="font-size: var(--font-size-xs); color: var(--text-muted);" id="statChangeDesc">No records modified yet</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted);" id="statChangeDesc">No records modified yet</div>
         </div>
     </div>
 
     <!-- Student Roster & Interactive Status Controls -->
-    <div class="card mb-3">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <h3 class="card-title" style="margin-bottom: 0;">
-                    <i class="fas fa-user-graduate" style="margin-right: 8px;"></i>
-                    Official Class Roster ({{ total_students }} Students)
+    <div class="card mb-3" style="border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(11, 25, 44, 0.05); overflow: hidden; margin-bottom: 24px;">
+        <div class="card-header" style="background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <h3 class="card-title" style="margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--bms-navy-dark); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-graduate" style="color: var(--bms-gold);"></i> Official Class Roster ({{ total_students }} Students)
                 </h3>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-success btn-sm" onclick="markAll('Present')">
+                <button type="button" class="btn btn-sm" onclick="markAll('Present')" style="background: var(--success); color: #FFFFFF; font-weight: 700; border: none; padding: 8px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fas fa-check-double"></i> Mark All Present
                 </button>
-                <button type="button" class="btn btn-danger btn-sm" onclick="markAll('Absent')">
+                <button type="button" class="btn btn-sm" onclick="markAll('Absent')" style="background: var(--danger); color: #FFFFFF; font-weight: 700; border: none; padding: 8px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
                     <i class="fas fa-times"></i> Mark All Absent
                 </button>
             </div>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-0" style="padding: 0;">
             {% if student_records %}
-            <div class="table-wrapper">
-                <table class="table" style="margin-bottom: 0;">
+            <div class="table-container-responsive">
+                <table class="edit-roster-table table">
                     <thead>
                         <tr>
                             <th style="width: 50px; text-align: center;">#</th>
-                            <th style="width: 170px;">UUCMS ID</th>
+                            <th style="width: 180px;">UUCMS ID</th>
                             <th>Student Name</th>
                             <th>Email Address</th>
-                            <th style="width: 140px; text-align: center;">Original Status</th>
+                            <th style="width: 150px; text-align: center;">Original Status</th>
                             <th style="width: 260px; text-align: center;">Corrected Status</th>
                         </tr>
                     </thead>
@@ -179,29 +402,29 @@
                         <tr id="row_{{ s.id }}" class="student-row" data-original-status="{{ cur_status }}">
                             <td style="text-align: center; font-weight: 600; color: var(--text-muted);">{{ loop.index }}</td>
                             <td>
-                                <span class="badge badge-info" style="font-family: monospace; font-size: 0.85rem;">{{ s.uucms_id }}</span>
+                                <span class="badge badge-info" style="font-family: monospace; font-size: 0.85rem; background: #EEF2F6; color: var(--bms-navy-dark); border: 1px solid #CBD5E1; padding: 4px 8px; border-radius: 4px;">{{ s.uucms_id }}</span>
                                 <input type="hidden" name="student_ids" value="{{ s.id }}">
                             </td>
                             <td>
-                                <strong class="student-name" style="font-size: 0.95rem;">{{ s.name }}</strong>
-                                <span id="changeBadge_{{ s.id }}" class="badge badge-warning" style="display: none; margin-left: 6px; font-size: 0.72rem;">CHANGED</span>
+                                <strong class="student-name" style="font-size: 0.95rem; color: var(--text-main);">{{ s.name }}</strong>
+                                <span id="changeBadge_{{ s.id }}" class="badge badge-warning" style="display: none; margin-left: 6px; font-size: 0.72rem; background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; padding: 2px 6px; border-radius: 4px; font-weight: 700;">CHANGED</span>
                             </td>
                             <td style="color: var(--text-muted); font-size: 0.88rem;">{{ s.email }}</td>
                             <td style="text-align: center;">
                                 {% if cur_status == 'Present' %}
-                                <span class="badge badge-success"><i class="fas fa-check"></i> Present</span>
+                                <span class="badge badge-success" style="background: var(--success-soft); color: var(--success); border: 1px solid rgba(5, 150, 105, 0.3); font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;"><i class="fas fa-check"></i> Present</span>
                                 {% else %}
-                                <span class="badge badge-danger"><i class="fas fa-times"></i> Absent</span>
+                                <span class="badge badge-danger" style="background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(220, 38, 38, 0.3); font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem;"><i class="fas fa-times"></i> Absent</span>
                                 {% endif %}
                             </td>
                             <td style="text-align: center;">
-                                <div style="display: inline-flex; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border);">
-                                    <label id="lbl_p_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: {% if cur_status == 'Present' %}var(--success){% else %}var(--bg-body){% endif %}; color: {% if cur_status == 'Present' %}white{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                                        <input type="radio" name="status_{{ s.id }}" value="Present" {% if cur_status == 'Present' %}checked{% endif %} onchange="updateCounters()" style="display: none;">
+                                <div class="status-toggle-group">
+                                    <label id="lbl_p_{{ s.id }}" class="status-toggle-btn" style="background: {% if cur_status == 'Present' %}var(--success){% else %}#F8FAFC{% endif %}; color: {% if cur_status == 'Present' %}#FFFFFF{% else %}var(--text-muted){% endif %};">
+                                        <input type="radio" name="status_{{ s.id }}" value="Present" {% if cur_status == 'Present' %}checked{% endif %} onchange="updateCounters()">
                                         <i class="fas fa-check"></i> Present
                                     </label>
-                                    <label id="lbl_a_{{ s.id }}" style="padding: 6px 16px; margin: 0; cursor: pointer; font-size: 0.85rem; font-weight: 700; background: {% if cur_status == 'Absent' %}var(--danger){% else %}var(--bg-body){% endif %}; color: {% if cur_status == 'Absent' %}white{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                                        <input type="radio" name="status_{{ s.id }}" value="Absent" {% if cur_status == 'Absent' %}checked{% endif %} onchange="updateCounters()" style="display: none;">
+                                    <label id="lbl_a_{{ s.id }}" class="status-toggle-btn" style="background: {% if cur_status == 'Absent' %}var(--danger){% else %}#F8FAFC{% endif %}; color: {% if cur_status == 'Absent' %}#FFFFFF{% else %}var(--text-muted){% endif %};">
+                                        <input type="radio" name="status_{{ s.id }}" value="Absent" {% if cur_status == 'Absent' %}checked{% endif %} onchange="updateCounters()">
                                         <i class="fas fa-times"></i> Absent
                                     </label>
                                 </div>
@@ -212,24 +435,24 @@
                 </table>
             </div>
             {% else %}
-            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-                <i class="fas fa-users-slash" style="font-size: 3rem; margin-bottom: 12px; color: var(--border);"></i>
-                <h3>No active students found for this class</h3>
+            <div style="padding: 48px; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-users-slash" style="font-size: 3rem; margin-bottom: 14px; color: #CBD5E1;"></i>
+                <h3 style="color: var(--text-main); font-weight: 700;">No active students found for this class</h3>
             </div>
             {% endif %}
         </div>
         {% if student_records %}
-        <div class="card-footer" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="font-size: 0.88rem; color: var(--text-muted);">
-                <i class="fas fa-shield-alt" style="color: var(--primary); margin-right: 4px;"></i>
-                Audit logging active. Every modified record is permanently tracked with actor, timestamp, and justification.
+        <div class="card-footer" style="background: #F8FAFC; border-top: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="font-size: 0.88rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-shield-alt" style="color: var(--bms-gold); font-size: 1.1rem;"></i>
+                <span>Audit logging active. Every modified record is permanently tracked with actor, timestamp, and justification.</span>
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn btn-secondary">
+                <a href="{{ url_for('view_class_session', session_id=session_obj.id) }}" class="btn btn-secondary" style="font-weight: 600; padding: 10px 18px; border-radius: 8px;">
                     Cancel
                 </a>
-                <button type="button" class="btn btn-warning" onclick="openReviewModal()" style="font-size: 1rem; padding: 10px 24px; font-weight: 700;">
-                    <i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Review Changes Before Saving
+                <button type="button" class="btn" onclick="openReviewModal()" style="font-size: 1rem; padding: 12px 28px; font-weight: 700; background: var(--bms-navy); color: #FFFFFF; border: 1px solid var(--bms-gold); border-radius: 8px; box-shadow: 0 2px 8px rgba(11, 25, 44, 0.2); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-clipboard-check" style="color: var(--bms-gold);"></i> Review Changes Before Saving
                 </button>
             </div>
         </div>
@@ -238,14 +461,16 @@
 </form>
 
 <!-- Modal: Review & Confirmation Summary -->
-<div id="reviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="width: 100%; max-width: 650px; margin: 0; box-shadow: var(--shadow-lg); border-top: 4px solid var(--warning);">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="card-title"><i class="fas fa-clipboard-check" style="margin-right: 8px;"></i> Confirm Attendance Changes</h3>
-            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary btn-sm">✕</button>
+<div id="reviewModal" class="modal-backdrop-custom">
+    <div class="modal-window">
+        <div class="card-header" style="background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title" style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--bms-navy-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-clipboard-check" style="color: var(--bms-gold);"></i> Confirm Attendance Changes
+            </h3>
+            <button type="button" onclick="closeReviewModal()" style="background: none; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px;">✕</button>
         </div>
-        <div class="card-body">
-            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px;">
+        <div class="card-body" style="padding: 24px;">
+            <div style="background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin-bottom: 18px;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem;">
                     <div><strong>Session:</strong> {{ session_obj.scheduled_subject }}</div>
                     <div><strong>Date:</strong> {{ session_obj.date.strftime("%d %B %Y") }}</div>
@@ -255,51 +480,51 @@
             </div>
 
             <!-- Attendance Metrics Bar in Modal -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: var(--bg-body); border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #CBD5E1;">
                     <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Previous State</div>
-                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main);">{{ present_count }} P / {{ absent_count }} A</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--bms-navy-dark); margin-top: 2px;">{{ present_count }} P / {{ absent_count }} A</div>
                 </div>
-                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success);">
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: var(--success-soft); border: 1px solid rgba(5, 150, 105, 0.3);">
                     <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--success); font-weight: 700;">New State</div>
-                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--success);" id="modalNewSummary">0 P / 0 A</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--success); margin-top: 2px;" id="modalNewSummary">0 P / 0 A</div>
                 </div>
-                <div style="text-align: center; padding: 10px; border-radius: var(--radius-md); background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning);">
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: var(--warning-soft); border: 1px solid rgba(217, 119, 6, 0.3);">
                     <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--warning); font-weight: 700;">Total Changes</div>
-                    <div style="font-size: 1.15rem; font-weight: 800; color: var(--warning);" id="modalChangeCount">0</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--warning); margin-top: 2px;" id="modalChangeCount">0</div>
                 </div>
             </div>
 
             <!-- List of Changed Students -->
-            <div style="margin-bottom: 16px;">
-                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px;">
-                    <i class="fas fa-exchange-alt" style="color: var(--primary); margin-right: 6px;"></i>
+            <div style="margin-bottom: 18px;">
+                <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; color: var(--text-main);">
+                    <i class="fas fa-exchange-alt" style="color: var(--bms-navy); margin-right: 6px;"></i>
                     Modified Students (<span id="modalChangesListCount">0</span>):
                 </div>
-                <div id="modalChangesList" style="max-height: 160px; overflow-y: auto; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-body); font-size: 0.85rem;">
+                <div id="modalChangesList" style="max-height: 150px; overflow-y: auto; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-body); font-size: 0.85rem;">
                     <!-- Populated dynamically -->
                 </div>
             </div>
 
             <!-- Mandatory Reason Display / Confirmation -->
-            <div style="margin-bottom: 16px; background: var(--bg-body); padding: 12px 14px; border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+            <div style="margin-bottom: 18px; background: #F8FAFC; padding: 12px 14px; border-radius: 8px; border-left: 4px solid var(--bms-navy);">
                 <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Correction Reason:</div>
-                <div id="modalReasonText" style="font-size: 0.92rem; font-weight: 600; color: var(--text-main); margin-top: 4px; font-style: italic;">
+                <div id="modalReasonText" style="font-size: 0.92rem; font-weight: 600; color: var(--bms-navy-dark); margin-top: 4px; font-style: italic;">
                     <!-- Populated dynamically -->
                 </div>
             </div>
 
-            <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid var(--warning); padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.82rem; color: var(--text-main);">
+            <div style="background: rgba(217, 119, 6, 0.1); border-left: 4px solid var(--warning); padding: 12px 14px; border-radius: 6px; font-size: 0.84rem; color: var(--text-main);">
                 <i class="fas fa-shield-alt" style="color: var(--warning); margin-right: 6px;"></i>
                 <strong>Audit Compliance:</strong> An immutable audit log will be recorded with your user ID and timestamp upon submission.
             </div>
         </div>
-        <div class="card-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px;">
-            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary">
+        <div class="card-footer" style="background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px;">
+            <button type="button" onclick="closeReviewModal()" class="btn btn-secondary" style="font-weight: 600; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
                 <i class="fas fa-edit"></i> Modify / Cancel
             </button>
-            <button type="button" onclick="submitAttendanceFinal()" class="btn btn-warning" id="btnSubmitFinal" style="font-weight: 700;">
-                <i class="fas fa-check-circle"></i> Confirm Changes
+            <button type="button" onclick="submitAttendanceFinal()" class="btn btn-primary" id="btnSubmitFinal" style="font-weight: 700; background: var(--bms-navy); color: #FFFFFF; border: 1px solid var(--bms-gold); padding: 10px 22px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-check-circle" style="color: var(--bms-gold);"></i> Confirm Changes
             </button>
         </div>
     </div>
@@ -328,32 +553,45 @@
 
             if (curStatus === 'Present') {
                 newPresent++;
-                pLbl.style.background = 'var(--success)';
-                pLbl.style.color = 'white';
-                aLbl.style.background = 'var(--bg-body)';
-                aLbl.style.color = 'var(--text-muted)';
+                if (pLbl) {
+                    pLbl.style.background = 'var(--success)';
+                    pLbl.style.color = '#FFFFFF';
+                }
+                if (aLbl) {
+                    aLbl.style.background = '#F8FAFC';
+                    aLbl.style.color = 'var(--text-muted)';
+                }
             } else {
                 newAbsent++;
-                pLbl.style.background = 'var(--bg-body)';
-                pLbl.style.color = 'var(--text-muted)';
-                aLbl.style.background = 'var(--danger)';
-                aLbl.style.color = 'white';
+                if (pLbl) {
+                    pLbl.style.background = '#F8FAFC';
+                    pLbl.style.color = 'var(--text-muted)';
+                }
+                if (aLbl) {
+                    aLbl.style.background = 'var(--danger)';
+                    aLbl.style.color = '#FFFFFF';
+                }
             }
 
             if (curStatus !== origStatus) {
                 changeCount++;
-                changeBadge.style.display = 'inline-block';
-                row.style.background = 'rgba(245, 158, 11, 0.08)';
+                if (changeBadge) changeBadge.style.display = 'inline-block';
+                row.style.background = 'rgba(217, 119, 6, 0.06)';
             } else {
-                changeBadge.style.display = 'none';
+                if (changeBadge) changeBadge.style.display = 'none';
                 row.style.background = '';
             }
         });
 
-        document.getElementById('statNewPresent').textContent = `${newPresent} P`;
-        document.getElementById('statNewAbsent').textContent = `${newAbsent} A`;
-        document.getElementById('statChangeCount').textContent = changeCount;
-        document.getElementById('statChangeDesc').textContent = changeCount > 0 ? `${changeCount} student(s) modified` : 'No records modified yet';
+        const sPresent = document.getElementById('statNewPresent');
+        const sAbsent = document.getElementById('statNewAbsent');
+        const sCount = document.getElementById('statChangeCount');
+        const sDesc = document.getElementById('statChangeDesc');
+
+        if (sPresent) sPresent.textContent = `${newPresent} P`;
+        if (sAbsent) sAbsent.textContent = `${newAbsent} A`;
+        if (sCount) sCount.textContent = changeCount;
+        if (sDesc) sDesc.textContent = changeCount > 0 ? `${changeCount} student(s) modified` : 'No records modified yet';
     }
 
     function markAll(status) {
@@ -367,7 +605,7 @@
 
     function openReviewModal() {
         const reasonInput = document.getElementById('reason');
-        const reason = (reasonInput.value || '').trim();
+        const reason = reasonInput ? (reasonInput.value || '').trim() : '';
 
         let newPresent = 0;
         let newAbsent = 0;
@@ -377,8 +615,10 @@
             const sid = row.id.replace('row_', '');
             const origStatus = row.dataset.originalStatus;
             const pInput = row.querySelector(`input[name="status_${sid}"][value="Present"]`);
-            const name = row.querySelector('.student-name').textContent.trim();
-            const uucms = row.querySelector('.badge-info').textContent.trim();
+            const nameEl = row.querySelector('.student-name');
+            const uucmsEl = row.querySelector('.badge-info');
+            const name = nameEl ? nameEl.textContent.trim() : '';
+            const uucms = uucmsEl ? uucmsEl.textContent.trim() : '';
 
             const curStatus = (pInput && pInput.checked) ? 'Present' : 'Absent';
             if (curStatus === 'Present') newPresent++; else newAbsent++;
@@ -394,47 +634,60 @@
         });
 
         const origSubject = "{{ session_obj.actual_subject }}";
-        const newSubject = (document.getElementById('actual_subject').value || '').trim();
+        const actualInput = document.getElementById('actual_subject');
+        const newSubject = actualInput ? (actualInput.value || '').trim() : '';
         const subjectChanged = (newSubject !== origSubject);
 
         // Require reason if any status or subject changed
         if ((changes.length > 0 || subjectChanged) && !reason) {
             alert('A meaningful correction reason is mandatory before submitting attendance corrections.');
-            reasonInput.focus();
+            if (reasonInput) reasonInput.focus();
             return;
         }
 
-        document.getElementById('modalActualSubject').textContent = newSubject || '{{ session_obj.scheduled_subject }}';
-        document.getElementById('modalNewSummary').textContent = `${newPresent} P / ${newAbsent} A`;
-        document.getElementById('modalChangeCount').textContent = `${changes.length} student(s)`;
-        document.getElementById('modalChangesListCount').textContent = changes.length;
-        document.getElementById('modalReasonText').textContent = reason || 'No modifications entered';
+        const mActualSubject = document.getElementById('modalActualSubject');
+        const mNewSummary = document.getElementById('modalNewSummary');
+        const mChangeCount = document.getElementById('modalChangeCount');
+        const mChangesListCount = document.getElementById('modalChangesListCount');
+        const mReasonText = document.getElementById('modalReasonText');
+
+        if (mActualSubject) mActualSubject.textContent = newSubject || '{{ session_obj.scheduled_subject }}';
+        if (mNewSummary) mNewSummary.textContent = `${newPresent} P / ${newAbsent} A`;
+        if (mChangeCount) mChangeCount.textContent = `${changes.length} student(s)`;
+        if (mChangesListCount) mChangesListCount.textContent = changes.length;
+        if (mReasonText) mReasonText.textContent = reason || 'No modifications entered';
 
         const listDiv = document.getElementById('modalChangesList');
-        if (changes.length > 0) {
-            let html = '<ul style="margin: 0; padding-left: 20px;">';
-            changes.forEach(ch => {
-                const oldColor = ch.oldStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
-                const newColor = ch.newStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
-                html += `<li style="margin-bottom: 6px;"><strong>${ch.name}</strong> (${ch.uucms}) — <span style="color: ${oldColor}; font-weight: 700;">${ch.oldStatus}</span> &rarr; <span style="color: ${newColor}; font-weight: 800;">${ch.newStatus}</span></li>`;
-            });
-            html += '</ul>';
-            listDiv.innerHTML = html;
-        } else {
-            listDiv.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">No student attendance statuses have been changed.</span>';
+        if (listDiv) {
+            if (changes.length > 0) {
+                let html = '<ul style="margin: 0; padding-left: 20px;">';
+                changes.forEach(ch => {
+                    const oldColor = ch.oldStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
+                    const newColor = ch.newStatus === 'Present' ? 'var(--success)' : 'var(--danger)';
+                    html += `<li style="margin-bottom: 6px;"><strong>${ch.name}</strong> (${ch.uucms}) — <span style="color: ${oldColor}; font-weight: 700;">${ch.oldStatus}</span> &rarr; <span style="color: ${newColor}; font-weight: 800;">${ch.newStatus}</span></li>`;
+                });
+                html += '</ul>';
+                listDiv.innerHTML = html;
+            } else {
+                listDiv.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">No student attendance statuses have been changed.</span>';
+            }
         }
 
-        document.getElementById('reviewModal').style.display = 'flex';
+        const modal = document.getElementById('reviewModal');
+        if (modal) modal.style.display = 'flex';
     }
 
     function closeReviewModal() {
-        document.getElementById('reviewModal').style.display = 'none';
+        const modal = document.getElementById('reviewModal');
+        if (modal) modal.style.display = 'none';
     }
 
     function submitAttendanceFinal() {
         const btn = document.getElementById('btnSubmitFinal');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Persisting...';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Persisting...';
+        }
         document.getElementById('editAttendanceForm').submit();
     }
 

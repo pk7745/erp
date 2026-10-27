@@ -62,6 +62,8 @@ def validate_vault_file(file_storage):
         try:
             img = Image.open(io.BytesIO(file_bytes))
             img.verify()
+            if img.width > 5000 or img.height > 5000:
+                return False, "Image dimensions exceed 5000x5000 pixels limit.", None, None
             fmt = (img.format or '').lower()
             if fmt in ['jpeg', 'jpg']:
                 mime_type = 'image/jpeg'
@@ -95,8 +97,16 @@ def extract_raw_text(file_bytes, filename, mime_type, test_ocr_override=None):
         try:
             import fitz
             doc = fitz.open(stream=file_bytes, filetype="pdf")
+            if getattr(doc, 'is_encrypted', False):
+                warnings.append("PDF document is encrypted or password-protected. Text extraction is unavailable.")
+                return "", False, warnings
+
+            max_pages = min(len(doc), 20)
+            if len(doc) > 20:
+                warnings.append("Document exceeds 20 pages. Text extraction capped at first 20 pages.")
+
             extracted_pages = []
-            for page_num in range(len(doc)):
+            for page_num in range(max_pages):
                 page_text = doc[page_num].get_text()
                 if page_text.strip():
                     extracted_pages.append(page_text.strip())

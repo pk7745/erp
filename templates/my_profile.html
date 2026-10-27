@@ -1,102 +1,446 @@
 {% extends "base.html" %}
 {% block title %}My Profile - BMS College ERP{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.1);
+    }
+
+    .profile-page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Hero Header */
+    .profile-hero-header {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .profile-hero-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    .hero-title-group h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+    .hero-title-group p {
+        margin: 0;
+        color: #CBD5E1;
+        font-size: 0.92rem;
+    }
+
+    /* Header Download Button */
+    .btn-download-id {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 10px 20px;
+        background: linear-gradient(135deg, var(--bms-gold) 0%, #A98338 100%);
+        color: var(--bms-navy-dark);
+        border: 1px solid var(--bms-gold-light);
+        border-radius: var(--radius-sm);
+        font-weight: 800;
+        font-size: 0.88rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        z-index: 1;
+    }
+    .btn-download-id:hover {
+        background: linear-gradient(135deg, #D4AF37 0%, var(--bms-gold) 100%);
+        color: var(--bms-navy-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(197, 160, 89, 0.35);
+    }
+
+    /* Layout Grid */
+    .profile-layout-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* Cards */
+    .bms-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .bms-card-header {
+        background: #FAFCFE;
+        border-bottom: 1px solid var(--border-color);
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .bms-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bms-card-body {
+        padding: 24px;
+    }
+
+    /* Avatar Frame */
+    .avatar-wrapper {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin: 0 auto 18px auto;
+        border: 4px solid var(--bms-gold);
+        background: #F1F5F9;
+        box-shadow: 0 4px 14px rgba(11, 25, 44, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .avatar-fallback {
+        font-size: 4rem;
+        color: var(--bms-navy);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Badges */
+    .bms-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .badge-role {
+        background: rgba(30, 62, 98, 0.1);
+        color: var(--bms-navy);
+        border: 1px solid rgba(30, 62, 98, 0.25);
+    }
+    .badge-status-active {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+    .badge-username {
+        background: var(--bms-navy-dark);
+        color: #FFFFFF;
+        padding: 6px 14px;
+        border-radius: var(--radius-sm);
+        font-size: 0.88rem;
+        font-weight: 700;
+        font-family: monospace;
+    }
+
+    /* Detail Grid */
+    .detail-section-title {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--bms-gold);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 24px;
+    }
+    .detail-item-label {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .detail-item-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+    }
+    .section-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 22px 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+        .profile-layout-grid {
+            grid-template-columns: 1fr;
+        }
+        .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+    }
+    @media (max-width: 768px) {
+        .profile-hero-header {
+            padding: 20px 18px;
+        }
+        .hero-title-group h1 {
+            font-size: 1.45rem;
+        }
+        .btn-download-id {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>My Profile</span>
-</div>
-
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
-        <h1>Personal Dossier & Profile</h1>
-        <div class="page-subtitle">Institutional credentials, personal identification, and payroll access</div>
+<div class="profile-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">My Profile</span>
     </div>
-    <div class="page-actions">
-        <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn btn-primary"><i class="fas fa-id-card"></i> Download ID Card</a>
-    </div>
-</div>
 
-<div class="grid grid-cols-3">
-    <!-- User Avatar & Status Card (1 Col) -->
-    <div class="card text-center">
-        <div class="card-body">
-            <div style="width: 140px; height: 140px; border-radius: var(--radius-xl); overflow: hidden; margin: 0 auto 16px auto; border: 3px solid var(--primary); background: var(--gray-100);">
-                {% if user.profile_pic and user.profile_pic != 'default.png' %}
-                    <img src="{{ url_for('static', filename='uploads/profiles' + user.profile_pic) }}" style="width: 100%; height: 100%; object-fit: cover;">
-                {% else %}
-                    <div style="font-size: 4rem; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--primary);">👤</div>
-                {% endif %}
+    <!-- Page Header -->
+    <div class="profile-hero-header">
+        <div class="hero-title-group">
+            <div class="hero-tag">
+                <i class="fas fa-id-card-alt"></i> Personal Dossier
             </div>
-            
-            <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">{{ user.full_name }}</h2>
-            <span class="badge badge-primary mb-2" style="font-size: 0.8rem; padding: 4px 12px;">{{ user.role }}</span>
-            
-            <div>
-                <span class="badge badge-success"><i class="fas fa-check-circle"></i> {{ user.status }}</span>
-            </div>
+            <h1>Personal Dossier & Profile</h1>
+            <p>Institutional credentials, personal identification, and payroll access</p>
+        </div>
+        <div>
+            <a href="{{ url_for('generate_id', uid=user.id) }}" class="btn-download-id">
+                <i class="fas fa-id-card"></i> Download ID Card
+            </a>
         </div>
     </div>
 
-    <!-- Institutional & Personal Details (2 Cols) -->
-    <div class="card" style="grid-column: span 2;">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-user-shield" style="margin-right: 6px;"></i> Personnel Identification</h3>
+    <div class="profile-layout-grid">
+        <!-- User Avatar & Status Card (Column 1) -->
+        <div class="bms-card" style="text-align: center;">
+            <div class="bms-card-body">
+                <div class="avatar-wrapper">
+                    {% if user.profile_pic and user.profile_pic != 'default.png' %}
+                        <img src="{{ url_for('static', filename='uploads/profiles/' + (user.profile_pic.lstrip('/') if user.profile_pic else 'default.png')) }}" 
+                             alt="{{ user.full_name }}" 
+                             class="avatar-img"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="avatar-fallback" style="display: none;">👤</div>
+                    {% else %}
+                        <div class="avatar-fallback">👤</div>
+                    {% endif %}
+                </div>
+
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--bms-navy-dark); margin: 0 0 8px 0;">
+                    {{ user.full_name }}
+                </h2>
+                
+                <div style="margin-bottom: 12px;">
+                    <span class="bms-badge badge-role">
+                        <i class="fas fa-user-tag"></i> {{ user.role }}
+                    </span>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <span class="bms-badge badge-status-active">
+                        <i class="fas fa-check-circle"></i> {{ user.status }}
+                    </span>
+                </div>
+
+                <div style="padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; text-align: center;">
+                    <div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">System UID</div>
+                        <div style="font-weight: 800; color: var(--bms-navy); font-family: monospace;">#BMS-{{ user.id }}</div>
+                    </div>
+                    <div style="border-left: 1px solid var(--border-color);"></div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Department</div>
+                        <div style="font-weight: 800; color: var(--bms-navy-dark);">{{ user.department }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="grid grid-cols-2 mb-3">
-                <div>
-                    <label class="form-label text-muted">Department</label>
-                    <div style="font-weight: 700; font-size: 1rem;">{{ user.department }}</div>
-                </div>
-                <div>
-                    <label class="form-label text-muted">Department ID</label>
-                    <div style="font-weight: 700; font-size: 1rem;">{{ user.dept_id or 'Not Assigned' }}</div>
-                </div>
-                <div>
-                    <label class="form-label text-muted">System UID</label>
-                    <div style="font-weight: 700; font-size: 1rem; color: var(--primary);">#BMS-{{ user.id }}</div>
-                </div>
-                <div>
-                    <label class="form-label text-muted">Joining Date</label>
-                    <div style="font-weight: 700; font-size: 1rem;">{{ user.join_date }}</div>
-                </div>
+
+        <!-- Institutional & Personal Details (Column 2) -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title">
+                    <i class="fas fa-shield-alt" style="color: var(--bms-gold);"></i> Personnel Identification
+                </h3>
             </div>
+            <div class="bms-card-body">
+                <!-- Section 1: Institutional Assignment -->
+                <div class="detail-section-title">
+                    <i class="fas fa-building"></i> Institutional Assignment
+                </div>
+                <div class="detail-grid">
+                    <div>
+                        <div class="detail-item-label">Department</div>
+                        <div class="detail-item-value">{{ user.department }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Department ID</div>
+                        <div class="detail-item-value">{{ user.dept_id or 'Not Assigned' }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">System UID</div>
+                        <div class="detail-item-value" style="color: var(--bms-navy); font-family: monospace;">#BMS-{{ user.id }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Joining Date</div>
+                        <div class="detail-item-value">{{ user.join_date }}</div>
+                    </div>
+                </div>
 
-            <div style="height: 1px; background: var(--border); margin: 20px 0;"></div>
+                <div class="section-divider"></div>
 
-            <div class="grid grid-cols-2 mb-3">
-                <div>
-                    <label class="form-label text-muted">Registered Email</label>
-                    <div style="font-weight: 600; font-size: 0.95rem;">{{ user.email }}</div>
+                <!-- Section 2: Personal Identification -->
+                <div class="detail-section-title">
+                    <i class="fas fa-address-card"></i> Personal Credentials
                 </div>
-                <div>
-                    <label class="form-label text-muted">Date of Birth</label>
-                    <div style="font-weight: 600; font-size: 0.95rem;">{{ user.dob }}</div>
+                <div class="detail-grid">
+                    <div>
+                        <div class="detail-item-label">Registered Email</div>
+                        <div class="detail-item-value">{{ user.email }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Date of Birth</div>
+                        <div class="detail-item-value">{{ user.dob }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Religion</div>
+                        <div class="detail-item-value">{{ user.religion }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Caste Reference</div>
+                        <div class="detail-item-value">{{ user.caste }}</div>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label text-muted">Religion</label>
-                    <div style="font-weight: 600; font-size: 0.95rem;">{{ user.religion }}</div>
-                </div>
-                <div>
-                    <label class="form-label text-muted">Caste Reference</label>
-                    <div style="font-weight: 600; font-size: 0.95rem;">{{ user.caste }}</div>
-                </div>
-            </div>
 
-            <div style="height: 1px; background: var(--border); margin: 20px 0;"></div>
+                <div class="section-divider"></div>
 
-            <div class="grid grid-cols-2">
-                <div>
-                    <label class="form-label text-muted">Basic Salary</label>
-                    <div style="font-weight: 800; font-size: 1.3rem; color: var(--success);">₹{{ "{:,}".format(user.salary) }}</div>
+                <!-- Section 3: Compensation & Access -->
+                <div class="detail-section-title">
+                    <i class="fas fa-lock"></i> Compensation & System Access
                 </div>
-                <div>
-                    <label class="form-label text-muted">Portal Username</label>
-                    <span class="badge badge-info" style="font-size: 0.9rem; padding: 6px 12px;">{{ user.username }}</span>
+                <div class="detail-grid">
+                    <div>
+                        <div class="detail-item-label">Basic Salary</div>
+                        <div class="detail-item-value" style="color: var(--color-success); font-size: 1.25rem;">₹{{ "{:,}".format(user.salary) }}</div>
+                    </div>
+                    <div>
+                        <div class="detail-item-label">Portal Username</div>
+                        <div style="margin-top: 4px;">
+                            <span class="badge-username">@{{ user.username }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

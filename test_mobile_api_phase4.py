@@ -402,7 +402,8 @@ class MobileApiPhase4TestCase(unittest.TestCase):
         data = res.get_json()
         self.assertEqual(data['current_category'], 'Textbooks')
         self.assertTrue(data['materials_count'] >= 1)
-        mat = data['materials'][0]
+        mat = next((m for m in data['materials'] if m['title'] == 'Python Fundamentals Notes'), None)
+        self.assertIsNotNone(mat)
         self.assertEqual(mat['title'], 'Python Fundamentals Notes')
         self.assertEqual(mat['subject'], 'Python Programming')
         self.assertIn('/download', mat['download_url'])
@@ -419,6 +420,88 @@ class MobileApiPhase4TestCase(unittest.TestCase):
         self.login_student(self.student2_uucms, self.student2_pass)
         res = self.client.get(f'/academic/study-materials/{self.study_material_id}/download')
         self.assertEqual(res.status_code, 403)
+
+    def test_18_student_study_materials_restricted_below_75_and_hod_override(self):
+        with app.app_context():
+            from app import MarksEligibilityOverride
+            sm_ds = StudyMaterial.query.filter_by(title='Data Structures Notes').first()
+            if not sm_ds:
+                sm_ds = StudyMaterial(
+                    title='Data Structures Notes',
+                    subject='Data Structures',
+                    course='BCA',
+                    academic_year='2nd Year',
+                    semester=4,
+                    section='A',
+                    category='Textbooks',
+                    description='DS Notes',
+                    file_storage_key='ds_test.pdf',
+                    file_filename='ds_test.pdf',
+                    file_size=1024,
+                    file_mimetype='application/pdf',
+                    file_checksum='0'*64,
+                    status='Published',
+                    created_by_id=self.teacher_id,
+                    updated_by_id=self.teacher_id
+                )
+                db.session.add(sm_ds)
+                db.session.commit()
+            ds_id = sm_ds.id
+
+            MarksEligibilityOverride.query.filter_by(
+                student_id=self.student1_id,
+                subject='Data Structures'
+            ).delete()
+            db.session.commit()
+
+        self.login_student(self.student1_uucms, self.student1_pass)
+        res = self.client.get('/api/student/study-materials')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        ds_mat = next((m for m in data['materials'] if m['id'] == ds_id), None)
+        self.assertIsNotNone(ds_mat)
+        self.assertFalse(ds_mat['is_accessible'])
+
+        dl_res = self.client.get(f'/academic/study-materials/{ds_id}/download')
+        self.assertEqual(dl_res.status_code, 403)
+
+        with app.app_context():
+            from app import MarksEligibilityOverride
+            ovr = MarksEligibilityOverride(
+                student_id=self.student1_id,
+                subject='Data Structures',
+                course='BCA',
+                semester=4,
+                section='A',
+                assessment_cycle='2026-27',
+                component='ALL',
+                decision_type='ALLOW_OVERRIDE',
+                reason='Medical leave dispensation approved by HOD',
+                created_by_id=self.teacher_id,
+                updated_by_id=self.teacher_id,
+                is_active=True
+            )
+            db.session.add(ovr)
+            db.session.commit()
+
+        res_ovr = self.client.get('/api/student/study-materials')
+        self.assertEqual(res_ovr.status_code, 200)
+        ds_mat_ovr = next((m for m in res_ovr.get_json()['materials'] if m['id'] == ds_id), None)
+        self.assertIsNotNone(ds_mat_ovr)
+        self.assertTrue(ds_mat_ovr['is_accessible'])
+        self.assertEqual(ds_mat_ovr['decision_source'], 'HOD_ALLOW_OVERRIDE')
+
+        with app.app_context():
+            from app import MarksEligibilityOverride
+            ovr_db = MarksEligibilityOverride.query.filter_by(student_id=self.student1_id, subject='Data Structures').first()
+            ovr_db.is_active = False
+            db.session.commit()
+
+        res_rev = self.client.get('/api/student/study-materials')
+        self.assertEqual(res_rev.status_code, 200)
+        ds_mat_rev = next((m for m in res_rev.get_json()['materials'] if m['id'] == ds_id), None)
+        self.assertIsNotNone(ds_mat_rev)
+        self.assertFalse(ds_mat_rev['is_accessible'])
 
 
 if __name__ == '__main__':

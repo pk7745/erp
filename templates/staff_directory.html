@@ -36,12 +36,19 @@
             <div class="stat-value">{{ employees|length }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 600;">Faculty & Staff</span></div>
         </div>
 
+        {% if is_privileged %}
         <div class="stat-card" style="border-left: 4px solid var(--color-success);">
             <div class="stat-label">Monthly Outflow Payroll</div>
             {% set total_salary = [] %}
             {% for emp in employees %}{% if total_salary.append(emp.salary) %}{% endif %}{% endfor %}
             <div class="stat-value" style="color: var(--color-success);">₹{{ "{:,}".format(total_salary|sum) }}</div>
         </div>
+        {% else %}
+        <div class="stat-card" style="border-left: 4px solid var(--primary);">
+            <div class="stat-label">College Workforce Directory</div>
+            <div class="stat-value" style="color: var(--primary);">{{ employees|length }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 600;">Active Colleagues</span></div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Add Staff Modal/Form Panel -->
@@ -113,7 +120,7 @@
                         <th>Personnel & Designation</th>
                         <th>Personal & Contact Details</th>
                         <th>Demographics & Service</th>
-                        <th>Complete Payroll Structure</th>
+                        <th>{% if is_privileged %}Complete Payroll Structure{% else %}Compensation Status{% endif %}</th>
                         <th style="text-align: right;">Actions & Edit Control</th>
                     </tr>
                 </thead>
@@ -150,13 +157,20 @@
 
                         <td style="vertical-align: top;">
                             <div style="line-height: 1.5;">
+                                {% if is_privileged or emp.id == session.get('user_id') %}
                                 <div><i class="fas fa-birthday-cake" style="color: var(--warning); width: 16px;"></i> <strong>DOB:</strong> {{ emp.dob or 'N/A' }}</div>
                                 <div><i class="fas fa-calendar-check" style="color: var(--success); width: 16px;"></i> <strong>Joined:</strong> {{ emp.join_date or 'N/A' }}</div>
                                 <div><i class="fas fa-user-tag" style="color: var(--info); width: 16px;"></i> <strong>Caste / Religion:</strong> {{ emp.caste or 'Gen' }} / {{ emp.religion or 'Gen' }}</div>
+                                {% else %}
+                                <div><i class="fas fa-calendar-check" style="color: var(--success); width: 16px;"></i> <strong>Joined:</strong> {{ emp.join_date or 'N/A' }}</div>
+                                <div><i class="fas fa-shield-alt" style="color: var(--text-muted); width: 16px;"></i> <strong>Status:</strong> <span class="badge badge-success">{{ emp.status or 'Active' }}</span></div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"><i class="fas fa-lock"></i> Demographics Protected</div>
+                                {% endif %}
                             </div>
                         </td>
 
                         <td style="vertical-align: top;">
+                            {% if is_privileged or emp.id == session.get('user_id') %}
                             <input type="hidden" id="salaryInput_{{ emp.id }}" value="{{ emp.salary }}">
                             <div style="background: var(--gray-100); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border);">
                                 <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px;">
@@ -169,6 +183,16 @@
                                 </div>
                                 <div id="breakdown_{{ emp.id }}" style="display: flex; gap: 8px; font-size: 0.72rem; margin-top: 4px; flex-wrap: wrap;"></div>
                             </div>
+                            {% else %}
+                            <div style="background: var(--gray-100); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border); text-align: center;">
+                                <span class="badge badge-secondary" style="font-size: 0.75rem;">
+                                    <i class="fas fa-lock"></i> Confidential Payroll
+                                </span>
+                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">
+                                    Restricted to HR & Accounts
+                                </div>
+                            </div>
+                            {% endif %}
                         </td>
 
                         <td style="text-align: right; vertical-align: top;">
@@ -179,7 +203,9 @@
                                     </button>
                                 {% endif %}
                                 <a href="{{ url_for('generate_id', uid=emp.id) }}" class="btn btn-secondary btn-sm"><i class="fas fa-id-card"></i> ID Card</a>
+                                {% if is_privileged or emp.id == session.get('user_id') %}
                                 <a href="{{ url_for('generate_payslip', uid=emp.id) }}" class="btn btn-secondary btn-sm"><i class="fas fa-file-invoice"></i> Payslip</a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

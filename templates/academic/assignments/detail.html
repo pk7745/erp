@@ -3,36 +3,36 @@
 {% block title %}{{ assignment.title }} | Assignment Detail | BMS College ERP{% endblock %}
 
 {% block content %}
-<div class="page-container" style="padding: 24px; max-width: 1000px; margin: 0 auto;">
+<div class="page-container" style="padding: 24px; padding-bottom: 70px; max-width: 1000px; margin: 0 auto;">
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('assignments_dashboard') }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+        <a href="{{ url_for('assignments_dashboard') }}" style="color: #1E3E62; text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
     </div>
 
     <!-- Main Detail Card -->
-    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+    <div class="card" style="background: var(--bg-surface); border: 1px solid var(--border); border-top: 4px solid #1E3E62; border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(11,25,44,0.04);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
             <div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span class="badge" style="background: rgba(37, 99, 235, 0.1); color: #2563eb; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                    <span class="badge" style="background: #1E3E62; color: #ffffff; border: 1px solid #C5A059; font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
                         {{ assignment.course }} {{ assignment.semester }} • Sec {{ assignment.section }}
                     </span>
-                    <span class="badge" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
+                    <span class="badge" style="background: rgba(197, 160, 89, 0.15); color: #0B192C; border: 1px solid #C5A059; font-weight: 800; font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">
                         {{ assignment.subject }}
                     </span>
                     <span class="badge" style="background: {% if assignment.status == 'Published' %}#dcfce7; color: #166534;{% else %}#f1f5f9; color: #475569;{% endif %} padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 0.8rem;">
                         {{ assignment.status }}
                     </span>
                 </div>
-                <h1 style="margin: 0; font-size: 1.85rem; font-weight: 800; color: var(--text-main); line-height: 1.25;">
+                <h1 style="margin: 0; font-size: 1.85rem; font-weight: 800; color: #0B192C; line-height: 1.25;">
                     {{ assignment.title }}
                 </h1>
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center;">
-                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id) }}" class="btn btn-primary" style="padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-users"></i> Submission Roster ({{ submitted_count }}/{{ enrolled_count }})
+                <a href="{{ url_for('assignment_roster', assignment_id=assignment.id) }}" class="btn" style="background: #1E3E62; color: #ffffff; padding: 10px 18px; font-weight: 700; border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+                    <i class="fas fa-users" style="color: #C5A059;"></i> Submission Roster ({{ submitted_count }}/{{ enrolled_count }})
                 </a>
                 {% if can_edit %}
                 <a href="{{ url_for('assignment_edit', assignment_id=assignment.id) }}" class="btn btn-outline" style="padding: 10px 16px; font-weight: 700;">

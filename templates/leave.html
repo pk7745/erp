@@ -1,71 +1,570 @@
 {% extends "base.html" %}
-{% block content %}
+{% block title %}Leave Management Portal - BMS College ERP{% endblock %}
 
-<div style="max-width: 1400px; margin: 0 auto;">
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --color-danger: #DC2626;
+        --color-danger-bg: rgba(220, 38, 38, 0.1);
+        --color-warning: #D97706;
+        --color-warning-bg: rgba(217, 119, 6, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.1);
+    }
+
+    .leave-page-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Page Hero Header */
+    .leave-hero-header {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .leave-hero-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    .leave-hero-header h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+    .leave-hero-header p {
+        margin: 0;
+        color: #CBD5E1;
+        font-size: 0.92rem;
+    }
+
+    /* Admin Notification Banner */
+    .monitoring-banner {
+        background: rgba(30, 62, 98, 0.08);
+        border-left: 4px solid var(--bms-navy);
+        padding: 14px 20px;
+        border-radius: var(--radius-md);
+        margin-bottom: 24px;
+        font-size: 0.88rem;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+    .monitoring-badge {
+        background: var(--bms-navy-dark);
+        color: #FFFFFF;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Layout Grid */
+    .leave-layout-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+
+    /* Card System */
+    .bms-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+    .bms-card-header {
+        background: #FAFCFE;
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .bms-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bms-card-body {
+        padding: 22px;
+    }
+
+    /* Quota Grid */
+    .quota-display-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 22px;
+        padding: 16px;
+        background: var(--bg-body);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        text-align: center;
+    }
+    .quota-stat-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .quota-stat-value {
+        font-size: 1.85rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    /* Form Controls */
+    .bms-form-group {
+        margin-bottom: 18px;
+    }
+    .bms-form-label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .bms-form-control {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        font-size: 0.92rem;
+        color: var(--text-main);
+        background: #FFFFFF;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+    .bms-form-control:focus {
+        outline: none;
+        border-color: var(--bms-navy);
+        box-shadow: 0 0 0 3px rgba(30, 62, 98, 0.15);
+    }
+
+    /* Buttons */
+    .btn-bms-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 20px;
+        background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-navy-dark) 100%);
+        color: #FFFFFF;
+        border: 1px solid var(--bms-navy-dark);
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        font-size: 0.92rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        box-shadow: var(--shadow-sm);
+    }
+    .btn-bms-primary:hover {
+        background: linear-gradient(135deg, var(--bms-navy-light) 0%, var(--bms-navy) 100%);
+        border-color: var(--bms-gold);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(11, 25, 44, 0.2);
+    }
+    .btn-bms-disabled {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 20px;
+        background: #94A3B8;
+        color: #FFFFFF;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        font-size: 0.92rem;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    /* Table Styles */
+    .table-container-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .bms-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        text-align: left;
+    }
+    .bms-table thead th {
+        background: #F8FAFC;
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 13px 16px;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+    .bms-table tbody td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+        color: var(--text-main);
+    }
+    .bms-table tbody tr:hover {
+        background: #F9FBFE;
+    }
+
+    /* Badges */
+    .bms-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+    .badge-navy {
+        background: rgba(11, 25, 44, 0.08);
+        color: var(--bms-navy-dark);
+        border: 1px solid rgba(11, 25, 44, 0.2);
+    }
+    .badge-approved {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+    .badge-pending {
+        background: var(--color-warning-bg);
+        color: var(--color-warning);
+        border: 1px solid rgba(217, 119, 6, 0.3);
+    }
+    .badge-rejected {
+        background: var(--color-danger-bg);
+        color: var(--color-danger);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+    .badge-closed {
+        background: #F1F5F9;
+        color: #64748B;
+        border: 1px solid #CBD5E1;
+    }
+
+    /* Action buttons in table */
+    .btn-action-approve {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 38px;
+        padding: 6px 14px;
+        background: var(--color-success);
+        color: #FFFFFF;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .btn-action-approve:hover {
+        background: #047857;
+        color: #FFFFFF;
+        transform: translateY(-1px);
+    }
+    .btn-action-reject {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 38px;
+        padding: 6px 14px;
+        background: var(--color-danger);
+        color: #FFFFFF;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .btn-action-reject:hover {
+        background: #B91C1C;
+        color: #FFFFFF;
+        transform: translateY(-1px);
+    }
+
+    /* Rejection Modal */
+    .modal-backdrop-custom {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(11, 25, 44, 0.65);
+        backdrop-filter: blur(3px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+    .modal-dialog-custom {
+        background: #FFFFFF;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 520px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--bms-gold);
+        overflow: hidden;
+        animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header-custom {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        color: #FFFFFF;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid var(--bms-gold);
+    }
+    .modal-header-custom h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .modal-close-btn {
+        background: transparent;
+        border: none;
+        color: #CBD5E1;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 4px;
+        line-height: 1;
+        border-radius: 4px;
+        transition: color 0.15s;
+    }
+    .modal-close-btn:hover {
+        color: #FFFFFF;
+    }
+    .modal-body-custom {
+        padding: 22px 24px;
+    }
+    .modal-footer-custom {
+        padding: 16px 24px;
+        background: #F8FAFC;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .leave-layout-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 768px) {
+        .leave-hero-header {
+            padding: 20px 18px;
+        }
+        .leave-hero-header h1 {
+            font-size: 1.45rem;
+        }
+        .bms-card-body {
+            padding: 16px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="leave-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">Leave Management Portal</span>
+    </div>
+
     <!-- Page Header -->
-    <div style="margin-bottom: 24px;">
-        <div class="badge badge-info" style="margin-bottom: 8px; font-weight: 800; text-transform: uppercase;">
-            📅 Leave Management Portal
+    <div class="leave-hero-header">
+        <div class="hero-tag">
+            <i class="fas fa-calendar-check"></i> Leave Management Portal
         </div>
-        <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0;">Apply for Leave & Quota Tracking</h1>
+        <h1>Apply for Leave & Quota Tracking</h1>
+        <p>Official institutional leave application, quota tracking, and multi-tier approval workflow</p>
     </div>
 
     {% if session.get('role') in ['admin', 'HR'] %}
-    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid var(--primary); padding: 14px 18px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 0.88rem; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+    <div class="monitoring-banner">
         <div>
-            <i class="fas fa-eye" style="color: var(--primary); margin-right: 8px;"></i>
+            <i class="fas fa-shield-alt" style="color: var(--bms-navy); margin-right: 8px; font-size: 1rem;"></i>
             <strong>Admin Monitoring Mode (Read-Only):</strong> Full institutional visibility into all staff leave applications. Leave approvals and rejections are strictly authorized by <strong>HOD</strong> (Department Review) and <strong>Principal</strong> (Final Authorization).
         </div>
-        <span class="badge badge-primary" style="font-weight: 700;"><i class="fas fa-shield-alt"></i> View-Only Audit</span>
+        <span class="monitoring-badge"><i class="fas fa-eye"></i> View-Only Audit</span>
     </div>
     {% endif %}
 
-    <div style="display: grid; grid-template-columns: 360px 1fr; gap: 28px; align-items: start;">
-        <!-- Leave Application Form -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">📝 Leave Application</h3>
+    <div class="leave-layout-grid">
+        <!-- Leave Application Form Card -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title"><i class="fas fa-edit" style="color: var(--bms-gold);"></i> Leave Application</h3>
             </div>
+            <div class="bms-card-body">
+                <!-- Quota Display -->
+                <div class="quota-display-grid">
+                    <div>
+                        <div class="quota-stat-label" style="color: var(--color-danger);">Leaves Taken</div>
+                        <div class="quota-stat-value" style="color: var(--text-main);">{{ leaves_taken }}</div>
+                    </div>
+                    <div style="border-left: 1px solid var(--border-color);">
+                        <div class="quota-stat-label" style="color: var(--color-success);">Remaining Balance</div>
+                        <div class="quota-stat-value" style="color: var(--color-success);">
+                            {{ leaves_left }}<span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">/{{ leave_limit }}</span>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Quota Display -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-md); border: 1px solid var(--border-color); text-align: center;">
-                <div>
-                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-danger); text-transform: uppercase;">Leaves Taken</div>
-                    <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-main);">{{ leaves_taken }}</div>
-                </div>
-                <div style="border-left: 1px solid var(--border-color);">
-                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-success); text-transform: uppercase;">Remaining Balance</div>
-                    <div style="font-size: 1.75rem; font-weight: 800; color: var(--color-success);">{{ leaves_left }}<span style="font-size: 0.85rem; color: var(--text-muted);">/{{ leave_limit }}</span></div>
-                </div>
+                <form method="POST">
+                    <div class="bms-form-group">
+                        <label class="bms-form-label">Effective Date:</label>
+                        <input type="date" name="date" class="bms-form-control" required>
+                    </div>
+
+                    <div class="bms-form-group">
+                        <label class="bms-form-label">Reason for Absence:</label>
+                        <textarea name="reason" class="bms-form-control" placeholder="Provide official justification..." required style="height: 110px; resize: none;"></textarea>
+                    </div>
+
+                    {% if leaves_left > 0 %}
+                        <button type="submit" class="btn-bms-primary">
+                            <span>Submit Application</span> <i class="fas fa-arrow-right"></i>
+                        </button>
+                    {% else %}
+                        <button type="button" class="btn-bms-disabled" disabled>
+                            <i class="fas fa-ban"></i> Quota Exceeded
+                        </button>
+                    {% endif %}
+                </form>
             </div>
-
-            <form method="POST">
-                <div class="form-group">
-                    <label class="form-label">Effective Date:</label>
-                    <input type="date" name="date" class="form-control" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Reason for Absence:</label>
-                    <textarea name="reason" class="form-control" placeholder="Provide official justification..." required style="height: 110px; resize: none;"></textarea>
-                </div>
-
-                {% if leaves_left > 0 %}
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Application →</button>
-                {% else %}
-                    <button class="btn btn-secondary" style="width: 100%; opacity: 0.6; cursor: not-allowed;" disabled>Quota Exceeded</button>
-                {% endif %}
-            </form>
         </div>
 
-        <!-- Request History Table -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">📜 Leave Request History</h3>
+        <!-- Request History Table Card -->
+        <div class="bms-card">
+            <div class="bms-card-header">
+                <h3 class="bms-card-title"><i class="fas fa-history" style="color: var(--bms-gold);"></i> Leave Request History</h3>
             </div>
 
-            <div class="table-wrapper">
-                <table class="table">
+            <div class="table-container-responsive">
+                <table class="bms-table">
                     <thead>
                         <tr>
                             <th>Personnel</th>
@@ -80,62 +579,81 @@
                         {% for l in leaves %}
                         <tr>
                             <td>
-                                <strong style="font-weight: 700; display: block;">{{ l.user.full_name }}</strong>
-                                <span class="badge badge-info">{{ l.user.role }}</span>
+                                <strong style="font-weight: 700; display: block; color: var(--bms-navy-dark);">{{ l.user.full_name }}</strong>
+                                <span class="bms-badge badge-navy" style="margin-top: 4px;">{{ l.user.role }}</span>
                             </td>
-                            <td style="font-weight: 700;">{{ l.date }}</td>
-                            <td style="max-width: 240px;">
+                            <td style="font-weight: 700; white-space: nowrap;">{{ l.date }}</td>
+                            <td style="max-width: 260px;">
                                 <div>{{ l.reason }}</div>
                                 {% if l.status == 'Rejected' and l.rejection_reason %}
-                                    <div class="badge badge-danger" style="margin-top: 6px; display: inline-block;">
-                                        Reason: {{ l.rejection_reason }}
+                                    <div class="bms-badge badge-rejected" style="margin-top: 6px; display: inline-flex;">
+                                        <i class="fas fa-exclamation-circle"></i> Reason: {{ l.rejection_reason }}
                                     </div>
                                 {% endif %}
                             </td>
 
                             {% if l.user.role == 'Principal' %}
                                 <td colspan="2" style="text-align: center;">
-                                    <span class="badge badge-success">Self Approved</span>
+                                    <span class="bms-badge badge-approved"><i class="fas fa-check-double"></i> Self Approved</span>
                                 </td>
                             {% elif l.user.role == 'Faculty' %}
                                 <td style="text-align: center;">
-                                    <span class="badge {% if l.status == 'Pending HOD' %}badge-warning{% elif l.status == 'Rejected' and not l.rejection_reason %}badge-danger{% else %}badge-success{% endif %}">
-                                        {% if l.status == 'Pending HOD' %}Pending{% else %}Approved{% endif %}
+                                    <span class="bms-badge {% if l.status == 'Pending HOD' %}badge-pending{% elif l.status == 'Rejected' and not l.rejection_reason %}badge-rejected{% else %}badge-approved{% endif %}">
+                                        {% if l.status == 'Pending HOD' %}
+                                            <i class="fas fa-clock"></i> Pending
+                                        {% else %}
+                                            <i class="fas fa-check"></i> Approved
+                                        {% endif %}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
                                     {% if l.status == 'Pending HOD' %}
-                                        <span style="font-size: 0.8rem; color: var(--text-muted);">Awaiting HOD</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted);"><i class="fas fa-hourglass-start"></i> Awaiting HOD</span>
                                     {% else %}
-                                        <span class="badge {% if l.status == 'Pending Principal' %}badge-warning{% elif l.status == 'Approved' %}badge-success{% elif l.status == 'Rejected' %}badge-danger{% endif %}">
-                                            {{ 'Pending' if l.status == 'Pending Principal' else l.status }}
+                                        <span class="bms-badge {% if l.status == 'Pending Principal' %}badge-pending{% elif l.status == 'Approved' %}badge-approved{% elif l.status == 'Rejected' %}badge-rejected{% endif %}">
+                                            {% if l.status == 'Pending Principal' %}
+                                                <i class="fas fa-clock"></i> Pending
+                                            {% elif l.status == 'Approved' %}
+                                                <i class="fas fa-check"></i> Approved
+                                            {% elif l.status == 'Rejected' %}
+                                                <i class="fas fa-times"></i> Rejected
+                                            {% else %}
+                                                {{ l.status }}
+                                            {% endif %}
                                         </span>
                                     {% endif %}
                                 </td>
                             {% else %}
                                 <td colspan="2" style="text-align: center;">
-                                    <span class="badge {% if l.status == 'Approved' %}badge-success{% elif l.status == 'Rejected' %}badge-danger{% else %}badge-warning{% endif %}">
+                                    <span class="bms-badge {% if l.status == 'Approved' %}badge-approved{% elif l.status == 'Rejected' %}badge-rejected{% else %}badge-pending{% endif %}">
                                         {{ l.status }}
                                     </span>
                                 </td>
                             {% endif %}
 
-                            <td style="text-align: right;">
+                            <td style="text-align: right; white-space: nowrap;">
                                 {% if (session.get('role') == 'HOD - BCA Dept' and l.status == 'Pending HOD') or (session.get('role') == 'Principal' and l.status == 'Pending Principal') %}
-                                     <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                                        <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" class="btn btn-success btn-sm">Approve</a>
-                                        <a href="#" onclick="rejectLeave({{ l.id }})" class="btn btn-danger btn-sm">Reject</a>
+                                     <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                                        <a href="{{ url_for('approve_leave', id=l.id, action='approve') }}" class="btn-action-approve">
+                                            <i class="fas fa-check"></i> Approve
+                                        </a>
+                                        <button type="button" onclick="openRejectModal({{ l.id }}, '{{ l.user.full_name|replace('\'', '\\\'') }}')" class="btn-action-reject">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
                                      </div>
                                 {% elif session.get('role') in ['admin', 'HR'] %}
-                                     <span class="badge badge-secondary" style="font-size: 0.72rem;"><i class="fas fa-eye"></i> View Only</span>
+                                     <span class="bms-badge badge-closed"><i class="fas fa-eye"></i> View Only</span>
                                 {% else %}
-                                     <span style="font-size: 0.8rem; color: var(--text-muted);">Closed</span>
+                                     <span class="bms-badge badge-closed">Closed</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">No leave requests recorded.</td>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 32px 16px;">
+                                <i class="fas fa-inbox" style="font-size: 2rem; color: #CBD5E1; display: block; margin-bottom: 8px;"></i>
+                                No leave requests recorded.
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -145,12 +663,88 @@
     </div>
 </div>
 
+<!-- Accessible In-Page Rejection Modal -->
+<div id="rejectModal" class="modal-backdrop-custom" role="dialog" aria-labelledby="rejectModalTitle" aria-modal="true">
+    <div class="modal-dialog-custom">
+        <div class="modal-header-custom">
+            <h3 id="rejectModalTitle"><i class="fas fa-exclamation-triangle" style="color: var(--bms-gold);"></i> Reject Leave Request</h3>
+            <button type="button" class="modal-close-btn" onclick="closeRejectModal()" aria-label="Close dialog">×</button>
+        </div>
+        <div class="modal-body-custom">
+            <p style="margin: 0 0 14px 0; font-size: 0.92rem; color: var(--text-main);">
+                Provide an official justification for rejecting the leave application for <strong id="rejectStaffName" style="color: var(--bms-navy-dark);">Staff Member</strong>:
+            </p>
+            <div class="bms-form-group" style="margin-bottom: 8px;">
+                <label for="rejectionReason" class="bms-form-label">Official Rejection Reason *</label>
+                <textarea id="rejectionReason" class="bms-form-control" rows="3" placeholder="Enter official rejection reason..." style="resize: vertical; min-height: 85px;"></textarea>
+            </div>
+            <div id="rejectError" style="display: none; color: var(--color-danger); font-size: 0.82rem; font-weight: 700; margin-top: 6px;">
+                <i class="fas fa-exclamation-circle"></i> Reason is required to reject a leave request.
+            </div>
+        </div>
+        <div class="modal-footer-custom">
+            <button type="button" class="btn-action-reject" style="background: #64748B; min-height: 40px;" onclick="closeRejectModal()">
+                Cancel
+            </button>
+            <button type="button" class="btn-action-reject" style="min-height: 40px;" onclick="confirmReject()">
+                <i class="fas fa-times-circle"></i> Confirm Rejection
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
-function rejectLeave(id) {
-    let reason = prompt("Enter official rejection reason:");
-    if (reason != null && reason != "") {
-        window.location.href = "/approve_leave/" + id + "/reject?reason=" + encodeURIComponent(reason);
-    }
+let currentRejectId = null;
+
+function openRejectModal(id, staffName) {
+    currentRejectId = id;
+    document.getElementById('rejectStaffName').textContent = staffName || 'Staff Member';
+    document.getElementById('rejectionReason').value = '';
+    document.getElementById('rejectError').style.display = 'none';
+    const modal = document.getElementById('rejectModal');
+    modal.style.display = 'flex';
+    document.getElementById('rejectionReason').focus();
 }
+
+function closeRejectModal() {
+    currentRejectId = null;
+    document.getElementById('rejectModal').style.display = 'none';
+    document.getElementById('rejectError').style.display = 'none';
+}
+
+function confirmReject() {
+    if (!currentRejectId) return;
+    const reasonInput = document.getElementById('rejectionReason');
+    const reason = reasonInput.value.trim();
+    if (!reason) {
+        const err = document.getElementById('rejectError');
+        err.style.display = 'block';
+        reasonInput.focus();
+        return;
+    }
+    // Preserves exact GET contract: /approve_leave/<id>/reject?reason=<encoded_reason>
+    window.location.href = `/approve_leave/${currentRejectId}/reject?reason=${encodeURIComponent(reason)}`;
+}
+
+// Backwards-compatible fallback function
+function rejectLeave(id) {
+    openRejectModal(id, 'Staff Member');
+}
+
+// Keyboard ESC and backdrop click handling
+window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('rejectModal');
+        if (modal && modal.style.display === 'flex') {
+            closeRejectModal();
+        }
+    }
+});
+
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRejectModal();
+    }
+});
 </script>
 {% endblock %}

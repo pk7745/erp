@@ -61,19 +61,24 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
         # Log in as Balram
         self.login_as(username='balram', password='bms123')
 
-        # Balram attempts to access Shivani's class
-        res = self.client.get(f'/academic-attendance/take/{tt_shivani_id}', follow_redirects=True)
-        self.assertIn("not authorized", res.get_data(as_text=True).lower())
+        # Balram attempts to access Shivani's class (returns 403 redirect)
+        res = self.client.get(f'/academic-attendance/take/{tt_shivani_id}', follow_redirects=False)
+        self.assertEqual(res.status_code, 403)
+        self.assertIn('/timetable', res.headers.get('Location', ''))
+        # Following to redirect destination renders the flash message
+        res_dest = self.client.get('/timetable')
+        self.assertIn("not authorized", res_dest.get_data(as_text=True).lower())
 
         # Balram attempts to POST attendance for Shivani's class
         res_post = self.client.post(f'/academic-attendance/take/{tt_shivani_id}', data={
             'actual_subject': 'Malicious Override',
             'student_ids': ['1', '2']
-        }, follow_redirects=True)
-        self.assertIn("not authorized", res_post.get_data(as_text=True).lower())
+        }, follow_redirects=False)
+        self.assertEqual(res_post.status_code, 403)
+        self.assertIn('/timetable', res_post.headers.get('Location', ''))
 
     def test_03_roster_loading_and_class_details(self):
-        """Authorized teacher sees all 17 active BCA Sem V Sec A students and session details"""
+        """Authorized teacher sees all 20 active BCA Sem V Sec A students and session details"""
         with app.app_context():
             balram = User.query.filter_by(username='balram').first()
             tt_balram = Timetable.query.filter_by(user_id=balram.id, course='BCA', semester='Sem V').first()
@@ -100,7 +105,7 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
         self.assertIn("U18IN24S0001", html)
         self.assertIn("Aishwarya", html)
         self.assertIn("U18IN24S0004", html)
-        self.assertIn("Total: 17", html)
+        self.assertIn("Total: 20", html)
 
     def test_04_successful_attendance_submission_and_override(self):
         """Teacher submits attendance with Actual Subject override; verifies transactional persistence"""
@@ -119,12 +124,13 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
                 db.session.commit()
 
             students = Student.query.filter_by(course='BCA', semester='Sem V', section='A', is_active=True).all()
-            self.assertEqual(len(students), 17)
+            total_students = len(students)
+            self.assertEqual(total_students, 20)
             student_ids = [s.id for s in students]
 
         self.login_as(username='balram', password='bms123')
 
-        # Mark 15 Present and 2 Absent
+        # Mark 18 Present and 2 Absent
         post_data = {
             'actual_subject': f"{scheduled_subject} - Advanced Module",
             'remarks': 'Unit 4 Hands-on Demonstration',
@@ -142,7 +148,7 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
         html = res.get_data(as_text=True)
 
         self.assertIn("Attendance submitted successfully", html)
-        self.assertIn("15", html)
+        self.assertIn("18", html)
         self.assertIn("2", html)
 
         # Allow async worker thread to complete
@@ -159,11 +165,11 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
             self.assertEqual(cs.room_no, tt.room_no)
 
             attendances = StudentAttendance.query.filter_by(class_session_id=cs.id).all()
-            self.assertEqual(len(attendances), 17, "Exactly 17 student attendance records must exist")
+            self.assertEqual(len(attendances), 20, "Exactly 20 student attendance records must exist")
 
             p_cnt = sum(1 for a in attendances if a.status == 'Present')
             a_cnt = sum(1 for a in attendances if a.status == 'Absent')
-            self.assertEqual(p_cnt, 15)
+            self.assertEqual(p_cnt, 18)
             self.assertEqual(a_cnt, 2)
 
             # Timetable status updated
@@ -307,15 +313,17 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
 
         # Shivani (unauthorized teacher) tries to access GET edit
         self.login_as(username='shivani', password='bms123')
-        res = self.client.get(f'/academic-attendance/edit/{cs_id}', follow_redirects=True)
-        self.assertIn("not authorized", res.get_data(as_text=True).lower())
+        res = self.client.get(f'/academic-attendance/edit/{cs_id}', follow_redirects=False)
+        self.assertEqual(res.status_code, 403)
+        self.assertIn(f'/academic-attendance/session/{cs_id}', res.headers.get('Location', ''))
 
         # Shivani tries to POST edit
         res_post = self.client.post(f'/academic-attendance/edit/{cs_id}', data={
             'actual_subject': 'Hacked Subject',
             'student_ids': ['1']
-        }, follow_redirects=True)
-        self.assertIn("not authorized", res_post.get_data(as_text=True).lower())
+        }, follow_redirects=False)
+        self.assertEqual(res_post.status_code, 403)
+        self.assertIn(f'/academic-attendance/session/{cs_id}', res_post.headers.get('Location', ''))
 
         # Balram (authorized) can access GET edit
         self.login_as(username='balram', password='bms123')
@@ -340,8 +348,8 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn(actual_subject, html)
         self.assertIn("U18IN24S0001", html)
-        self.assertIn("17 Students", html)
-        self.assertIn("15 P", html)
+        self.assertIn("20 Students", html)
+        self.assertIn("18 P", html)
         self.assertIn("2 A", html)
         self.assertIn("Review Changes Before Saving", html)
 
@@ -385,7 +393,7 @@ class AcademicAttendanceWorkflowTests(unittest.TestCase):
         html = res.get_data(as_text=True)
 
         self.assertIn("updated successfully", html.lower())
-        self.assertIn("15 Present", html)
+        self.assertIn("18 Present", html)
         self.assertIn("2 Absent", html)
 
         # Allow async email worker thread to run

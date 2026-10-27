@@ -69,6 +69,8 @@ class MarksEligibilityTestCase(unittest.TestCase):
             cls.kiran_id = kiran.id
             cls.admin_id = admin.id
             cls.acc1_id = acc1.id
+            principal = User.query.filter_by(role='Principal').first()
+            cls.principal_id = principal.id if principal else None
 
             # Pick active test students
             students = Student.query.filter_by(course='BCA', semester='Sem V', section='A', is_active=True).all()
@@ -253,16 +255,15 @@ class MarksEligibilityTestCase(unittest.TestCase):
             db.session.commit()
 
     def test_03_hod_overrides_allow_and_manual_restrict_with_audit(self):
-        # 1. Faculty attempt to access HOD restriction -> 403 Forbidden
+        # Prohibited Roles Verification: Only HOD - BCA Dept is permitted.
+        # 1. Faculty attempt -> 403 Forbidden
         with self.client.session_transaction() as sess:
+            sess.clear()
             sess['_user_id'] = str(self.balram_id)
             sess['user_id'] = self.balram_id
             sess['role'] = 'Faculty'
-
         res = self.client.get('/internal-marks/hod-restrictions')
         self.assertEqual(res.status_code, 403)
-
-        # Faculty POST attempt to save override -> 403 Forbidden
         res = self.client.post('/internal-marks/hod-restrictions/save', data={
             'student_id': self.student1_id,
             'course': 'BCA',
@@ -273,6 +274,119 @@ class MarksEligibilityTestCase(unittest.TestCase):
             'component': 'IA1',
             'action': 'ALLOW_OVERRIDE',
             'reason': 'Faculty trying to override'
+        })
+        self.assertEqual(res.status_code, 403)
+
+        # 2. Generic admin attempt -> 403 Forbidden
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['_user_id'] = str(self.admin_id)
+            sess['user_id'] = self.admin_id
+            sess['role'] = 'admin'
+        res = self.client.get('/internal-marks/hod-restrictions')
+        self.assertEqual(res.status_code, 403)
+        res = self.client.post('/internal-marks/hod-restrictions/save', data={
+            'student_id': self.student1_id,
+            'course': 'BCA',
+            'semester': 'Sem V',
+            'section': 'A',
+            'subject': 'Web Programming',
+            'assessment_cycle': 'TEST-CYCLE-ELIG',
+            'component': 'IA1',
+            'action': 'ALLOW_OVERRIDE',
+            'reason': 'Admin trying to override'
+        })
+        self.assertEqual(res.status_code, 403)
+
+        # 3. Principal attempt -> 403 Forbidden
+        if self.principal_id:
+            with self.client.session_transaction() as sess:
+                sess.clear()
+                sess['_user_id'] = str(self.principal_id)
+                sess['user_id'] = self.principal_id
+                sess['role'] = 'Principal'
+            res = self.client.get('/internal-marks/hod-restrictions')
+            self.assertEqual(res.status_code, 403)
+            res = self.client.post('/internal-marks/hod-restrictions/save', data={
+                'student_id': self.student1_id,
+                'course': 'BCA',
+                'semester': 'Sem V',
+                'section': 'A',
+                'subject': 'Web Programming',
+                'assessment_cycle': 'TEST-CYCLE-ELIG',
+                'component': 'IA1',
+                'action': 'ALLOW_OVERRIDE',
+                'reason': 'Principal trying to override'
+            })
+            self.assertEqual(res.status_code, 403)
+
+        # 4. Accountant attempt -> 403 Forbidden
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['_user_id'] = str(self.acc1_id)
+            sess['user_id'] = self.acc1_id
+            sess['role'] = 'Accountant'
+        res = self.client.get('/internal-marks/hod-restrictions')
+        self.assertEqual(res.status_code, 403)
+        res = self.client.post('/internal-marks/hod-restrictions/save', data={
+            'student_id': self.student1_id,
+            'course': 'BCA',
+            'semester': 'Sem V',
+            'section': 'A',
+            'subject': 'Web Programming',
+            'assessment_cycle': 'TEST-CYCLE-ELIG',
+            'component': 'IA1',
+            'action': 'ALLOW_OVERRIDE',
+            'reason': 'Accountant trying to override'
+        })
+        self.assertEqual(res.status_code, 403)
+
+        # 5. Student attempt -> rejected (403 Forbidden or 302 Redirect)
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['student_id'] = self.student1_id
+            sess['role'] = 'Student'
+        res = self.client.get('/internal-marks/hod-restrictions')
+        self.assertIn(res.status_code, (403, 302))
+        res = self.client.post('/internal-marks/hod-restrictions/save', data={
+            'student_id': self.student1_id,
+            'course': 'BCA',
+            'semester': 'Sem V',
+            'section': 'A',
+            'subject': 'Web Programming',
+            'assessment_cycle': 'TEST-CYCLE-ELIG',
+            'component': 'IA1',
+            'action': 'ALLOW_OVERRIDE',
+            'reason': 'Student trying to self-grant'
+        })
+        self.assertIn(res.status_code, (403, 302))
+
+        # 6. Unauthenticated attempt -> redirect to login (302)
+        with self.client.session_transaction() as sess:
+            sess.clear()
+        res = self.client.get('/internal-marks/hod-restrictions')
+        self.assertEqual(res.status_code, 302)
+        res = self.client.post('/internal-marks/hod-restrictions/save', data={'student_id': self.student1_id})
+        self.assertEqual(res.status_code, 302)
+
+        # 7. HOD - BCA Dept attempting to manage non-BCA course (e.g. B.Com) -> 403 Forbidden
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['_user_id'] = str(self.kiran_id)
+            sess['user_id'] = self.kiran_id
+            sess['role'] = 'HOD - BCA Dept'
+        res = self.client.get('/internal-marks/hod-restrictions?course=B.Com')
+        self.assertEqual(res.status_code, 403)
+        res = self.client.post('/internal-marks/hod-restrictions/save', data={
+            'student_id': self.student1_id,
+            'course': 'B.Com',
+            'semester': 'Sem V',
+            'section': 'A',
+            'subject': 'Financial Accounting',
+            'assessment_cycle': 'TEST-CYCLE-ELIG',
+            'component': 'IA1',
+            'action': 'ALLOW_OVERRIDE',
+            'reason': 'HOD attempting cross-department course'
         })
         self.assertEqual(res.status_code, 403)
 

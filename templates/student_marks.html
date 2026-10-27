@@ -12,12 +12,17 @@
     
     <style>
         :root {
-            --bg-body: #f8fafc;
-            --bg-surface: #ffffff;
-            --border: #e2e8f0;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --primary: #2563eb;
+            --bms-navy-dark: #0B192C;
+            --bms-navy: #1E3E62;
+            --bms-navy-light: #2A4E7A;
+            --bms-gold: #C5A059;
+            --bms-gold-light: #E0C58A;
+            --bg-body: #F4F6F9;
+            --bg-surface: #FFFFFF;
+            --border: #E2E8F0;
+            --text-main: #0B192C;
+            --text-muted: #64748B;
+            --primary: #1E3E62;
         }
 
         body {
@@ -29,21 +34,21 @@
         }
 
         .student-header {
-            background: #ffffff;
-            border-bottom: 1px solid var(--border);
-            padding: 16px 24px;
+            background: var(--bms-navy-dark);
+            border-bottom: 2px solid var(--bms-gold);
+            padding: 14px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(11, 25, 44, 0.25);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 24px 20px 60px 20px;
+            padding: 24px 20px 80px 20px;
         }
 
         .student-profile-card {
@@ -57,8 +62,8 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            border-left: 5px solid #2563eb;
+            box-shadow: 0 2px 8px rgba(11, 25, 44, 0.04);
+            border-left: 5px solid var(--bms-navy);
         }
 
         .subject-card {
@@ -67,12 +72,12 @@
             border-radius: 12px;
             padding: 20px 24px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 6px rgba(11, 25, 44, 0.03);
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .subject-card:hover {
-            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 14px rgba(11, 25, 44, 0.08);
         }
 
         .component-grid {
@@ -92,17 +97,19 @@
         .component-box.eligible {
             border-color: #cbd5e1;
             background: #ffffff;
+            border-top: 3px solid #10b981;
         }
 
         .component-box.restricted {
             border-color: #fecaca;
             background: #fff5f5;
+            border-top: 3px solid #ef4444;
         }
 
         .score-display {
             font-size: 1.75rem;
             font-weight: 800;
-            color: #0f172a;
+            color: var(--bms-navy-dark);
             margin-top: 8px;
         }
 
@@ -115,6 +122,18 @@
             align-items: center;
             gap: 6px;
         }
+
+        @media (max-width: 768px) {
+            .student-header {
+                padding: 12px 16px;
+            }
+            .container {
+                padding: 16px 12px 60px 12px;
+            }
+            .component-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -122,25 +141,25 @@
 <!-- Header Navigation -->
 <header class="student-header">
     <div style="display: flex; align-items: center; gap: 14px;">
-        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain;">
+        <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College" style="width: 44px; height: 44px; border-radius: 50%; object-fit: contain; background: #ffffff; padding: 2px;">
         <div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">BMS College of Commerce & Management</div>
-            <div style="font-size: 0.8rem; color: #64748b;">Autonomous Examination & Assessment Cell</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #FFFFFF; letter-spacing: -0.3px;">BMS College of Commerce &amp; Management</div>
+            <div style="font-size: 0.8rem; color: var(--bms-gold-light); font-weight: 600;">Autonomous Examination &amp; Assessment Cell</div>
         </div>
     </div>
 
     <div style="display: flex; align-items: center; gap: 12px;">
         {% if is_staff_view %}
-        <span class="badge" style="background: #e0e7ff; color: #4338ca; padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
+        <span class="badge" style="background: rgba(197, 160, 89, 0.2); color: var(--bms-gold-light); border: 1px solid var(--bms-gold); padding: 6px 12px; font-weight: 700; font-size: 0.8rem;">
             <i class="fas fa-eye"></i> Staff Preview Mode
         </span>
-        <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none;">
+        <a href="{{ url_for('internal_marks_dashboard') }}" class="btn btn-outline" style="font-size: 0.85rem; padding: 6px 14px; text-decoration: none; color: #ffffff; border-color: rgba(255,255,255,0.4);">
             Return to Dashboard
         </a>
         {% else %}
         <div style="text-align: right;">
-            <div style="font-weight: 700; font-size: 0.9rem;">{{ student.name }}</div>
-            <div style="font-family: monospace; font-size: 0.75rem; color: #64748b;">{{ student.uucms_id }}</div>
+            <div style="font-weight: 700; font-size: 0.9rem; color: #FFFFFF;">{{ student.name }}</div>
+            <div style="font-family: monospace; font-size: 0.75rem; color: #94A3B8;">{{ student.uucms_id }}</div>
         </div>
                 <!-- Student Notifications Dropdown -->
         <div class="notifications-wrapper" style="position: relative;">
@@ -217,22 +236,22 @@
     {% if not is_staff_view %}
     <!-- Academic Portal Tabs -->
     <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto;">
-        <a href="{{ url_for('student_dashboard') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+        <a href="{{ url_for('student_dashboard') }}" style="padding: 12px 18px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
             <i class="fas fa-home"></i> Dashboard
         </a>
-        <a href="{{ url_for('student_attendance_view') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+        <a href="{{ url_for('student_attendance_view') }}" style="padding: 12px 18px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
             <i class="fas fa-chart-pie"></i> Attendance Analytics
         </a>
-        <a href="{{ url_for('student_marks') }}" style="padding: 12px 18px; text-decoration: none; color: #2563eb; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid #2563eb; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
-            <i class="fas fa-chart-bar"></i> Internal Marks
+        <a href="{{ url_for('student_marks') }}" style="padding: 12px 18px; text-decoration: none; color: var(--bms-navy); font-weight: 800; font-size: 0.95rem; border-bottom: 3px solid var(--bms-gold); margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+            <i class="fas fa-chart-bar" style="color: var(--bms-gold);"></i> Internal Marks
         </a>
-        <a href="{{ url_for('student_assignments') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+        <a href="{{ url_for('student_assignments') }}" style="padding: 12px 18px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
             <i class="fas fa-tasks"></i> Assignments
         </a>
-        <a href="{{ url_for('student_study_materials') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+        <a href="{{ url_for('student_study_materials') }}" style="padding: 12px 18px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
             <i class="fas fa-book"></i> Study Materials Library
         </a>
-        <a href="{{ url_for('student_timetable_view') }}" style="padding: 12px 18px; text-decoration: none; color: #64748b; font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
+        <a href="{{ url_for('student_timetable_view') }}" style="padding: 12px 18px; text-decoration: none; color: var(--text-muted); font-weight: 700; font-size: 0.95rem; border-bottom: 2px solid transparent; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 8px;">
             <i class="fas fa-calendar-alt"></i> Semester Timetable
         </a>
     </div>
@@ -241,19 +260,19 @@
     <!-- Student Profile Banner -->
     <div class="student-profile-card">
         <div>
-            <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; padding: 4px 8px; border-radius: 4px;">
+            <span class="badge" style="background: rgba(197, 160, 89, 0.15); color: var(--bms-navy-dark); border: 1px solid var(--bms-gold); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; padding: 4px 8px; border-radius: 4px; display: inline-block;">
                 Verified Student Profile
             </span>
-            <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: #0f172a;">
+            <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--bms-navy-dark);">
                 {{ student.name }}
             </h2>
             <div style="font-size: 0.95rem; color: #64748b; margin-top: 4px; font-family: monospace;">
-                University Reg No (UUCMS): <strong style="color: #0f172a;">{{ student.uucms_id }}</strong>
+                University Reg No (UUCMS): <strong style="color: var(--bms-navy-dark);">{{ student.uucms_id }}</strong>
             </div>
         </div>
 
         <div style="text-align: right;">
-            <div class="badge" style="background: #2563eb; color: white; font-size: 0.9rem; padding: 6px 14px; border-radius: 6px; font-weight: 700;">
+            <div class="badge" style="background: var(--bms-navy); color: #ffffff; border: 1px solid var(--bms-gold); font-size: 0.9rem; padding: 6px 14px; border-radius: 6px; font-weight: 700;">
                 {{ student.course }} • {{ student.semester }} (Section {{ student.section }})
             </div>
             <div style="font-size: 0.85rem; color: #64748b; margin-top: 6px;">

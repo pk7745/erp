@@ -390,7 +390,7 @@ class TestStudentSemesterTimetable(unittest.TestCase):
         self.assertIn(b"BCA", res.data)
         self.assertIn(b"Sem V", res.data)
         self.assertIn(b"Section A", res.data)
-        self.assertIn(b"Download Timetable", res.data)
+        self.assertIn(b"View Fullscreen (Read-Only)", res.data)
 
     def test_08_scope_isolation_and_tampering_prevention(self):
         """Verifies student from 1st Year Sem I cannot download 3rd Year Sem V timetable via direct ID."""

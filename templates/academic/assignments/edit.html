@@ -3,15 +3,15 @@
 {% block title %}Edit {{ assignment.title }} | BMS College ERP{% endblock %}
 
 {% block content %}
-<div class="page-container" style="padding: 24px; max-width: 850px; margin: 0 auto;">
+<div class="page-container" style="padding: 24px; padding-bottom: 70px; max-width: 850px; margin: 0 auto;">
     <div style="margin-bottom: 20px;">
-        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+        <a href="{{ url_for('assignment_detail', assignment_id=assignment.id) }}" style="color: #1E3E62; text-decoration: none; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
             <i class="fas fa-arrow-left"></i> Back to Detail
         </a>
-        <h1 style="margin: 10px 0 4px 0; font-size: 1.8rem; font-weight: 800; color: var(--text-main);">
+        <h1 style="margin: 10px 0 4px 0; font-size: 1.8rem; font-weight: 800; color: #0B192C;">
             Edit Assignment
         </h1>
-        <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+        <p style="margin: 0; color: #64748B; font-size: 0.9rem;">
             Update title, instructions, deadlines, or replace attachments without deleting student submissions.
         </p>
     </div>

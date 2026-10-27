@@ -1,69 +1,376 @@
 {% extends "base.html" %}
 {% block title %}Payslip History - BMS College ERP{% endblock %}
 
+{% block extra_css %}
+<style>
+    :root {
+        --bms-navy-dark: #0B192C;
+        --bms-navy: #1E3E62;
+        --bms-navy-light: #2A4E7A;
+        --bms-gold: #C5A059;
+        --bms-gold-light: #E0C58A;
+        --bms-gold-tint: rgba(197, 160, 89, 0.12);
+        --bg-body: #F4F6F9;
+        --bg-surface: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #0B192C;
+        --text-muted: #64748B;
+        --color-success: #059669;
+        --color-success-bg: rgba(5, 150, 105, 0.1);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --shadow-sm: 0 1px 3px rgba(11, 25, 44, 0.08);
+        --shadow-md: 0 4px 14px rgba(11, 25, 44, 0.1);
+    }
+
+    .payslip-page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 8px 4px 40px 4px;
+    }
+
+    /* Breadcrumb */
+    .bms-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+    }
+    .bms-breadcrumb a {
+        color: var(--bms-navy);
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: color 0.2s ease;
+    }
+    .bms-breadcrumb a:hover {
+        color: var(--bms-gold);
+    }
+    .bms-breadcrumb-separator {
+        color: #94A3B8;
+        font-weight: 400;
+    }
+    .bms-breadcrumb-current {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Hero Header */
+    .payslip-hero-header {
+        background: linear-gradient(135deg, var(--bms-navy-dark) 0%, #102A45 100%);
+        border-radius: var(--radius-lg);
+        padding: 24px 28px;
+        color: #FFFFFF;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid rgba(197, 160, 89, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .payslip-hero-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 240px;
+        height: 100%;
+        background: radial-gradient(circle at right center, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bms-gold-tint);
+        border: 1px solid var(--bms-gold);
+        color: var(--bms-gold-light);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    .payslip-hero-header h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        letter-spacing: -0.5px;
+    }
+    .payslip-hero-header p {
+        margin: 0;
+        color: #CBD5E1;
+        font-size: 0.92rem;
+    }
+
+    /* Personnel Summary Bar */
+    .personnel-info-bar {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+    .personnel-meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.88rem;
+    }
+    .personnel-meta-label {
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+    .personnel-meta-val {
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+    }
+
+    /* Card System */
+    .bms-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        margin-bottom: 24px;
+    }
+    .bms-card-header {
+        background: #FAFCFE;
+        border-bottom: 1px solid var(--border-color);
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .bms-card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--bms-navy-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Table */
+    .table-container-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .bms-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        text-align: left;
+    }
+    .bms-table thead th {
+        background: #F8FAFC;
+        color: var(--bms-navy-dark);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 14px 20px;
+        border-bottom: 2px solid var(--border-color);
+        white-space: nowrap;
+    }
+    .bms-table tbody td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+        color: var(--text-main);
+    }
+    .bms-table tbody tr:hover {
+        background: #F9FBFE;
+    }
+
+    /* Badges */
+    .badge-released {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+
+    /* Button Action */
+    .btn-download-pdf {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 9px 18px;
+        background: linear-gradient(135deg, var(--bms-navy) 0%, var(--bms-navy-dark) 100%);
+        color: #FFFFFF;
+        border: 1px solid var(--bms-navy-dark);
+        border-radius: var(--radius-sm);
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    .btn-download-pdf:hover {
+        background: linear-gradient(135deg, var(--bms-navy-light) 0%, var(--bms-navy) 100%);
+        border-color: var(--bms-gold);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(11, 25, 44, 0.2);
+    }
+
+    /* Callout Alert */
+    .bms-info-callout {
+        background: rgba(30, 62, 98, 0.06);
+        border-left: 4px solid var(--bms-navy);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+    .bms-info-callout i {
+        font-size: 1.25rem;
+        color: var(--bms-navy);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .payslip-hero-header {
+            padding: 20px 18px;
+        }
+        .payslip-hero-header h1 {
+            font-size: 1.45rem;
+        }
+        .bms-card-header {
+            padding: 14px 16px;
+        }
+        .btn-download-pdf {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Breadcrumb -->
-<div class="breadcrumb">
-    <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
-    <span class="breadcrumb-separator">›</span>
-    <span>Payslip History</span>
-</div>
+<div class="payslip-page-container">
+    <!-- Breadcrumb -->
+    <div class="bms-breadcrumb">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-home"></i> Home</a>
+        <span class="bms-breadcrumb-separator">›</span>
+        <span class="bms-breadcrumb-current">Payslip History</span>
+    </div>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="page-title">
+    <!-- Page Header -->
+    <div class="payslip-hero-header">
+        <div class="hero-tag">
+            <i class="fas fa-file-invoice-dollar"></i> Financial Dossier
+        </div>
         <h1>Payslip History & Financial Records</h1>
-        <div class="page-subtitle">Monthly salary disbursement records and downloadable PDF payslips</div>
+        <p>Monthly salary disbursement records and downloadable PDF payslips</p>
     </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-file-invoice-dollar" style="margin-right: 6px;"></i> Released Monthly Payslips</h3>
+    <!-- Personnel Bar -->
+    <div class="personnel-info-bar">
+        <div class="personnel-meta-item">
+            <i class="fas fa-user-circle" style="color: var(--bms-navy); font-size: 1.1rem;"></i>
+            <span class="personnel-meta-label">Personnel:</span>
+            <span class="personnel-meta-val">{{ user.full_name }}</span>
+        </div>
+        <div class="personnel-meta-item">
+            <i class="fas fa-id-badge" style="color: var(--bms-gold); font-size: 1.1rem;"></i>
+            <span class="personnel-meta-label">Role:</span>
+            <span class="personnel-meta-val">{{ user.role }}</span>
+        </div>
+        <div class="personnel-meta-item">
+            <i class="fas fa-fingerprint" style="color: var(--bms-navy); font-size: 1.1rem;"></i>
+            <span class="personnel-meta-label">Employee ID:</span>
+            <span class="personnel-meta-val" style="font-family: monospace;">#BMS-{{ user.id }}</span>
+        </div>
     </div>
-    <div class="table-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Month & Year</th>
-                    <th>Date Issued</th>
-                    <th>Status</th>
-                    <th>Reference ID</th>
-                    <th style="text-align: right;">Download Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for month in months %}
-                <tr>
-                    <td>
-                        <strong style="font-size: 0.95rem;">📅 {{ month }}</strong>
-                    </td>
-                    <td class="text-muted">
-                        26 {{ month }}
-                    </td>
-                    <td>
-                        <span class="badge badge-success"><i class="fas fa-check-circle"></i> Released</span>
-                    </td>
-                    <td style="font-family: var(--font-family-mono); font-size: 0.85rem; color: var(--primary);">
-                        BMS-{{ user.id }}-{{ loop.index + 2025 }}
-                    </td>
-                    <td style="text-align: right;">
-                        <a href="{{ url_for('generate_payslip_historical', uid=user.id, month=month) }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-file-pdf"></i> Download PDF
-                        </a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted p-2">No payslips generated for current period.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
 
-<div class="alert alert-primary mt-2">
-    <span><i class="fas fa-info-circle"></i> Need a historical statement or custom tax deduction slip? Contact the Accounts Office.</span>
+    <!-- Released Monthly Payslips Card -->
+    <div class="bms-card">
+        <div class="bms-card-header">
+            <h3 class="bms-card-title">
+                <i class="fas fa-file-invoice" style="color: var(--bms-gold);"></i> Released Monthly Payslips
+            </h3>
+        </div>
+        <div class="table-container-responsive">
+            <table class="bms-table">
+                <thead>
+                    <tr>
+                        <th>Month & Year</th>
+                        <th>Date Issued</th>
+                        <th>Status</th>
+                        <th>Reference ID</th>
+                        <th style="text-align: right;">Download Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in months %}
+                    <tr>
+                        <td>
+                            <strong style="font-size: 0.95rem; color: var(--bms-navy-dark);">
+                                <i class="fas fa-calendar-alt" style="color: var(--bms-navy); margin-right: 6px;"></i> {{ month }}
+                            </strong>
+                        </td>
+                        <td style="color: var(--text-muted); font-weight: 600;">
+                            26 {{ month }}
+                        </td>
+                        <td>
+                            <span class="badge-released">
+                                <i class="fas fa-check-circle"></i> Released
+                            </span>
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.88rem; font-weight: 700; color: var(--bms-navy);">
+                            BMS-{{ user.id }}-{{ loop.index + 2025 }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('generate_payslip_historical', uid=user.id, month=month) }}" class="btn-download-pdf">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 36px 16px;">
+                            <i class="fas fa-folder-open" style="font-size: 2rem; color: #CBD5E1; display: block; margin-bottom: 8px;"></i>
+                            No payslips generated for current period.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Support Callout -->
+    <div class="bms-info-callout">
+        <i class="fas fa-info-circle"></i>
+        <span>Need a historical statement or custom tax deduction slip? Contact the Accounts Office or Finance Administrator.</span>
+    </div>
 </div>
 {% endblock %}
