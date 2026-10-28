@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semester Timetable | Student Portal | BMS College of Commerce & Management</title>
+    <title>Official Semester Timetable | Student Academic Portal | BMS College of Commerce &amp; Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='notifications.css') }}">
     <style>
-        @media print { body, html { display: none !important; } }
-
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
+            --primary: #1e3a8a;
+            --primary-accent: #2563eb;
+            --primary-dark: #1e40af;
             --bg-body: #f8fafc;
             --bg-surface: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
-            --border: #e2e8f0;
+            --border: #cbd5e1;
+            --border-dark: #94a3b8;
             --success: #16a34a;
             --warning: #f59e0b;
             --danger: #dc2626;
@@ -66,7 +66,7 @@
         }
 
         .container {
-            max-width: 1140px;
+            max-width: 1280px;
             margin: 24px auto;
             padding: 0 20px;
         }
@@ -94,8 +94,8 @@
         }
 
         .nav-tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
+            color: var(--primary-accent);
+            border-bottom-color: var(--primary-accent);
         }
 
         .card {
@@ -132,7 +132,7 @@
             padding: 9px 18px;
             border-radius: 8px;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             text-decoration: none;
             border: none;
             cursor: pointer;
@@ -140,7 +140,7 @@
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: var(--primary-accent);
             color: #ffffff;
         }
 
@@ -156,20 +156,195 @@
 
         .btn-outline:hover {
             background: rgba(0,0,0,0.03);
+            border-color: var(--text-muted);
         }
 
-        .timetable-frame {
+        /* ------------------------------------------------------------- */
+        /* STRUCTURED COLLEGE TIMETABLE TABLE STYLING                    */
+        /* Faithfully reproducing the official BMSCCM schedule format     */
+        /* ------------------------------------------------------------- */
+        .timetable-table-container {
             width: 100%;
-            height: 750px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 2px solid #0f172a;
+            border-radius: 6px;
             background: #ffffff;
+            margin-top: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
         }
 
-        @media (max-width: 768px) {
-            .timetable-frame {
-                height: 480px;
+        .bms-timetable-grid {
+            width: 100%;
+            min-width: 1100px;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: center;
+            table-layout: fixed;
+        }
+
+        .bms-timetable-grid th, 
+        .bms-timetable-grid td {
+            border: 1px solid #475569;
+            padding: 6px 4px;
+            vertical-align: middle;
+            word-wrap: break-word;
+        }
+
+        /* Table Institutional Titles */
+        .header-institution {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-weight: 900;
+            font-size: 1.05rem;
+            letter-spacing: 0.5px;
+            padding: 10px 8px;
+            border-bottom: 1px solid #0f172a;
+        }
+
+        .header-sub-title {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: 800;
+            font-size: 0.92rem;
+            letter-spacing: 0.4px;
+            padding: 8px 6px;
+            border-bottom: 2px solid #0f172a;
+        }
+
+        /* Column Headers */
+        .th-col-header {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 0.78rem;
+            padding: 8px 4px;
+        }
+
+        .th-break-header {
+            background-color: #cbd5e1;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 0.72rem;
+            width: 44px;
+        }
+
+        /* Day row label */
+        .td-day {
+            font-weight: 800;
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-size: 0.85rem;
+            width: 80px;
+        }
+
+        .td-meta {
+            font-weight: 700;
+            background-color: #f8fafc;
+            color: #334155;
+            width: 42px;
+        }
+
+        .td-room {
+            font-weight: 700;
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-size: 0.78rem;
+            width: 52px;
+        }
+
+        /* Subject Content inside cells */
+        .subj-title {
+            font-weight: 800;
+            font-size: 0.82rem;
+            line-height: 1.25;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .subj-faculty {
+            font-weight: 600;
+            font-size: 0.74rem;
+            line-height: 1.2;
+            display: block;
+            opacity: 0.95;
+        }
+
+        /* Subject Color Tinting matching the original photograph */
+        .cell-pink {
+            background-color: #fecdd3 !important; /* Web Programming Lab */
+            color: #881337 !important;
+            border-color: #475569 !important;
+        }
+
+        .cell-blue {
+            background-color: #bfdbfe !important; /* Data Analytics */
+            color: #1e3a8a !important;
+            border-color: #475569 !important;
+        }
+
+        .cell-green {
+            background-color: #bbf7d0 !important; /* QT / Quantitative Techniques */
+            color: #14532d !important;
+            border-color: #475569 !important;
+        }
+
+        .cell-yellow {
+            background-color: #fef08a !important; /* CRT Program (Add-on) */
+            color: #713f12 !important;
+            border-color: #475569 !important;
+        }
+
+        .cell-default {
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
+        .cell-empty {
+            background-color: #ffffff;
+        }
+
+        /* Vertical Break Cells */
+        .td-break-col {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: 900;
+            font-size: 0.85rem;
+            letter-spacing: 5px;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 2.2;
+            padding: 12px 2px;
+        }
+
+        /* Responsive hints */
+        .scroll-hint {
+            display: none;
+            padding: 8px 12px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: #1e40af;
+            margin-bottom: 10px;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 992px) {
+            .scroll-hint {
+                display: flex;
             }
+        }
+
+        /* Print formatting */
+        @media print {
+            body { background: #ffffff !important; }
+            .navbar, .nav-tabs, .btn, .scroll-hint, .notifications-wrapper, .reference-doc-card { display: none !important; }
+            .container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            .timetable-table-container { border: 1px solid #000000 !important; box-shadow: none !important; }
+            .bms-timetable-grid th, .bms-timetable-grid td { border: 1px solid #000000 !important; color: #000000 !important; }
         }
     </style>
 </head>
@@ -177,7 +352,7 @@
 
 <!-- Header Navigation -->
 <header class="navbar">
-    <a href="{{ url_for('student_marks') }}" class="navbar-brand">
+    <a href="{{ url_for('student_dashboard') }}" class="navbar-brand">
         <img src="{{ url_for('static', filename='bms_logo.png') }}" alt="BMS College Logo">
         <span>BMS College of Commerce &amp; Management</span>
     </a>
@@ -237,7 +412,7 @@
             <span class="badge" style="background: #e0e7ff; color: #3730a3; margin-bottom: 6px;">
                 <i class="fas fa-user-graduate"></i> Verified Academic Scope
             </span>
-            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
+            <h2 style="margin: 0; font-size: 1.45rem; font-weight: 800; color: var(--text-main);">
                 {{ student.name }}
             </h2>
             <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">
@@ -248,7 +423,7 @@
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Course</div>
-                <div style="font-size: 1rem; font-weight: 800; color: var(--primary);">{{ course }}</div>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--primary-accent);">{{ course }}</div>
             </div>
             <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Year &amp; Semester</div>
@@ -258,56 +433,159 @@
                 <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Section</div>
                 <div style="font-size: 1rem; font-weight: 800; color: var(--text-main);">Section {{ section }}</div>
             </div>
+            {% if timetable and timetable.effective_date %}
+            <div style="background: var(--bg-body); padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Academic Year</div>
+                <div style="font-size: 1rem; font-weight: 800; color: #16a34a;">{{ timetable.effective_date }}</div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
     <!-- Published Timetable Content -->
     {% if timetable %}
-    <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="card" style="padding: 24px; margin-bottom: 24px;">
         <!-- Timetable Header Bar -->
-        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; background: rgba(0,0,0,0.01);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 16px;">
             <div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                     <span class="badge" style="background: #dcfce7; color: #15803d;">
                         <i class="fas fa-check-circle"></i> Official Published Timetable
                     </span>
                     <span class="badge" style="background: #f1f5f9; color: #64748b;">
                         Version {{ timetable.version }}
                     </span>
+                    {% if timetable.effective_date %}
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1;">
+                        {{ timetable.effective_date }}
+                    </span>
+                    {% endif %}
                 </div>
-                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 900; color: var(--text-main);">
                     {{ timetable.title }}
                 </h3>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
-                    Published by <strong>{{ timetable.uploader.full_name if timetable.uploader else 'Department Faculty' }}</strong> on {{ timetable.updated_at.strftime('%d %B %Y, %I:%M %p') }}
+                    Published by <strong>{{ timetable.uploader.full_name if timetable.uploader else 'Department Faculty' }}</strong> &bull; Effective for {{ course }} {{ semester }} Sec {{ section }}
                 </div>
                 {% if timetable.description %}
-                <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--text-main); background: #f8fafc; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--primary);">
+                <p style="margin: 8px 0 0 0; font-size: 0.88rem; color: var(--text-main); background: #f8fafc; padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--primary-accent);">
                     {{ timetable.description }}
                 </p>
                 {% endif %}
             </div>
 
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print Schedule
+                </button>
+                {% if timetable.file_storage_key %}
                 <a href="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" target="_blank" class="btn btn-outline">
-                    <i class="fas fa-external-link-alt"></i> Open in New Tab
-                </a>
-                <a href="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" target="_blank" class="btn btn-primary">
                     <i class="fas fa-eye"></i> View Fullscreen (Read-Only)
                 </a>
+                <a href="{{ url_for('download_student_timetable', timetable_id=timetable.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download Reference File
+                </a>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Embedded Viewer -->
-        <div style="padding: 20px;">
+        <!-- Scroll Hint for Mobile/Tablet -->
+        <div class="scroll-hint">
+            <i class="fas fa-arrows-alt-h"></i>
+            <span>Scroll horizontally to view all period slots, room numbers, and breaks.</span>
+        </div>
+
+        <!-- RECREATED STRUCTURED HTML TABLE -->
+        {% if timetable.parsed_grid %}
+        {% set grid = timetable.parsed_grid %}
+        <div class="timetable-table-container">
+            <table class="bms-timetable-grid" aria-label="Official College Semester Timetable">
+                <thead>
+                    <!-- Row 1: Institutional Header -->
+                    <tr>
+                        <th colspan="{{ grid.columns|length }}" class="header-institution">
+                            {{ grid.institution }}
+                        </th>
+                    </tr>
+                    <!-- Row 2: Sub-Title -->
+                    <tr>
+                        <th colspan="{{ grid.columns|length }}" class="header-sub-title">
+                            {{ grid.title }}
+                        </th>
+                    </tr>
+                    <!-- Row 3: Column Headings -->
+                    <tr>
+                        {% for col in grid.columns %}
+                        {% if col.type == 'break' %}
+                        <th class="th-break-header">{{ col.label }}</th>
+                        {% else %}
+                        <th class="th-col-header" style="{% if col.width %}width: {{ col.width }};{% endif %}">{{ col.label }}</th>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in grid.rows %}
+                    <tr>
+                        <td class="td-day">{{ r.day }}</td>
+                        <td class="td-meta">{{ r.sem }}</td>
+                        <td class="td-meta">{{ r.course }}</td>
+                        {% for cell in r.cells %}
+                            {% if cell.type == 'break' %}
+                                <td class="td-break-col" rowspan="{{ cell.rowspan }}">{{ cell.value }}</td>
+                            {% elif cell.type == 'room' %}
+                                <td class="td-room">{{ cell.value }}</td>
+                            {% elif cell.type == 'subject' %}
+                                <td colspan="{{ cell.colspan }}" class="{% if cell.color == 'pink' %}cell-pink{% elif cell.color == 'blue' %}cell-blue{% elif cell.color == 'green' %}cell-green{% elif cell.color == 'yellow' %}cell-yellow{% elif cell.color == 'empty' %}cell-empty{% else %}cell-default{% endif %}">
+                                    {% if cell.subject %}
+                                        <span class="subj-title">{{ cell.subject }}</span>
+                                        {% if cell.faculty %}<span class="subj-faculty">{{ cell.faculty }}</span>{% endif %}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Schedule Color Legend & Key -->
+        <div style="margin-top: 16px; padding: 12px 16px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 0.8rem;">
+            <span style="font-weight: 800; color: var(--text-main);"><i class="fas fa-palette"></i> Schedule Legend:</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #fecdd3; border: 1px solid #fda4af; border-radius: 3px;"></span>
+                <strong>Practical Programming Lab</strong> (Mrs. Shivani Shikha)
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #bfdbfe; border: 1px solid #93c5fd; border-radius: 3px;"></span>
+                <strong>Data Analytics</strong> (Ms. Bhoomika Hegde)
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #bbf7d0; border: 1px solid #86efac; border-radius: 3px;"></span>
+                <strong>Quantitative Techniques (QT)</strong> (Mr Gururaj)
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #fef08a; border: 1px solid #fde047; border-radius: 3px;"></span>
+                <strong>CRT Program (Add-on)</strong>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 14px; height: 14px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 3px;"></span>
+                <strong>Official Break</strong>
+            </span>
+        </div>
+
+        {% else %}
+        <!-- Fallback if grid_data is not available (raw file display) -->
+        <div style="padding: 16px 0;">
             {% if timetable.file_filename.endswith('.pdf') %}
-            <iframe src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" class="timetable-frame" title="{{ timetable.title }}"></iframe>
+            <iframe src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" style="width: 100%; height: 750px; border: 1px solid var(--border); border-radius: 8px;" title="{{ timetable.title }}"></iframe>
             {% elif timetable.file_filename.endswith(('.png', '.jpg', '.jpeg')) %}
             <div style="text-align: center; background: #f1f5f9; padding: 16px; border-radius: 8px;">
                 <img src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" style="max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" alt="{{ timetable.title }}">
             </div>
             {% else %}
-            <!-- Spreadsheet or Word Document Card -->
             <div style="padding: 40px; text-align: center; background: #f8fafc; border-radius: 8px;">
                 <i class="fas fa-file-excel" style="font-size: 3rem; color: #10b981; margin-bottom: 12px;"></i>
                 <h4 style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 700;">{{ timetable.file_filename }}</h4>
@@ -320,7 +598,43 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
     </div>
+
+    <!-- Original Reference Image / File Collapsible Inspection Card -->
+    {% if timetable.file_storage_key and timetable.parsed_grid %}
+    <div class="card reference-doc-card" style="padding: 20px 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleReferenceDoc()">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-image" style="font-size: 1.25rem; color: var(--primary-accent);"></i>
+                <div>
+                    <h4 style="margin: 0; font-size: 1rem; font-weight: 800;">Original College Reference Timetable Photo</h4>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        Official uploaded reference scan &bull; {{ timetable.file_filename }} ({{ (timetable.file_size / 1024)|round(1) }} KB)
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-outline" style="padding: 6px 14px; font-size: 0.8rem;" id="toggleRefBtn">
+                <i class="fas fa-chevron-down" id="toggleRefIcon"></i> Show Reference Photo
+            </button>
+        </div>
+
+        <div id="referenceDocContainer" style="display: none; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; text-align: center;">
+            <div style="background: #0f172a; padding: 12px; border-radius: 8px; display: inline-block; max-width: 100%;">
+                <img src="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" alt="Reference Timetable Photo" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+            </div>
+            <div style="margin-top: 12px; display: flex; justify-content: center; gap: 10px;">
+                <a href="{{ url_for('view_student_timetable_file', timetable_id=timetable.id) }}" target="_blank" class="btn btn-outline">
+                    <i class="fas fa-external-link-alt"></i> View Fullscreen
+                </a>
+                <a href="{{ url_for('download_student_timetable', timetable_id=timetable.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download Original File
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {% else %}
     <!-- Empty State -->
     <div class="card" style="padding: 60px 24px; text-align: center; border: 1px dashed var(--border);">
@@ -341,6 +655,23 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+function toggleReferenceDoc() {
+    const container = document.getElementById('referenceDocContainer');
+    const icon = document.getElementById('toggleRefIcon');
+    const btn = document.getElementById('toggleRefBtn');
+    if (container.style.display === 'none' || !container.style.display) {
+        container.style.display = 'block';
+        icon.className = 'fas fa-chevron-up';
+        btn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Reference Photo';
+    } else {
+        container.style.display = 'none';
+        icon.className = 'fas fa-chevron-down';
+        btn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Reference Photo';
+    }
+}
+</script>
 
 <!-- Notification & Service Worker Scripts -->
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>

@@ -236,6 +236,36 @@ The **BMS College ERP** is designed to replace fragmented legacy college softwar
 
 ---
 
+## 📅 Official Student Semester Timetable Module
+
+The **Student Semester Timetable** feature enables authorized faculty to publish official semester schedules, while providing students an automatic, responsive HTML table matching their enrolled course and semester.
+
+### Key Capabilities
+
+1. **Digital Timetable Table Recreation**:
+   - Recreated from the official BMSCCM printed timetable schedule as a 21-column responsive HTML table.
+   - Preserves exact institutional header: **BMS COLLEGE OF COMMERCE AND MANAGEMENT**, **V SEMESTER - TIME TABLE [AY - 2026-27]**.
+   - Faithful cell layout including:
+     - Morning slots (08:00 AM - 10:00 AM) with dual-period lab/analytics blocks.
+     - Official morning break (10:00 to 10:30) and afternoon break (01:30 PM - 02:00 PM).
+     - Individual room columns (Rooms 101, 102, 103, 203, 303, 305, 105, GF Lab).
+     - Exact color tinting: Rose/Pink for Practical Programming Lab, Light Blue for Data Analytics, Soft Green for Quantitative Techniques (QT), and Warm Yellow for CRT Program (Add-on).
+2. **Student Self-Service View (`/student/timetable`)**:
+   - Automatically detects logged-in student's `course`, `academic_year`, `semester`, and `section` (zero manual selection required).
+   - Shows the interactive HTML table as primary display.
+   - Provides options to inspect the original reference scan (`View Fullscreen`) and download the file.
+   - Enforces strict student scope isolation (students only see active published timetables for their group; empty state rendered otherwise).
+3. **Teacher Upload & Management Portal (`/academic/student-timetables`)**:
+   - Filter published and archived timetables by course, year, semester, section, and status.
+   - Upload new timetable files (PDF, PNG, JPG, XLSX, CSV, DOCX) with magic-byte verification (max 10MB).
+   - Pre-publish live preview for PDFs and image scans.
+   - Automated versioning ($N+1$) archiving previous versions upon publication.
+   - Structured JSON grid data support alongside file uploads.
+4. **Teacher Timetable Preservation**:
+   - The weekly teacher schedule (`/timetable`, `/timetable/manage`, `Timetable` model) and student attendance logging remain completely untouched and fully functional.
+
+---
+
 ## 📄 License & Credits
 
 Developed with ❤️ for **BMS College of Commerce & Management (Basavanagudi Campus)**.

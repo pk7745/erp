@@ -104,11 +104,12 @@ class TestStudentSemesterTimetable(unittest.TestCase):
         # Clean test timetables
         with app.app_context():
             test_tts = StudentSemesterTimetable.query.filter(
-                StudentSemesterTimetable.title.like('TEST_%')
+                StudentSemesterTimetable.title.like('TEST_%') |
+                StudentSemesterTimetable.title.like('BMS COLLEGE OF COMMERCE%')
             ).all()
             for t in test_tts:
                 file_path = os.path.join(app.config['STUDENT_TIMETABLES_STORAGE_FOLDER'], t.file_storage_key)
-                if os.path.exists(file_path):
+                if os.path.exists(file_path) and not t.file_storage_key.startswith('bmsccm_'):
                     try:
                         os.remove(file_path)
                     except Exception:
@@ -594,6 +595,156 @@ class TestStudentSemesterTimetable(unittest.TestCase):
 
         res_overview = self.client.get('/timetable/overview')
         self.assertEqual(res_overview.status_code, 200)
+
+
+
+    # --------------------------------------------------------------------------
+    # 6. OFFICIAL TIMETABLE RECREATION & STRUCTURED HTML TABLE VERIFICATION
+    # --------------------------------------------------------------------------
+    def test_14_authoritative_sem5_recreation_and_grid_structure(self):
+        """
+        Verifies that sync_authoritative_student_semester_timetable() creates
+        an exact digital representation of the official BMSCCM printed timetable:
+        - Institution title: BMS COLLEGE OF COMMERCE AND MANAGEMENT
+        - Sub-header: V SEMESTER - TIME TABLE [AY - 2026-27]
+        - Complete 21 columns including period timings, room columns, and breaks.
+        - Exact subject names, faculties, room numbers, and color tags.
+        """
+        from app import sync_authoritative_student_semester_timetable
+
+        with app.app_context():
+            sync_authoritative_student_semester_timetable(force=True)
+
+            tt = StudentSemesterTimetable.query.filter_by(
+                course='BCA',
+                academic_year='3rd Year',
+                semester='Sem V',
+                section='A',
+                status='PUBLISHED'
+            ).first()
+
+            self.assertIsNotNone(tt, "Authoritative Sem V Student Timetable should exist")
+            self.assertEqual(tt.effective_date, 'AY - 2026-27')
+            self.assertIn("BMS COLLEGE OF COMMERCE AND MANAGEMENT", tt.title)
+            self.assertIsNotNone(tt.parsed_grid, "parsed_grid property should return valid dictionary")
+
+            grid = tt.parsed_grid
+            self.assertEqual(grid['institution'], 'BMS COLLEGE OF COMMERCE AND MANAGEMENT')
+            self.assertEqual(grid['title'], 'V SEMESTER - TIME TABLE [AY - 2026-27]')
+            self.assertEqual(len(grid['columns']), 21, "Grid must contain exactly 21 columns")
+            self.assertEqual(len(grid['rows']), 6, "Grid must contain 6 days (Monday-Saturday)")
+
+            # Verify presence of all authoritative subjects and teachers from reference photo
+            grid_str = json.dumps(grid)
+            self.assertIn("Web Programming Lab", grid_str)
+            self.assertIn("Mrs. Shivani Shikha", grid_str)
+            self.assertIn("Software Engineering", grid_str)
+            self.assertIn("Ms Shivani Shikha", grid_str)
+            self.assertIn("Cryptography & Network Security", grid_str)
+            self.assertIn("Ms. Shrinkhala Kumari", grid_str)
+            self.assertIn("Web programming", grid_str)
+            self.assertIn("Mr. Balaram M", grid_str)
+            self.assertIn("Data Analytics", grid_str)
+            self.assertIn("Ms. Bhoomika Hegde", grid_str)
+            self.assertIn("QT", grid_str)
+            self.assertIn("Mr Gururaj", grid_str)
+            self.assertIn("CRT Program (Add-on)", grid_str)
+
+            # Verify rooms
+            for room in ['101', '102', '103', '203', '303', '305', '105', 'GF Lab']:
+                self.assertIn(room, grid_str)
+
+    def test_15_student_view_renders_html_table_and_respects_scoping(self):
+        """
+        Verifies that /student/timetable:
+        1. Renders the structured HTML table with institutional headers, schedule cells, and legend.
+        2. Automatically matches BCA Sem V student.
+        3. Protects cross-scope students (BCA Sem I sees empty state, zero data leakage).
+        """
+        from app import sync_authoritative_student_semester_timetable
+
+        with app.app_context():
+            sync_authoritative_student_semester_timetable(force=True)
+
+        # 1. Enrolled BCA Sem V Student (Aarav Sharma)
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['student_id'] = self.student_sem5_id
+
+        res = self.client.get('/student/timetable')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+
+        # Check institutional headers and structured table elements
+        self.assertIn("BMS COLLEGE OF COMMERCE AND MANAGEMENT", html)
+        self.assertIn("V SEMESTER - TIME TABLE [AY - 2026-27]", html)
+        self.assertIn("bms-timetable-grid", html)
+        self.assertIn("Web Programming Lab", html)
+        self.assertIn("Mrs. Shivani Shikha", html)
+        self.assertIn("Data Analytics", html)
+        self.assertIn("Ms. Bhoomika Hegde", html)
+        self.assertIn("QT", html)
+        self.assertIn("Mr Gururaj", html)
+        self.assertIn("CRT Program (Add-on)", html)
+        self.assertIn("View Fullscreen (Read-Only)", html)
+        self.assertIn("Original College Reference Timetable Photo", html)
+        self.assertIn("Download Reference File", html)
+
+        # 2. BCA Sem I Student (Rohan Verma) - scope isolation
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['student_id'] = self.student_sem1_id
+
+        res_sem1 = self.client.get('/student/timetable')
+        self.assertEqual(res_sem1.status_code, 200)
+        html_sem1 = res_sem1.data.decode('utf-8')
+
+        self.assertIn("No Timetable Published Yet", html_sem1)
+        self.assertNotIn('<table class="bms-timetable-grid"', html_sem1)
+        self.assertNotIn("Mrs. Shivani Shikha", html_sem1)
+
+    def test_16_teacher_upload_with_effective_date_and_grid_data(self):
+        """
+        Verifies that an authorized teacher can submit effective_date and grid_data
+        when publishing a timetable.
+        """
+        with self.client.session_transaction() as sess:
+            sess.clear()
+            sess['_user_id'] = str(self.teacher_id)
+            sess['user_id'] = self.teacher_id
+            sess['role'] = 'Faculty'
+            sess['name'] = 'Prof. Test Teacher'
+
+        dummy_grid = json.dumps({
+            "institution": "BMS TEST COLLEGE",
+            "title": "B.Com Sem I Schedule",
+            "columns": [{"id": "c1", "label": "Time", "type": "meta"}],
+            "rows": []
+        })
+
+        valid_pdf = (io.BytesIO(b"%PDF-1.4\n1 0 obj\n<< /Title (BCom Schedule) >>\nendobj\n%%EOF"), "bcom_sem1.pdf")
+        res = self.client.post('/academic/student-timetables/upload', data={
+            'course': 'B.Com',
+            'academic_year': '1st Year',
+            'semester': 'Sem I',
+            'section': 'A',
+            'title': 'TEST_BCOM_Sem1_Custom_Schedule',
+            'description': 'With effective date and custom grid',
+            'effective_date': '2026-2027 Term 1',
+            'grid_data': dummy_grid,
+            'file': valid_pdf
+        }, content_type='multipart/form-data')
+
+        self.assertEqual(res.status_code, 302)
+
+        with app.app_context():
+            tt = StudentSemesterTimetable.query.filter_by(
+                title='TEST_BCOM_Sem1_Custom_Schedule'
+            ).first()
+            self.assertIsNotNone(tt)
+            self.assertEqual(tt.effective_date, '2026-2027 Term 1')
+            self.assertIsNotNone(tt.parsed_grid)
+            self.assertEqual(tt.parsed_grid['institution'], 'BMS TEST COLLEGE')
 
 
 if __name__ == '__main__':
